@@ -1,0 +1,3 @@
+name: definitional-interpreters
+depend: equality delay-monad
+include: src
