@@ -57,146 +57,159 @@ Program i = Colist Stmt i
 ------------------------------------------------------------------------
 -- Heaps
 
--- Heaps. (Only a size. The natural number is wrapped, to avoid
--- confusing heaps and size limits.)
+-- Bounded heaps. (Only a size, plus a proof showing that the size is
+-- bounded.)
 
-record Heap : Set where
+record Heap (limit : ℕ) : Set where
   field
-    size : ℕ
+    size    : ℕ
+    bounded : size ≤ limit
 
 open Heap public
 
 -- An empty heap.
 
-empty : Heap
-empty = record { size = 0 }
+empty : ∀ {limit} → Heap limit
+empty = record { size = zero; bounded = zero≤ _ }
 
--- Increases the heap's size by one.
+-- A full heap.
 
-grow : Heap → Heap
-grow h = record h { size = suc (size h) }
+full : ∀ limit → Heap limit
+full limit = record { size = limit; bounded = ≤-refl }
 
--- Reduces the heap's size by one, if possible.
+-- Reduces the heap's size by one. If the heap is empty, then it is
+-- returned unchanged.
 
-shrink : Heap → Heap
-shrink h = record h { size = pred (size h) }
+shrink : ∀ {limit} → Heap limit → Heap limit
+shrink {limit} h = record h
+  { size    = pred (size h)
+  ; bounded = pred (size h)  ≤⟨ pred≤ _ ⟩
+              size h         ≤⟨ bounded h ⟩∎
+              limit          ∎≤
+  }
+
+-- Increases the heap's size by one. If the heap already has the
+-- maximum size, then nothing is returned.
+
+grow : ∀ {limit} → Heap limit → Maybe (Heap limit)
+grow {limit} h = case ≤⊎> limit (size h) of λ where
+  (inj₁ _)   → nothing
+  (inj₂ h<l) → just (record h { size    = suc (size h)
+                              ; bounded = h<l
+                              })
+
+-- Lemmas related to grow.
+
+grow-full :
+  ∀ {limit} (h : Heap limit) → size h ≡ limit → grow h ≡ nothing
+grow-full {limit} h h≡l with ≤⊎> limit (size h)
+... | inj₁ _   = refl
+... | inj₂ h<l =
+  ⊥-elim (+≮ 0 (
+    1 + size h  ≤⟨ h<l ⟩
+    limit       ≡⟨ sym h≡l ⟩≤
+    size h      ∎≤))
+
+grow-not-full :
+  ∀ {limit} (h : Heap limit) →
+  size h < limit → ∃ λ h′ → grow h ≡ just h′ × size h′ ≡ 1 + size h
+grow-not-full {limit} h h<l with ≤⊎> limit (size h)
+... | inj₂ _   = _ , refl , refl
+... | inj₁ l≤h =
+  ⊥-elim (+≮ 0 (
+    1 + size h  ≤⟨ h<l ⟩
+    limit       ≤⟨ l≤h ⟩∎
+    size h      ∎≤))
 
 ------------------------------------------------------------------------
 -- Definitional interpreter
 
 -- One step of computation.
 
-step : Stmt → Heap → ℕ → Maybe Heap
-step deallocate heap limit = just (shrink heap)
-                             -- Does not crash for empty heaps.
-step allocate   heap limit =
-  if size heap ≟ limit       -- Crashes if the heap already has
-    then nothing             -- the maximum size.
-    else just (grow heap)
+step : ∀ {limit} → Stmt → Heap limit → Maybe (Heap limit)
+step deallocate heap = just (shrink heap)
+step allocate   heap = grow heap
 
--- A definitional interpreter. The natural number is the maximum size
--- of the heap.
+-- A definitional interpreter.
 
-⟦_⟧ : ∀ {i} → Program ∞ → Heap → ℕ → Delay (Maybe Heap) i
-⟦ []    ⟧ heap limit = now (just heap)
-⟦ s ∷ p ⟧ heap limit =
-  case step s heap limit of λ where
+⟦_⟧ : ∀ {i limit} →
+      Program ∞ → Heap limit → Delay (Maybe (Heap limit)) i
+⟦ []    ⟧ heap = now (just heap)
+⟦ s ∷ p ⟧ heap =
+  case step s heap of λ where
     nothing     → now nothing
-    (just heap) → later λ { .force → ⟦ force p ⟧ heap limit }
+    (just heap) → later λ { .force → ⟦ force p ⟧ heap }
 
 ------------------------------------------------------------------------
 -- A program equivalence
 
 -- An equivalence relation that identifies programs that, given a
 -- sufficient amount of memory, behave identically (up to weak
--- bisimilarity, when the initial heap is empty).
+-- bisimilarity).
 
 infix 4 _≘_
 
 _≘_ : Program ∞ → Program ∞ → Set
 p ≘ q =
-  ∃ λ bound → ∀ l →
-  ⟦ p ⟧ empty (bound + l) ≈ ⟦ q ⟧ empty (bound + l)
+  ∃ λ bound →
+  ∀ limit (h : Heap limit) →
+  bound + size h ≤ limit →
+  ⟦ p ⟧ h ≈ ⟦ q ⟧ h
 
 -- The relation is an equivalence relation.
 
 reflexive : ∀ {p} → p ≘ p
-reflexive = 0 , λ _ → W.reflexive _
+reflexive = 0 , λ _ _ _ → W.reflexive _
 
 symmetric : ∀ {p q} → p ≘ q → q ≘ p
-symmetric = Σ-map id (W.symmetric ∘_)
+symmetric = Σ-map id λ hyp l h b → W.symmetric (hyp l h b)
 
 transitive : ∀ {p q r} → p ≘ q → q ≘ r → p ≘ r
 transitive {p} {q} {r} (b₁ , p₁) (b₂ , p₂) =
-  max b₁ b₂ , λ l →
-    ⟦ p ⟧ empty (max b₁ b₂ + l)         ≡⟨ by (lemma₀ b₁) ⟩≈
-    ⟦ p ⟧ empty (b₁ + ((b₂ ∸ b₁) + l))  ≈⟨ p₁ ((b₂ ∸ b₁) + l) ⟩
-    ⟦ q ⟧ empty (b₁ + ((b₂ ∸ b₁) + l))  ≡⟨ by lemma₃ ⟩≈
-    ⟦ q ⟧ empty (b₂ + ((b₁ ∸ b₂) + l))  ≈⟨ p₂ ((b₁ ∸ b₂) + l) ⟩
-    ⟦ r ⟧ empty (b₂ + ((b₁ ∸ b₂) + l))  ≡⟨ by lemma₂ ⟩≈
-    ⟦ r ⟧ empty (max b₁ b₂ + l)         ∎≈
+  max b₁ b₂ , λ l h b →
+    ⟦ p ⟧ h  ≈⟨ p₁ l h (lemma₁ l h b) ⟩
+    ⟦ q ⟧ h  ≈⟨ p₂ l h (lemma₂ l h b) ⟩∎
+    ⟦ r ⟧ h  ∎
   where
-  lemma₀ = λ b₁ b₂ l →
-    max b₁ b₂ + l         ≡⟨ by (max≡+∸ b₁) ⟩
-    b₁ + (b₂ ∸ b₁) + l    ≡⟨ by (+-assoc b₁) ⟩∎
-    b₁ + ((b₂ ∸ b₁) + l)  ∎
+  lemma₁ = λ l h b →
+    b₁ + size h         ≤⟨ ˡ≤max b₁ _ +-mono ≤-refl ⟩
+    max b₁ b₂ + size h  ≤⟨ b ⟩∎
+    l                   ∎≤
 
-  lemma₂ = λ l →
-    b₂ + ((b₁ ∸ b₂) + l)  ≡⟨ by (lemma₀ b₂) ⟩
-    max b₂ b₁ + l         ≡⟨ by (max-comm b₂) ⟩∎
-    max b₁ b₂ + l         ∎
+  lemma₂ = λ l h b →
+    b₂ + size h         ≤⟨ ʳ≤max b₁ _ +-mono ≤-refl ⟩
+    max b₁ b₂ + size h  ≤⟨ b ⟩∎
+    l                   ∎≤
 
-  lemma₃ = λ l →
-    b₁ + ((b₂ ∸ b₁) + l)  ≡⟨ by (lemma₀ b₁) ⟩
-    max b₁ b₂ + l         ≡⟨ by lemma₂ ⟩∎
-    b₂ + ((b₁ ∸ b₂ + l))  ∎
-
--- The relation is compatible with respect to [] and deallocate ∷_.
+-- The relation is compatible with respect to the program formers.
 
 []-cong : [] ≘ []
-[]-cong = 0 , λ _ → W.reflexive _
+[]-cong = 0 , λ _ _ _ → W.reflexive _
 
-deallocate∷-cong :
-  ∀ {p q} → force p ≘ force q → deallocate ∷ p ≘ deallocate ∷ q
-deallocate∷-cong (b , p≈q) = b , λ l → later λ { .force → p≈q l }
-
--- However, it is not compatible with respect to allocate ∷_.
-
-¬allocate∷-cong :
-  ¬ (∀ {p q} → force p ≘ force q → allocate ∷ p ≘ allocate ∷ q)
-¬allocate∷-cong hyp = ¬a∷p≘a∷q a∷p≘a∷q
+∷-cong : ∀ {s p q} → force p ≘ force q → s ∷ p ≘ s ∷ q
+∷-cong {deallocate} (b , p≈q) =
+  b , λ l h b≤ → later λ { .force → p≈q l (shrink h) (
+        b + size (shrink h)  ≤⟨ ≤-refl {n = b} +-mono pred≤ _ ⟩
+        b + size h           ≤⟨ b≤ ⟩
+        l                    ∎≤) }
+∷-cong {allocate} {p} {q} (b , p≈q) = 1 + b , lemma
   where
-  p q : Colist′ Stmt ∞
-  p = λ { .force → allocate ∷ λ { .force → [] } }
-  q = λ { .force → deallocate ∷ p }
-
-  p≘q : force p ≘ force q
-  p≘q = 0 , λ where
-    zero    → laterʳ now
-    (suc l) → later λ { .force → laterʳ now }
-
-  a∷p≘a∷q : allocate ∷ p ≘ allocate ∷ q
-  a∷p≘a∷q = hyp p≘q
-
-  2≢1 : ¬ now (just (record { size = 2 })) ≈
-          now (just (record { size = 1 }))
-  2≢1 ()
-
-  a∷p≉a∷q : ∀ {l} → ¬ ⟦ allocate ∷ p ⟧ empty (2 + l) ≈
-                      ⟦ allocate ∷ q ⟧ empty (2 + l)
-  a∷p≉a∷q hyp = 2≢1 (laterʳ⁻¹ (later⁻¹ (later⁻¹ hyp)))
-
-  ¬a∷p≘a∷q : ¬ allocate ∷ p ≘ allocate ∷ q
-  ¬a∷p≘a∷q (zero        , a∷p≈a∷q) = a∷p≉a∷q (a∷p≈a∷q 2)
-  ¬a∷p≘a∷q (suc zero    , a∷p≈a∷q) = a∷p≉a∷q (a∷p≈a∷q 1)
-  ¬a∷p≘a∷q (suc (suc _) , a∷p≈a∷q) = a∷p≉a∷q (a∷p≈a∷q 0)
+  lemma : ∀ l (h : Heap l) → 1 + b + size h ≤ l →
+          ⟦ allocate ∷ p ⟧ h ≈ ⟦ allocate ∷ q ⟧ h
+  lemma l h 1+b≤ with ≤⊎> l (size h)
+  ... | inj₁ _   = now
+  ... | inj₂ h<l = later λ { .force → p≈q l _ (
+                     b + (1 + size h)  ≡⟨ +-assoc b ⟩≤
+                     b + 1 + size h    ≡⟨ by (+-comm b) ⟩≤
+                     1 + b + size h    ≤⟨ 1+b≤ ⟩∎
+                     l                 ∎≤) }
 
 ------------------------------------------------------------------------
 -- Some examples
 
 -- A crashing computation.
 
-crash : Delay (Maybe Heap) ∞
+crash : ∀ {l} → Delay (Maybe (Heap l)) ∞
 crash = now nothing
 
 -- A program that runs in constant space.
@@ -222,68 +235,86 @@ constant-space₂ =
 unbounded-space : ∀ {i} → Program i
 unbounded-space = allocate ∷ λ { .force → unbounded-space }
 
--- The program constant-space crashes when the heap size limit is 0.
+-- The program constant-space crashes when the heap is full.
 
-constant-space-crash : ⟦ constant-space ⟧ empty 0 ≈ crash
-constant-space-crash = now
+constant-space-crash :
+  ∀ {limit} (h : Heap limit) →
+  size h ≡ limit →
+  ⟦ constant-space ⟧ h ≈ crash
+constant-space-crash h h≡l
+  rewrite grow-full h h≡l =
+  now
 
--- However, for positive heap size limits the program loops.
+-- However, for smaller heaps the program loops.
 
 constant-space-loop :
-  ∀ {i limit} → [ i ] ⟦ constant-space ⟧ empty (suc limit) ≈ never
-constant-space-loop =
+  ∀ {i limit} (h : Heap limit) →
+  size h < limit →
+  [ i ] ⟦ constant-space ⟧ h ≈ never
+constant-space-loop {limit = limit} h <limit
+  with grow h | grow-not-full h <limit
+... | .(just h′) | h′ , refl , refl =
   later λ { .force →
   later λ { .force →
-  constant-space-loop }}
+  constant-space-loop _ <limit }}
 
--- The program constant-space₂ loops when the heap size is at least 2.
+-- The program constant-space₂ loops when there are at least two empty
+-- slots in the heap.
 
 constant-space₂-loop :
-  ∀ {i limit} → [ i ] ⟦ constant-space₂ ⟧ empty (2 + limit) ≈ never
-constant-space₂-loop =
-  later λ { .force →
-  later λ { .force →
-  later λ { .force →
-  later λ { .force →
-  constant-space₂-loop }}}}
+  ∀ {i limit} (h : Heap limit) →
+  2 + size h ≤ limit →
+  [ i ] ⟦ constant-space₂ ⟧ h ≈ never
+constant-space₂-loop {i} {limit} h 2+h≤limit
+  with grow h | grow-not-full h (<→≤ 2+h≤limit)
+... | .(just h′) | h′ , refl , refl = later λ { .force → lemma }
+  where
+  lemma : [ i ] ⟦ force (tail constant-space₂) ⟧ h′ ≈ never
+  lemma with grow h′ | grow-not-full h′ 2+h≤limit
+  lemma | .(just h″) | h″ , refl , refl =
+    later λ { .force →
+    later λ { .force →
+    later λ { .force →
+    constant-space₂-loop _ 2+h≤limit }}}
 
--- The program unbounded-space crashes for all heap size limits.
+-- The program unbounded-space crashes for all heaps.
 
 unbounded-space-crash :
-  ∀ limit → ⟦ unbounded-space ⟧ empty limit ≈ crash
-unbounded-space-crash limit =
-  subst (λ s → ⟦ unbounded-space ⟧ (heap s) limit ≈ crash)
-        (∸≡0 limit)
-        (helper limit ≤-refl)
+  ∀ {limit} (h : Heap limit) → ⟦ unbounded-space ⟧ h ≈ crash
+unbounded-space-crash {limit} h = helper h (≤→≤↑ (bounded h))
   where
-  heap : ℕ → Heap
-  heap n = record { size = n }
-
   helper :
-    ∀ {i} n → n ≤ limit →
-    [ i ] ⟦ unbounded-space ⟧ (heap (limit ∸ n)) limit ≈ crash
-  helper n       n≤limit with (limit ∸ n) ≟ limit
-  helper _       _       | yes _           = now
-  helper zero    _       | no  limit≢limit = ⊥-elim (limit≢limit refl)
-  helper (suc n) n<limit | no  _     rewrite sym (∸≡suc∸suc n<limit) =
-    laterˡ (helper n (<→≤ n<limit))
+    ∀ {i} (h′ : Heap limit) → size h′ ≤↑ limit →
+    [ i ] ⟦ unbounded-space ⟧ h′ ≈ crash
+  helper h′ (≤↑-refl h′≡l)
+    rewrite grow-full h′ h′≡l =
+    now
+  helper h′ (≤↑-step 1+h′≤l)
+    with grow h′ | grow-not-full h′ (≤↑→≤ 1+h′≤l)
+  ... | .(just h″) | h″ , refl , refl =
+    laterˡ (helper h″ 1+h′≤l)
 
 -- The programs constant-space and constant-space₂ are ≘-equivalent.
 
 constant-space≘constant-space₂ : constant-space ≘ constant-space₂
 constant-space≘constant-space₂ =
-  2 , λ l →
-    ⟦ constant-space ⟧ empty (2 + l)   ≈⟨ constant-space-loop ⟩
-    never                              ≈⟨ W.symmetric constant-space₂-loop ⟩∎
-    ⟦ constant-space₂ ⟧ empty (2 + l)  ∎
+  2 , λ l h 2+h≤l →
+    ⟦ constant-space ⟧ h   ≈⟨ constant-space-loop _ (<→≤ 2+h≤l) ⟩
+    never                  ≈⟨ W.symmetric (constant-space₂-loop _ 2+h≤l) ⟩∎
+    ⟦ constant-space₂ ⟧ h  ∎
 
 -- The programs constant-space and unbounded-space are not
 -- ≘-equivalent.
 
 ¬constant-space≘unbounded-space : ¬ constant-space ≘ unbounded-space
 ¬constant-space≘unbounded-space (b , c≈u) = now≉never (
-  now nothing                        ≈⟨ W.symmetric (unbounded-space-crash (b + 1)) ⟩
-  ⟦ unbounded-space ⟧ empty (b + 1)  ≈⟨ W.symmetric (c≈u 1) ⟩
-  ⟦ constant-space ⟧ empty (b + 1)   ≡⟨ by (+-comm b) ⟩≈
-  ⟦ constant-space ⟧ empty (1 + b)   ≈⟨ constant-space-loop ⟩∎
-  never                              ∎)
+  crash                  ≈⟨ W.symmetric (unbounded-space-crash h) ⟩
+  ⟦ unbounded-space ⟧ h  ≈⟨ W.symmetric (c≈u _ h (≤-refl +-mono zero≤ _)) ⟩
+  ⟦ constant-space ⟧ h   ≈⟨ constant-space-loop h (m≤n+m _ _) ⟩∎
+  never                  ∎)
+  where
+  h : Heap (b + 1)
+  h = record
+    { size    = 0
+    ; bounded = zero≤ _
+    }
