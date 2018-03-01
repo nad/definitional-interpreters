@@ -95,25 +95,25 @@ lub-unique (lub₁₁ , lub₁₂) (lub₂₁ , lub₂₂) =
 lpo→lub : LPO → (∀ ms → ∃ λ n → Least-upper-bound ms n)
 lpo→lub lpo = λ ms → lub 0 ms , upper-bound 0 ms , least 0 ms
   where
-  -- The boolean next> d ms n is true if the n-th number (counting
+  -- The boolean next-> d ms n is true if the n-th number (counting
   -- from zero) of ms is the first one which is greater than d.
 
-  next> : ℕ → Colist ℕ ∞ → ℕ → Bool
-  next> _ []       _       = false
-  next> d (m ∷ ms) n       with Nat.≤⊎> m d
-  next> d (m ∷ ms) zero    | inj₁ _ = false
-  next> d (m ∷ ms) (suc n) | inj₁ _ = next> d (force ms) n
-  next> d (m ∷ ms) zero    | inj₂ _ = true
-  next> d (m ∷ ms) (suc _) | inj₂ _ = false
+  next-> : ℕ → Colist ℕ ∞ → ℕ → Bool
+  next-> _ []       _       = false
+  next-> d (m ∷ ms) n       with Nat.≤⊎> m d
+  next-> d (m ∷ ms) zero    | inj₁ _ = false
+  next-> d (m ∷ ms) (suc n) | inj₁ _ = next-> d (force ms) n
+  next-> d (m ∷ ms) zero    | inj₂ _ = true
+  next-> d (m ∷ ms) (suc _) | inj₂ _ = false
 
   -- The number lub d ms is the least upper bound of ms minus d.
 
   lub : ∀ {i} → ℕ → Colist ℕ ∞ → Conat i
-  lub d = λ ms → case lpo (next> d ms) of λ where
+  lub d = λ ms → case lpo (next-> d ms) of λ where
       (inj₁ _)           → zero
       (inj₂ (n , ≡true)) → step ms n ≡true
     module M where
-    step : ∀ {i} ms n → next> d ms n ≡ true → Conat i
+    step : ∀ {i} ms n → next-> d ms n ≡ true → Conat i
     step []       _       ()
     step (m ∷ ms) n       ≡true with Nat.≤⊎> m d
     step (m ∷ ms) zero    ()    | inj₁ _
@@ -153,10 +153,10 @@ lpo→lub lpo = λ ms → lub 0 ms , upper-bound 0 ms , least 0 ms
   upper-bound :
     ∀ {i} d ms →
     □ i (λ m → [ ∞ ] ⌜ m ∸ d ⌝ ≤ lub d ms) ms
-  upper-bound d ms with lpo (next> d ms)
+  upper-bound d ms with lpo (next-> d ms)
   ... | inj₁ ≡false = □-map ≤→∸≤0 (step ms ≡false)
     where
-    step : ∀ {i} ms (≡false : ∀ n → next> d ms n ≡ false) →
+    step : ∀ {i} ms (≡false : ∀ n → next-> d ms n ≡ false) →
            [ i ] ms ⊑ ⌜ d ⌝
     step []       _      = []
     step (m ∷ ms) ≡false with Nat.≤⊎> m d
@@ -167,7 +167,7 @@ lpo→lub lpo = λ ms → lub 0 ms , upper-bound 0 ms , least 0 ms
 
   ... | inj₂ (n , ≡true) = step ms n ≡true
     where
-    step : ∀ {i} ms n (≡true : next> d ms n ≡ true) →
+    step : ∀ {i} ms n (≡true : next-> d ms n ≡ true) →
            □ i (λ m → [ ∞ ] ⌜ m ∸ d ⌝ ≤ M.step d ms n ≡true) ms
     step []       _       ()
     step (m ∷ ms) n       ≡true with Nat.≤⊎> m d
@@ -218,11 +218,11 @@ lpo→lub lpo = λ ms → lub 0 ms , upper-bound 0 ms , least 0 ms
     ∀ {i} d ms ub →
     □ ∞ (λ m → [ ∞ ] ⌜ m ⌝ ≤ ub) ms →
     [ i ] lub d ms ≤ ub ⊖ d
-  least d ms ub with lpo (next> d ms)
+  least d ms ub with lpo (next-> d ms)
   ... | inj₁ _           = λ _ → zero
   ... | inj₂ (n , ≡true) = step ms n ≡true ub
     where
-    step : ∀ {i} ms n (≡true : next> d ms n ≡ true) ub →
+    step : ∀ {i} ms n (≡true : next-> d ms n ≡ true) ub →
            □ ∞ (λ m → [ ∞ ] ⌜ m ⌝ ≤ ub) ms →
            [ i ] M.step d ms n ≡true ≤ ub ⊖ d
     step []       _       ()
