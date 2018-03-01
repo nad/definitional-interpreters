@@ -282,14 +282,12 @@ infixr -2 step-≲ step-≡≲ _≡⟨⟩≲_ step-∼≲
 
 step-≲ : ∀ {i} ms {ns os} →
          [ ∞ ] ns ≲ os → [ i ] ms ≲ ns → [ i ] ms ≲ os
-step-≲ _ ns≲os ms≲ns = □-map (lemma ns≲os) ms≲ns
+step-≲ _ {ns} {os} ns≲os ms≲ns = □-map lemma ms≲ns
   where
-  lemma :
-    ∀ {m ms ns} →
-    [ ∞ ] ms ≲ ns →
-    ◇ (m ≤_) ms → ◇ (m ≤_) ns
-  lemma (p ∷ _) (here m≤) = ◇-map (Nat.≤-trans m≤) p
-  lemma (_ ∷ p) (there q) = lemma (force p) q
+  lemma = λ {n} →
+    ◇ (n ≤_) ns                    ↝⟨ □◇-witness ns≲os ⟩
+    (∃ λ o → ◇ (o ≤_) os × n ≤ o)  ↝⟨ (λ { (_ , ◇o≤os , n≤o) → ◇-map (Nat.≤-trans n≤o) ◇o≤os }) ⟩□
+    ◇ (n ≤_) os                    □
 
 syntax step-≲ ms ns≲os ms≲ns = ms ≲⟨ ms≲ns ⟩ ns≲os
 
