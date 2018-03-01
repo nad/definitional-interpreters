@@ -15,6 +15,10 @@ module README where
 
 import Bounded-space
 
+-- Upper bounds of colists containing natural numbers.
+
+import Upper-bounds
+
 -- Definitional interpreters can model systems with unbounded space.
 
 import Unbounded-space
