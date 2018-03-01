@@ -167,17 +167,17 @@ no-finite→infinite {m} {ms} no-finite =
 
 -- The least upper bound of a colist of natural numbers.
 
-Least-upper-bound : Size → Colist ℕ ∞ → Conat ∞ → Set
-Least-upper-bound i ns n =
-  [ i ] ns ⊑ n
+Least-upper-bound : Colist ℕ ∞ → Conat ∞ → Set
+Least-upper-bound ns n =
+  [ ∞ ] ns ⊑ n
     ×
-  (∀ n′ → [ ∞ ] ns ⊑ n′ → [ i ] n ≤ n′)
+  (∀ n′ → [ ∞ ] ns ⊑ n′ → [ ∞ ] n ≤ n′)
 
 -- Least upper bounds are unique.
 
 lub-unique :
   ∀ {ns n₁ n₂ i} →
-  Least-upper-bound ∞ ns n₁ → Least-upper-bound ∞ ns n₂ →
+  Least-upper-bound ns n₁ → Least-upper-bound ns n₂ →
   Conat.[ i ] n₁ ∼ n₂
 lub-unique (lub₁₁ , lub₁₂) (lub₂₁ , lub₂₂) =
   antisymmetric-≤ (lub₁₂ _ lub₂₁) (lub₂₂ _ lub₁₁)
@@ -187,7 +187,7 @@ lub-unique (lub₁₁ , lub₁₂) (lub₂₁ , lub₂₂) =
 --
 -- See also lub→wlpo below.
 
-lpo→lub : LPO → (∀ ms → ∃ λ n → Least-upper-bound ∞ ms n)
+lpo→lub : LPO → (∀ ms → ∃ λ n → Least-upper-bound ms n)
 lpo→lub lpo = λ ms → lub 0 ms , upper-bound 0 ms , least 0 ms
   where
   -- The boolean next> d ms n is true if the n-th number (counting
@@ -344,7 +344,7 @@ lpo→lub lpo = λ ms → lub 0 ms , upper-bound 0 ms , least 0 ms
 -- when the initial heap is empty.
 
 Maximum-heap-usage : Program ∞ → Conat ∞ → Set
-Maximum-heap-usage p n = Least-upper-bound ∞ (⟦ p ⟧ 0) n
+Maximum-heap-usage p n = Least-upper-bound (⟦ p ⟧ 0) n
 
 -- The smallest extra heap size that is required to run the given
 -- program, for arbitrary initial heaps.
@@ -491,7 +491,7 @@ lpo→max lpo p = lpo→lub lpo (⟦ p ⟧ 0)
 -- Note that max→wlpo implies that if least upper bounds could always
 -- be determined, then WLPO would hold.
 
-lub→wlpo : (∀ ms → ∃ λ n → Least-upper-bound ∞ ms n) → WLPO
+lub→wlpo : (∀ ms → ∃ λ n → Least-upper-bound ms n) → WLPO
 lub→wlpo find-lub = max→wlpo (λ p → find-lub (⟦ p ⟧ 0))
 
 ------------------------------------------------------------------------
@@ -650,11 +650,11 @@ n ∷ ns □≲ = cons′ λ { .force → force ns □≲ }
 ≲→least-upper-bounds-≤ :
   ∀ {m n ms ns} →
   [ ∞ ] ms ≲ ns →
-  Least-upper-bound ∞ ms m →
-  Least-upper-bound ∞ ns n →
+  Least-upper-bound ms m →
+  Least-upper-bound ns n →
   [ ∞ ] m ≤ n
 ≲→least-upper-bounds-≤ {m} {n} {ms} {ns} ms≲ns m-lub =
-  Least-upper-bound ∞ ns n                 ↝⟨ proj₁ ⟩
+  Least-upper-bound ns n                   ↝⟨ proj₁ ⟩
   [ ∞ ] ns ⊑ n                             ↝⟨ (λ hyp → flip transitive-◇≤⊑ hyp) ⟩
   (∀ {m} → ◇ (m ≤_) ns → [ ∞ ] ⌜ m ⌝ ≤ n)  ↝⟨ (λ hyp → □-map hyp ms≲ns) ⟩
   [ ∞ ] ms ⊑ n                             ↝⟨ proj₂ m-lub _ ⟩□
