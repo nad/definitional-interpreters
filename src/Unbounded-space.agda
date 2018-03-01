@@ -182,6 +182,161 @@ lub-unique :
 lub-unique (lub₁₁ , lub₁₂) (lub₂₁ , lub₂₂) =
   antisymmetric-≤ (lub₁₂ _ lub₂₁) (lub₂₂ _ lub₁₁)
 
+-- If LPO holds, then the least upper bound of a colist of natural
+-- numbers can be determined.
+--
+-- See also lub→wlpo below.
+
+lpo→lub : LPO → (∀ ms → ∃ λ n → Least-upper-bound ∞ ms n)
+lpo→lub lpo = λ ms → lub 0 ms , upper-bound 0 ms , least 0 ms
+  where
+  -- The boolean next> d ms n is true if the n-th number (counting
+  -- from zero) of ms is the first one which is greater than d.
+
+  next> : ℕ → Colist ℕ ∞ → ℕ → Bool
+  next> _ []       _       = false
+  next> d (m ∷ ms) n       with Nat.≤⊎> m d
+  next> d (m ∷ ms) zero    | inj₁ _ = false
+  next> d (m ∷ ms) (suc n) | inj₁ _ = next> d (force ms) n
+  next> d (m ∷ ms) zero    | inj₂ _ = true
+  next> d (m ∷ ms) (suc _) | inj₂ _ = false
+
+  -- The number lub d ms is the least upper bound of ms minus d.
+
+  lub : ∀ {i} → ℕ → Colist ℕ ∞ → Conat i
+  lub d = λ ms → case lpo (next> d ms) of λ where
+      (inj₁ _)           → zero
+      (inj₂ (n , ≡true)) → step ms n ≡true
+    module M where
+    step : ∀ {i} ms n → next> d ms n ≡ true → Conat i
+    step []       _       ()
+    step (m ∷ ms) n       ≡true with Nat.≤⊎> m d
+    step (m ∷ ms) zero    ()    | inj₁ _
+    step (m ∷ ms) (suc _) ()    | inj₂ _
+    step (m ∷ ms) (suc n) ≡true | inj₁ _ = step (force ms) n ≡true
+    step (m ∷ ms) zero    _     | inj₂ _ =
+      suc λ { .force → ⌜ pred m ∸ d ⌝ ⊕ lub m (force ms) }
+
+  -- Some simple lemmas.
+
+  ≤→∸≤0 : ∀ {m n} → [ ∞ ] ⌜ m ⌝ ≤ ⌜ n ⌝ → [ ∞ ] ⌜ m ∸ n ⌝ ≤ zero
+  ≤→∸≤0 {m} {n} =
+    [ ∞ ] ⌜ m ⌝ ≤ ⌜ n ⌝     ↝⟨ ⌜⌝-mono⁻¹ ⟩
+    (m ≤ n)                 ↝⟨ Nat._∸-mono Nat.≤-refl {n = n} ⟩
+    (m ∸ n ≤ n ∸ n)         ↝⟨ subst (m ∸ n ≤_) (Nat.∸≡0 n) ⟩
+    (m ∸ n ≤ zero)          ↝⟨ ⌜⌝-mono ⟩□
+    [ ∞ ] ⌜ m ∸ n ⌝ ≤ zero  □
+
+  ∸∼1+pred∸ :
+    ∀ {m n o i} →
+    n < m → Conat.[ i ] ⌜ m ∸ n ⌝ ⊕ o ∼ ⌜ 1 ⌝ ⊕ ⌜ pred m ∸ n ⌝ ⊕ o
+  ∸∼1+pred∸ {m} {n} {o} m>n =
+    ⌜ m ∸ n ⌝ ⊕ o               ∼⟨ ⌜⌝-cong lemma +-cong Conat.reflexive-∼ _ ⟩
+    ⌜ 1 + (pred m ∸ n) ⌝ ⊕ o    ∼⟨ ⌜⌝-+ 1 +-cong Conat.reflexive-∼ _ ⟩∎
+    ⌜ 1 ⌝ ⊕ ⌜ pred m ∸ n ⌝ ⊕ o  ∎∼
+    where
+    lemma =
+      m ∸ n              ≡⟨⟩
+      (1 + m) ∸ (1 + n)  ≡⟨ Nat.+-∸-assoc m>n ⟩
+      1 + (m ∸ (1 + n))  ≡⟨ cong (1 +_) (sym (Nat.∸-∸-assoc {m = m} 1)) ⟩
+      1 + (m ∸ 1 ∸ n)    ≡⟨ cong ((1 +_) ∘ (_∸ n)) (sym (Nat.pred≡∸1 m)) ⟩
+      1 + (pred m ∸ n)   ∎
+
+  -- The number lub d ms is an upper bound of ms with d subtracted
+  -- from every element.
+
+  upper-bound :
+    ∀ {i} d ms →
+    □ i (λ m → [ ∞ ] ⌜ m ∸ d ⌝ ≤ lub d ms) ms
+  upper-bound d ms with lpo (next> d ms)
+  ... | inj₁ ≡false = □-map ≤→∸≤0 (step ms ≡false)
+    where
+    step : ∀ {i} ms (≡false : ∀ n → next> d ms n ≡ false) →
+           [ i ] ms ⊑ ⌜ d ⌝
+    step []       _      = []
+    step (m ∷ ms) ≡false with Nat.≤⊎> m d
+    step (m ∷ ms) ≡false | inj₁ m≤d = ⌜⌝-mono m≤d ∷ λ { .force →
+                                      step (force ms) (≡false ∘ suc) }
+    step (m ∷ ms) ≡false | inj₂ _   =
+      ⊥-elim (Bool.true≢false (≡false 0))
+
+  ... | inj₂ (n , ≡true) = step ms n ≡true
+    where
+    step : ∀ {i} ms n (≡true : next> d ms n ≡ true) →
+           □ i (λ m → [ ∞ ] ⌜ m ∸ d ⌝ ≤ M.step d ms n ≡true) ms
+    step []       _       ()
+    step (m ∷ ms) n       ≡true with Nat.≤⊎> m d
+    step (m ∷ ms) zero    ()    | inj₁ _
+    step (m ∷ ms) (suc _) ()    | inj₂ _
+    step (m ∷ ms) (suc n) ≡true | inj₁ m≤d =
+      (⌜ m ∸ d ⌝                    ≤⟨ ≤→∸≤0 (⌜⌝-mono m≤d) ⟩
+       zero                         ≤⟨ zero ⟩∎
+       M.step d (force ms) n ≡true  ∎≤)
+        ∷
+      λ { .force → step (force ms) n ≡true }
+
+    step (m ∷ ms) zero ≡true | inj₂ m>d =
+      lemma₃ ∷ λ { .force →
+      □-map (lemma₄ _) (upper-bound m (force ms)) }
+      where
+      o = lub m (force ms)
+
+      lemma₁ = λ n →
+        ⌜ n ∸ d ⌝              ≤⟨ ⌜⌝-mono (Nat.≤∸+ _ m Nat.∸-mono Nat.≤-refl {n = d}) ⟩
+        ⌜ ((n ∸ m) + m) ∸ d ⌝  ∼⟨ ⌜⌝-cong (Nat.+-∸-assoc (Nat.<→≤ m>d)) ⟩≤
+        ⌜ (n ∸ m) + (m ∸ d) ⌝  ∼⟨ ⌜⌝-cong (Nat.+-comm (n ∸ m)) ⟩≤
+        ⌜ (m ∸ d) + (n ∸ m) ⌝  ∼⟨ ⌜⌝-+ (m ∸ d) ⟩≤
+        ⌜ m ∸ d ⌝ ⊕ ⌜ n ∸ m ⌝  ∎≤
+
+      lemma₂ = λ o →
+        ⌜ m ∸ d ⌝                ⊕ o   ∼⟨ ∸∼1+pred∸ m>d ⟩≤
+        (⌜ 1 ⌝ ⊕ ⌜ pred m ∸ d ⌝) ⊕ o   ∼⟨ Conat.symmetric-∼ (+-assoc ⌜ 1 ⌝) ⟩≤
+        ⌜ 1 ⌝ ⊕ (⌜ pred m ∸ d ⌝  ⊕ o)  ∎≤
+
+      lemma₃ =
+        ⌜ m ∸ d ⌝                      ≤⟨ m≤m+n ⟩
+        ⌜ m ∸ d ⌝                ⊕ o   ≤⟨ lemma₂ _ ⟩
+        ⌜ 1 ⌝ ⊕ (⌜ pred m ∸ d ⌝  ⊕ o)  ≤⟨ (suc λ { .force → reflexive-≤ _ }) ⟩∎
+        _                              ∎≤
+
+      lemma₄ = λ n →
+        [ ∞ ] ⌜ n ∸ m ⌝ ≤ o                             ↝⟨ reflexive-≤ _ +-mono_ ⟩
+        [ ∞ ] ⌜ m ∸ d ⌝ ⊕ ⌜ n ∸ m ⌝ ≤ ⌜ m ∸ d ⌝ ⊕ o     ↝⟨ transitive-≤ (lemma₁ _) ⟩
+        [ ∞ ] ⌜ n ∸ d ⌝ ≤ ⌜ m ∸ d ⌝ ⊕ o                 ↝⟨ flip transitive-≤ (lemma₂ _) ⟩
+        [ ∞ ] ⌜ n ∸ d ⌝ ≤ ⌜ 1 ⌝ ⊕ (⌜ pred m ∸ d ⌝ ⊕ o)  ↝⟨ flip transitive-≤ (suc λ { .force → reflexive-≤ _ }) ⟩□
+        _                                               □
+
+  -- The number lub d ms is below every number that is an upper bound
+  -- of ms with d subtracted from every element.
+
+  least :
+    ∀ {i} d ms ub →
+    □ ∞ (λ m → [ ∞ ] ⌜ m ⌝ ≤ ub) ms →
+    [ i ] lub d ms ≤ ub ⊖ d
+  least d ms ub with lpo (next> d ms)
+  ... | inj₁ _           = λ _ → zero
+  ... | inj₂ (n , ≡true) = step ms n ≡true ub
+    where
+    step : ∀ {i} ms n (≡true : next> d ms n ≡ true) ub →
+           □ ∞ (λ m → [ ∞ ] ⌜ m ⌝ ≤ ub) ms →
+           [ i ] M.step d ms n ≡true ≤ ub ⊖ d
+    step []       _       ()
+    step (m ∷ ms) n       ≡true ub with Nat.≤⊎> m d
+    step (m ∷ ms) zero    ()    _  | inj₁ _
+    step (m ∷ ms) (suc _) ()    _  | inj₂ _
+    step (m ∷ ms) (suc n) ≡true ub | inj₁ _   =
+      step (force ms) n ≡true ub ∘ □-tail
+    step (m ∷ ms) zero    ≡true ub | inj₂ m>d = λ where
+      (m≤ub ∷ ms⊑ub) →
+        _                                          ∼⟨ (suc λ { .force → Conat.reflexive-∼ _ }) ⟩≤
+        ⌜ 1 ⌝ ⊕ ⌜ pred m ∸ d ⌝ ⊕ lub m (force ms)  ≤⟨ (suc λ { .force → reflexive-≤ _ +-mono least m (force ms) ub (force ms⊑ub) }) ⟩
+        ⌜ 1 ⌝ ⊕ ⌜ pred m ∸ d ⌝ ⊕ (ub ⊖ m)          ∼⟨ Conat.symmetric-∼ (∸∼1+pred∸ m>d) ⟩≤
+        ⌜ m ∸ d ⌝ ⊕ (ub ⊖ m)                       ∼⟨ +-comm ⌜ _ ∸ d ⌝ ⟩≤
+        (ub ⊖ m) ⊕ ⌜ m ∸ d ⌝                       ∼⟨ (_ ∎∼) +-cong ⌜⌝-∸ _ d ⟩≤
+        (ub ⊖ m) ⊕ (⌜ m ⌝ ⊖ d)                     ∼⟨ Conat.symmetric-∼ (+-∸-assoc (⌜⌝-mono (Nat.<→≤ m>d))) ⟩≤
+        (ub ⊖ m ⊕ ⌜ m ⌝) ⊖ d                       ∼⟨ ∸+≡ m≤ub ∸-cong refl {x = d} ⟩≤
+        ub ⊖ d                                     ∎≤
+
 ------------------------------------------------------------------------
 -- The maximum heap usage predicate
 
@@ -329,188 +484,15 @@ max→wlpo find-max = λ f → case find-max (p f) of λ where
 
 -- Furthermore, if LPO holds, then the maximum heap usage can always
 -- be determined.
---
--- TODO: I guess that LPO implies that least upper bounds can be
--- determined. Perhaps the proof below can be simplified.
 
 lpo→max : LPO → (∀ p → ∃ λ n → Maximum-heap-usage p n)
-lpo→max lpo =
-  λ p → max-usage 0 p 0 , upper-bound 0 p 0 , least 0 p 0 Nat.≤-refl
-  where
-  -- The boolean next p h δ n is true if the n-th instruction
-  -- (counting from zero) of p is the first one which forces the heap
-  -- size to become strictly larger than δ + h, when the initial heap
-  -- is h.
+lpo→max lpo p = lpo→lub lpo (⟦ p ⟧ 0)
 
-  next : Program ∞ → Heap → ℕ → ℕ → Bool
-  next []               _       _       _       = false
-  next (allocate   ∷ p) _       zero    zero    = true
-  next (allocate   ∷ p) _       zero    (suc n) = false
-  next (allocate   ∷ p) h       (suc δ) zero    = false
-  next (allocate   ∷ p) h       (suc δ) (suc n) = next (force p) (suc h) δ n
-  next (deallocate ∷ p) _       _       zero    = false
-  next (deallocate ∷ p) zero    δ       (suc n) = next (force p) zero δ n
-  next (deallocate ∷ p) (suc h) δ       (suc n) = next (force p) h (suc δ) n
+-- Note that max→wlpo implies that if least upper bounds could always
+-- be determined, then WLPO would hold.
 
-  -- The number max-usage d p h is the maximum heap usage of ⟦ p ⟧ h,
-  -- minus d (assuming that d ≤ h).
-
-  max-usage : ∀ {i} → ℕ → Program ∞ → Heap → Conat i
-  max-usage d = λ p h → case lpo (next p h 0) of λ where
-      (inj₁ _)           → ⌜ h ∸ d ⌝
-      (inj₂ (n , ≡true)) → step p h 0 n ≡true
-    module M where
-    step : ∀ {i} p h δ n → next p h δ n ≡ true → Conat i
-    step []               _       _       _       ()
-    step (allocate   ∷ p) h       zero    zero    _  = suc λ { .force →
-                                                         max-usage (suc d) (force p) (suc h) }
-    step (allocate   ∷ p) _       zero    (suc n) ()
-    step (allocate   ∷ p) h       (suc δ) zero    ()
-    step (allocate   ∷ p) h       (suc δ) (suc n)    = step (force p) (suc h) δ n
-    step (deallocate ∷ p) _       _       zero    ()
-    step (deallocate ∷ p) zero    δ       (suc n)    = step (force p) zero δ n
-    step (deallocate ∷ p) (suc h) δ       (suc n)    = step (force p) h (suc δ) n
-
-  -- Some simple lemmas.
-
-  suc+∸∼+suc∸ :
-    ∀ {m n} o → Conat.[ ∞ ] ⌜ suc m + n ∸ o ⌝ ∼ ⌜ m + suc n ∸ o ⌝
-  suc+∸∼+suc∸ {m} o =
-    ⌜⌝-cong (cong (_∸ o) (Nat.suc+≡+suc m))
-
-  ∸suc≤→∸≤suc′ :
-    ∀ {i m} n {o} →
-    [ i ] ⌜ m ∸ suc n ⌝ ≤ force o → [ ssuc i ] ⌜ m ∸ n ⌝ ≤ suc o
-  ∸suc≤→∸≤suc′ {i} {m} n {o} =
-    [ i ] ⌜ m ∸ suc n ⌝ ≤ force o  ↝⟨ transitive-≤ (∼→≤ (Conat.symmetric-∼ (⌜⌝-∸ m (suc n)))) ⟩
-    [ i ] ⌜ m ⌝ ⊖ suc n ≤ force o  ↝⟨ ∸suc≤→∸≤suc _ n ⟩
-    [ ssuc i ] ⌜ m ⌝ ⊖ n ≤ suc o   ↝⟨ transitive-≤ (∼→≤ (⌜⌝-∸ _ n)) ⟩□
-    [ ssuc i ] ⌜ m ∸ n ⌝ ≤ suc o   □
-
-  ∸≤suc→∸suc≤′ :
-    ∀ {m} n {o i} {j : Size< i} →
-    [ i ] ⌜ m ∸ n ⌝ ≤ suc o → [ j ] ⌜ m ∸ suc n ⌝ ≤ force o
-  ∸≤suc→∸suc≤′ {m} n {o} {i} {j} =
-    [ i ] ⌜ m ∸ n ⌝ ≤ suc o        ↝⟨ transitive-≤ (∼→≤ (Conat.symmetric-∼ (⌜⌝-∸ _ n))) ⟩
-    [ i ] ⌜ m ⌝ ⊖ n ≤ suc o        ↝⟨ ∸≤suc→∸suc≤ _ n ⟩
-    [ j ] ⌜ m ⌝ ⊖ suc n ≤ force o  ↝⟨ transitive-≤ (∼→≤ (⌜⌝-∸ m (suc n))) ⟩□
-    [ j ] ⌜ m ∸ suc n ⌝ ≤ force o  □
-
-  ∸-cong : ∀ {m n} o → [ ∞ ] ⌜ m ⌝ ≤ ⌜ n ⌝ → [ ∞ ] ⌜ m ∸ o ⌝ ≤ ⌜ n ∸ o ⌝
-  ∸-cong {m} {n} o =
-    [ ∞ ] ⌜ m ⌝ ≤ ⌜ n ⌝          ↝⟨ ⌜⌝-mono⁻¹ ⟩
-    (m ≤ n)                      ↝⟨ Nat._∸-mono Nat.≤-refl {n = o} ⟩
-    (m ∸ o ≤ n ∸ o)              ↝⟨ ⌜⌝-mono ⟩□
-    [ ∞ ] ⌜ m ∸ o ⌝ ≤ ⌜ n ∸ o ⌝  □
-
-  module UB where
-
-    mutual
-
-      -- The value max-usage d p h is an upper bound of h minus d.
-
-      upper-bound-≤ : ∀ {i} d p h → [ i ] ⌜ h ∸ d ⌝ ≤ max-usage d p h
-      upper-bound-≤ d p h with lpo (next p h 0)
-      ... | inj₁ _           = reflexive-≤ _
-      ... | inj₂ (n , ≡true) = step d p h 0 n ≡true
-
-      step : ∀ {i} d p h δ n (≡true : next p h δ n ≡ true) →
-               [ i ] ⌜ δ + h ∸ d ⌝ ≤ M.step d p h δ n ≡true
-      step d []               h       δ       zero    ()
-      step d []               _       _       (suc n) ()
-      step d (allocate   ∷ p) h       zero    zero    _     = transitive-≤ (⌜⌝-mono (Nat.pred≤ _))
-                                                                (suc λ { .force →
-                                                                   upper-bound-≤ (suc d) (force p) (suc h) })
-      step d (allocate   ∷ p) _       zero    (suc n) ()
-      step d (allocate   ∷ p) h       (suc δ) zero    ()
-      step d (allocate   ∷ p) h       (suc δ) (suc n) ≡true = transitive-≤ (∼→≤ (suc+∸∼+suc∸ d))
-                                                                (step d (force p) (suc h) δ n ≡true)
-      step d (deallocate ∷ p) _       _       zero    ()
-      step d (deallocate ∷ p) zero    δ       (suc n) ≡true = step d (force p) zero δ n ≡true
-      step d (deallocate ∷ p) (suc h) δ       (suc n) ≡true = transitive-≤ (∼→≤ (Conat.symmetric-∼ (suc+∸∼+suc∸ d)))
-                                                                  (step d (force p) h (suc δ) n ≡true)
-
-  -- The value max-usage d p h is an upper bound of ⟦ p ⟧ h with d
-  -- subtracted from every element.
-
-  upper-bound :
-    ∀ {i} d p h →
-    □ i (λ h′ → [ ∞ ] ⌜ h′ ∸ d ⌝ ≤ max-usage d p h) (⟦ p ⟧ h)
-  upper-bound d p h with lpo (next p h 0)
-  ... | inj₁ ≡false = □-map (∸-cong d) (step p h 0 ≡false)
-    where
-    step : ∀ {i} p h δ (≡false : ∀ n → next p h δ n ≡ false) →
-           [ i ] ⟦ p ⟧ h ⊑ ⌜ δ + h ⌝
-    step []               h       δ       ≡false = ⌜⌝-mono (Nat.m≤n+m h δ) ∷ λ { .force → [] }
-    step (allocate   ∷ p) h       zero    ≡false = ⊥-elim (Bool.true≢false (≡false 0))
-    step (allocate   ∷ p) h       (suc δ) ≡false = ⌜⌝-mono (Nat.m≤n+m h (suc δ)) ∷ λ { .force →
-                                                   transitive-⊑≤ (step (force p) (suc h) δ (≡false ∘ suc))
-                                                                 (∼→≤ (⌜⌝-cong (sym (Nat.suc+≡+suc δ)))) }
-    step (deallocate ∷ p) zero    δ       ≡false = zero ∷ λ { .force →
-                                                   transitive-⊑≤ (step (force p) zero δ (≡false ∘ suc))
-                                                                 (reflexive-≤ _) }
-    step (deallocate ∷ p) (suc h) δ       ≡false = ⌜⌝-mono (Nat.m≤n+m (suc h) δ) ∷ λ { .force →
-                                                   transitive-⊑≤ (step (force p) h (suc δ) (≡false ∘ suc))
-                                                                 (∼→≤ (⌜⌝-cong (Nat.suc+≡+suc δ))) }
-
-  ... | inj₂ (n , ≡true) = step _ p h 0 n ≡true
-    where
-    step : ∀ i p h δ n (≡true : next p h δ n ≡ true) →
-           □ i (λ h′ → [ ∞ ] ⌜ h′ ∸ d ⌝ ≤ M.step d p h δ n ≡true)
-               (⟦ p ⟧ h)
-    step _ []               _       _       _       ()
-    step _ (allocate   ∷ p) h       zero    zero    ≡true = UB.step d (allocate ∷ p) h zero zero ≡true
-                                                            ∷ λ { .force → □-map (∸suc≤→∸≤suc′ d)
-                                                                                 (upper-bound (suc d) (force p) (suc h)) }
-    step _ (allocate   ∷ p) _       zero    (suc n) ()
-    step _ (allocate   ∷ p) h       (suc δ) zero    ()
-    step _ (allocate   ∷ p) h       (suc δ) (suc n) ≡true = transitive-≤
-                                                              (⌜⌝-mono (Nat.zero≤ δ Nat.+-mono Nat.pred≤ _ Nat.∸-mono Nat.≤-refl {n = d}))
-                                                              (UB.step d (force p) (suc h) δ n ≡true)
-                                                            ∷ λ { .force → step _ (force p) (suc h) δ n ≡true }
-    step _ (deallocate ∷ p) _       _       zero    ()
-    step i (deallocate ∷ p) zero    δ       (suc n) ≡true = □-head (step i (force p) zero δ n ≡true)
-                                                            ∷ λ { .force → step _ (force p) zero δ n ≡true }
-    step _ (deallocate ∷ p) (suc h) δ       (suc n) ≡true = transitive-≤
-                                                              (⌜⌝-mono (Nat.m≤m+n 1 δ Nat.+-mono Nat.≤-refl Nat.∸-mono Nat.≤-refl {n = d}))
-                                                              (UB.step d (force p) h (suc δ) n ≡true)
-                                                            ∷ λ { .force → step _ (force p) h (suc δ) n ≡true }
-
-  -- The value max-usage d p h is below every number that is an upper
-  -- bound of ⟦ p ⟧ h with d subtracted from every element.
-
-  least :
-    ∀ {i} d p h → d ≤ h →
-    ∀ m → □ ∞ (λ h′ → [ ∞ ] ⌜ h′ ∸ d ⌝ ≤ m) (⟦ p ⟧ h) →
-    [ i ] max-usage d p h ≤ m
-  least d p h d≤h m with lpo (next p h 0)
-  ... | inj₁ _           = □-head
-  ... | inj₂ (n , ≡true) = step p h 0 n ≡true d≤h m
-    where
-    step : ∀ {i} p h δ n (≡true : next p h δ n ≡ true) →
-           d ≤ δ + h →
-           ∀ m → □ ∞ (λ h′ → [ ∞ ] ⌜ h′ ∸ d ⌝ ≤ m) (⟦ p ⟧ h) →
-           [ i ] M.step d p h δ n ≡true ≤ m
-    step []               _       _       _       ()
-    step (allocate   ∷ p) h       zero    zero    ≡true d≤ zero    ⊑0   = ⊥-elim (Nat.≮0 _ (
-                                                                            suc (h ∸ d)  Nat.≡⟨ sym (Nat.+-∸-assoc d≤) ⟩≤
-                                                                            suc h ∸ d    Nat.≤⟨ ⌜⌝-mono⁻¹ (□-head (□-tail ⊑0)) ⟩∎
-                                                                            zero         ∎≤))
-    step (allocate   ∷ p) h       zero    zero    ≡true d≤ (suc m) ⊑1+m = suc λ { .force →
-                                                                            least (suc d) (force p) (suc h) (Nat.suc≤suc d≤) (force m)
-                                                                                  (□-map (∸≤suc→∸suc≤′ d) (□-tail ⊑1+m)) }
-    step (allocate   ∷ p) _       zero    (suc n) ()
-    step (allocate   ∷ p) h       (suc δ) zero    ()
-    step (allocate   ∷ p) h       (suc δ) (suc n) ≡true d≤ m       = step (force p) (suc h) δ n ≡true (d            Nat.≤⟨ d≤ ⟩
-                                                                                                       suc (δ + h)  Nat.≡⟨ Nat.suc+≡+suc _ ⟩≤
-                                                                                                       δ + suc h    Nat.∎≤) m ∘
-                                                                     □-tail
-    step (deallocate ∷ p) _       _       zero    ()
-    step (deallocate ∷ p) zero    δ       (suc n) ≡true d≤ m       = step (force p) zero δ n ≡true d≤ m ∘ □-tail
-    step (deallocate ∷ p) (suc h) δ       (suc n) ≡true d≤ m       = step (force p) h (suc δ) n ≡true (d            Nat.≤⟨ d≤ ⟩
-                                                                                                       δ + suc h    Nat.≡⟨ sym (Nat.suc+≡+suc _) ⟩≤
-                                                                                                       suc (δ + h)  Nat.∎≤) m ∘
-                                                                     □-tail
+lub→wlpo : (∀ ms → ∃ λ n → Least-upper-bound ∞ ms n) → WLPO
+lub→wlpo find-lub = max→wlpo (λ p → find-lub (⟦ p ⟧ 0))
 
 ------------------------------------------------------------------------
 -- Some examples
