@@ -211,8 +211,8 @@ lpo→lub lpo = λ ms → lub 0 ms , upper-bound 0 ms , least 0 ms
         [ ∞ ] ⌜ n ∸ d ⌝ ≤ ⌜ 1 ⌝ ⊕ (⌜ pred m ∸ d ⌝ ⊕ o)  ↝⟨ flip transitive-≤ (suc λ { .force → reflexive-≤ _ }) ⟩□
         _                                               □
 
-  -- The number lub d ms is below every number that is an upper bound
-  -- of ms with d subtracted from every element.
+  -- The number lub d ms is less than or equal to every number that is
+  -- an upper bound of ms, minus d.
 
   least :
     ∀ {i} d ms ub →
