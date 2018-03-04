@@ -381,7 +381,8 @@ mutual
     Maximum-heap-usage (optimise p) m →
     Maximum-heap-usage p n →
     [ i ] m ≤ n
-  optimise-correct = ≲→least-upper-bounds-≤ ∘ optimise-correct-≲
+  optimise-correct p max₁ max₂ =
+    ≲→least-upper-bounds-≤ max₁ max₂ (optimise-correct-≲ p)
 
   optimise-correct-≲ : ∀ {h i} p → [ i ] ⟦ optimise p ⟧ h ≲ ⟦ p ⟧ h
   optimise-correct-≲ {h} [] =

@@ -9,6 +9,7 @@ module Upper-bounds where
 open import Colist
 open import Conat hiding (pred) renaming (_+_ to _⊕_; _∸_ to _⊖_)
 open import Equality.Propositional
+open import Logical-equivalence using (_⇔_)
 open import Omniscience
 open import Prelude
 
@@ -244,23 +245,23 @@ lpo→lub lpo = λ ms → lub 0 ms , upper-bound 0 ms , least 0 ms
 infix 4 [_]_≲_ [_]_≲′_
 
 [_]_≲_ : Size → Colist ℕ ∞ → Colist ℕ ∞ → Set
-[ i ] ms ≲ ns = □ i (λ m → ◇ (m ≤_) ns) ms
+[ i ] ms ≲ ns = □ i (λ m → m ≡ zero ⊎ ◇ (m ≤_) ns) ms
 
 [_]_≲′_ : Size → Colist ℕ ∞ → Colist ℕ ∞ → Set
-[ i ] ms ≲′ ns = □′ i (λ m → ◇ (m ≤_) ns) ms
+[ i ] ms ≲′ ns = □′ i (λ m → m ≡ zero ⊎ ◇ (m ≤_) ns) ms
 
 -- Some derived cons-like operations.
 
 consʳ-≲ : ∀ {ms ns n i} →
           [ i ] ms ≲ force ns →
           [ i ] ms ≲ n ∷ ns
-consʳ-≲ = □-map there
+consʳ-≲ = □-map (⊎-map id there)
 
 cons-≲ : ∀ {i m ms n ns} →
          m ≤ n →
          [ i ] force ms ≲′ force ns →
          [ i ] m ∷ ms ≲ n ∷ ns
-cons-≲ p q = here p ∷ λ { .force → consʳ-≲ (force q) }
+cons-≲ p q = inj₂ (here p) ∷ λ { .force → consʳ-≲ (force q) }
 
 cons′-≲ : ∀ {i m ms ns} →
           [ i ] force ms ≲′ force ns →
@@ -274,12 +275,14 @@ infixr -2 step-≲ step-≡≲ _≡⟨⟩≲_ step-∼≲
 
 step-≲ : ∀ {i} ms {ns os} →
          [ ∞ ] ns ≲ os → [ i ] ms ≲ ns → [ i ] ms ≲ os
-step-≲ _ {ns} {os} ns≲os ms≲ns = □-map lemma ms≲ns
+step-≲ _ {ns} {os} ns≲os ms≲ns = □-map [ inj₁ , lemma ] ms≲ns
   where
   lemma = λ {n} →
-    ◇ (n ≤_) ns                    ↝⟨ □◇-witness ns≲os ⟩
-    (∃ λ o → ◇ (o ≤_) os × n ≤ o)  ↝⟨ (λ { (_ , ◇o≤os , n≤o) → ◇-map (Nat.≤-trans n≤o) ◇o≤os }) ⟩□
-    ◇ (n ≤_) os                    □
+    ◇ (n ≤_) ns                                 ↝⟨ □◇-witness ns≲os ⟩
+    (∃ λ o → (o ≡ zero ⊎ ◇ (o ≤_) os) × n ≤ o)  ↝⟨ (λ { (_ , yes refl   , n≤0) → inj₁ (Nat.≤-antisymmetric n≤0 (Nat.zero≤ _))
+                                                      ; (_ , inj₂ ◇o≤os , n≤o) → inj₂ (◇-map (Nat.≤-trans n≤o) ◇o≤os)
+                                                      }) ⟩□
+    n ≡ zero ⊎ ◇ (n ≤_) os                      □
 
 syntax step-≲ ms ns≲os ms≲ns = ms ≲⟨ ms≲ns ⟩ ns≲os
 
@@ -303,18 +306,74 @@ n ∷ ns □≲ = cons′-≲ λ { .force → force ns □≲ }
 
 -- If [ ∞ ] ms ≲ ns, then any least upper bound of ms is less than or
 -- equal to any least upper bound of ns.
---
--- TODO: Figure out what the status is of the converse statement.
 
 ≲→least-upper-bounds-≤ :
   ∀ {m n ms ns} →
-  [ ∞ ] ms ≲ ns →
   Least-upper-bound ms m →
   Least-upper-bound ns n →
-  [ ∞ ] m ≤ n
-≲→least-upper-bounds-≤ {m} {n} {ms} {ns} ms≲ns m-lub =
-  Least-upper-bound ns n                   ↝⟨ proj₁ ⟩
-  [ ∞ ] ns ⊑ n                             ↝⟨ (λ hyp → flip transitive-◇≤⊑ hyp) ⟩
-  (∀ {m} → ◇ (m ≤_) ns → [ ∞ ] ⌜ m ⌝ ≤ n)  ↝⟨ (λ hyp → □-map hyp ms≲ns) ⟩
-  [ ∞ ] ms ⊑ n                             ↝⟨ proj₂ m-lub _ ⟩□
-  [ ∞ ] m ≤ n                              □
+  [ ∞ ] ms ≲ ns → [ ∞ ] m ≤ n
+≲→least-upper-bounds-≤ {⨆ms} {⨆ns} {ms} {ns} ⨆ms-lub = flip λ ms≲ns →
+  Least-upper-bound ns ⨆ns                              ↝⟨ proj₁ ⟩
+  [ ∞ ] ns ⊑ ⨆ns                                        ↝⟨ (λ hyp → flip transitive-◇≤⊑ hyp) ⟩
+  (∀ {m} → ◇ (m ≤_) ns → [ ∞ ] ⌜ m ⌝ ≤ ⨆ns)             ↝⟨ (λ { _   (inj₁ refl)  → zero
+                                                              ; hyp (inj₂ ◇m≤ns) → hyp ◇m≤ns
+                                                              }) ⟩
+  (∀ {m} → m ≡ zero ⊎ ◇ (m ≤_) ns → [ ∞ ] ⌜ m ⌝ ≤ ⨆ns)  ↝⟨ (λ hyp → □-map hyp ms≲ns) ⟩
+  [ ∞ ] ms ⊑ ⨆ns                                        ↝⟨ proj₂ ⨆ms-lub _ ⟩□
+  [ ∞ ] ⨆ms ≤ ⨆ns                                       □
+
+-- If LPO holds, the least upper bound of ms is m, and the least upper
+-- bound of ns is n, then [ ∞ ] ms ≲ ns holds if and only if
+-- [ ∞ ] m ≤ n holds.
+
+lpo→≲⇔least-upper-bounds-≤ :
+  LPO →
+  ∀ {m n ms ns} →
+  Least-upper-bound ms m →
+  Least-upper-bound ns n →
+  [ ∞ ] ms ≲ ns ⇔ [ ∞ ] m ≤ n
+lpo→≲⇔least-upper-bounds-≤ lpo {⨆ms} {⨆ns} {ns = ns} ⨆ms-lub ⨆ns-lub =
+  record
+    { to   = ≲→least-upper-bounds-≤ ⨆ms-lub ⨆ns-lub
+    ; from = from (proj₁ ⨆ms-lub)
+    }
+  where
+  from : ∀ {ms i} → [ ∞ ] ms ⊑ ⨆ms → [ ∞ ] ⨆ms ≤ ⨆ns → [ i ] ms ≲ ns
+  from {[]}     _        _   = []
+  from {m ∷ ms} m∷ms⊑⨆ms m≤n =
+    ⊎-map ≡0 (uncurry (◇≤-witness ns)) (lpo (◇≤ ns)) ∷ λ { .force →
+    from (□-tail m∷ms⊑⨆ms) m≤n }
+    where
+    -- ◇≤ ns i is true if the value at position i in ns (if any) is
+    -- greater than or equal to m.
+
+    ◇≤ : Colist ℕ ∞ → ℕ → Bool
+    ◇≤ []       _       = false
+    ◇≤ (n ∷ ns) zero    = if Nat.≤⊎> m n then true else false
+    ◇≤ (n ∷ ns) (suc i) = ◇≤ (force ns) i
+
+    ◇≤-witness : ∀ ns i → ◇≤ ns i ≡ true → ◇ (m ≤_) ns
+    ◇≤-witness []       _       ()
+    ◇≤-witness (n ∷ ns) (suc i) ≡true = there (◇≤-witness
+                                                 (force ns) i ≡true)
+    ◇≤-witness (n ∷ ns) zero    ≡true with Nat.≤⊎> m n
+    ◇≤-witness (n ∷ ns) zero    _     | inj₁ m≤n = here m≤n
+    ◇≤-witness (n ∷ ns) zero    ()    | inj₂ _
+
+    ⊏ : ∀ ns {i} → (∀ i → ◇≤ ns i ≡ false) → [ i ] ns ⊑ ⌜ pred m ⌝
+    ⊏ []       _      = []
+    ⊏ (n ∷ ns) ≡false with Nat.≤⊎> m n | ≡false 0
+    ... | inj₁ _   | ()
+    ... | inj₂ m>n | _  =
+      ⌜⌝-mono (Nat.pred-mono m>n) ∷ λ { .force →
+      ⊏ (force ns) (≡false ∘ suc) }
+
+    ≡0 : (∀ i → ◇≤ ns i ≡ false) → m ≡ zero
+    ≡0 =
+      (∀ i → ◇≤ ns i ≡ false)   ↝⟨ ⊏ ns ⟩
+      [ ∞ ] ns ⊑ ⌜ pred m ⌝     ↝⟨ proj₂ ⨆ns-lub ⌜ pred m ⌝ ⟩
+      [ ∞ ] ⨆ns ≤ ⌜ pred m ⌝    ↝⟨ transitive-≤ m≤n ⟩
+      [ ∞ ] ⨆ms ≤ ⌜ pred m ⌝    ↝⟨ transitive-≤ (□-head m∷ms⊑⨆ms) ⟩
+      [ ∞ ] ⌜ m ⌝ ≤ ⌜ pred m ⌝  ↝⟨ ⌜⌝-mono⁻¹ ⟩
+      (m ≤ pred m)              ↝⟨ Nat.≤pred→≡zero ⟩□
+      m ≡ zero                  □
