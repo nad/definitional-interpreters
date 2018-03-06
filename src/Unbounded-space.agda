@@ -154,15 +154,18 @@ max-unique = lub-unique
 -- Maximum-heap-usage p respects bisimilarity.
 
 max-respects-∼ :
-  ∀ {p m n} →
-  Conat.[ ∞ ] m ∼ n → Maximum-heap-usage p m → Maximum-heap-usage p n
-max-respects-∼ {p} {m} {n} m∼n = Σ-map
+  ∀ {p q m n} →
+  Colist.[ ∞ ] ⟦ p ⟧ 0 ∼ ⟦ q ⟧ 0 →
+  Conat.[ ∞ ] m ∼ n →
+  Maximum-heap-usage p m → Maximum-heap-usage q n
+max-respects-∼ {p} {q} {m} {n} p∼q m∼n = Σ-map
 
-  ([ ∞ ] ⟦ p ⟧ 0 ⊑ m  ↝⟨ (λ hyp → transitive-⊑≤ hyp (∼→≤ m∼n)) ⟩□
-   [ ∞ ] ⟦ p ⟧ 0 ⊑ n  □)
+  ([ ∞ ] ⟦ p ⟧ 0 ⊑ m  ↝⟨ (λ hyp → transitive-⊑≤ (□-∼ p∼q hyp) (∼→≤ m∼n)) ⟩□
+   [ ∞ ] ⟦ q ⟧ 0 ⊑ n  □)
 
-  ((∀ o → [ ∞ ] ⟦ p ⟧ 0 ⊑ o → [ ∞ ] m ≤ o)  ↝⟨ (λ hyp₁ o hyp₂ → transitive-≤ (∼→≤ (Conat.symmetric-∼ m∼n)) (hyp₁ o hyp₂)) ⟩□
-   (∀ o → [ ∞ ] ⟦ p ⟧ 0 ⊑ o → [ ∞ ] n ≤ o)  □ )
+  ((∀ o → [ ∞ ] ⟦ p ⟧ 0 ⊑ o → [ ∞ ] m ≤ o)  ↝⟨ (λ hyp₁ o hyp₂ → transitive-≤ (∼→≤ (Conat.symmetric-∼ m∼n))
+                                                                             (hyp₁ o (□-∼ (Colist.symmetric-∼ p∼q) hyp₂))) ⟩□
+   (∀ o → [ ∞ ] ⟦ q ⟧ 0 ⊑ o → [ ∞ ] n ≤ o)  □)
 
 -- If the semantics of a program started in the empty heap does not
 -- have a finite upper bound, then the maximum heap usage of the
@@ -433,3 +436,24 @@ mutual
         h ∷′ 1 + h ∷′ ⟦ deallocate ∷ p″ ⟧ (2 + h)     ≡⟨ by d∷≡ ⟩≲
         h ∷′ 1 + h ∷′ ⟦ force p′ ⟧ (2 + h)            ∼⟨ (refl ∷ λ { .force → Colist.symmetric-∼ ∷∼∷′ }) ⟩≲
         h ∷′ ⟦ allocate ∷ p′ ⟧ (1 + h)                □≲
+
+-- Sometimes the optimised program's maximum heap usage is less than
+-- that of the original program.
+
+optimise-improves :
+  ∃ λ p →
+    Maximum-heap-usage p ⌜ 2 ⌝ ×
+    Maximum-heap-usage (optimise p) ⌜ 1 ⌝
+optimise-improves =
+    constant-space₂
+  , max-constant-space₂-2
+  , max-respects-∼ lemma (_ ∎∼) max-constant-space-1
+  where
+
+  lemma :
+    ∀ {i} →
+    Colist.[ i ] ⟦ constant-space ⟧ 0 ∼ ⟦ optimise constant-space₂ ⟧ 0
+  lemma =
+    refl ∷ λ { .force →
+    refl ∷ λ { .force →
+    lemma }}
