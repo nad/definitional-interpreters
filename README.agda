@@ -11,6 +11,11 @@ module README where
 ------------------------------------------------------------------------
 -- Responses to some challenges from Ancona, Dagnino and Zucca
 
+-- The syntax of a toy programming language that only supports
+-- allocation and deallocation of memory.
+
+import Only-allocation
+
 -- Definitional interpreters can model systems with bounded space.
 
 import Bounded-space

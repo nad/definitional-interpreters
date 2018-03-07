@@ -41,18 +41,7 @@ open import Tactic.By
 
 open import Nat equality-with-J
 
-------------------------------------------------------------------------
--- Programs
-
--- Statements.
-
-data Stmt : Set where
-  allocate deallocate : Stmt
-
--- Programs are potentially infinite sequences of statements.
-
-Program : Size → Set
-Program i = Colist Stmt i
+open import Only-allocation
 
 ------------------------------------------------------------------------
 -- Heaps
@@ -211,29 +200,6 @@ transitive {p} {q} {r} (b₁ , p₁) (b₂ , p₂) =
 
 crash : ∀ {l} → Delay (Maybe (Heap l)) ∞
 crash = now nothing
-
--- A program that runs in constant space.
-
-constant-space : ∀ {i} → Program i
-constant-space =
-  allocate   ∷ λ { .force →
-  deallocate ∷ λ { .force →
-  constant-space }}
-
--- Another program that runs in constant space.
-
-constant-space₂ : ∀ {i} → Program i
-constant-space₂ =
-  allocate   ∷ λ { .force →
-  allocate   ∷ λ { .force →
-  deallocate ∷ λ { .force →
-  deallocate ∷ λ { .force →
-  constant-space₂ }}}}
-
--- A program that does not run in bounded space.
-
-unbounded-space : ∀ {i} → Program i
-unbounded-space = allocate ∷ λ { .force → unbounded-space }
 
 -- The program constant-space crashes when the heap is full.
 

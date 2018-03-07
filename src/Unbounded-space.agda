@@ -31,14 +31,8 @@ open import Tactic.By
 open import Function-universe equality-with-J as F hiding (_∘_)
 open import Nat equality-with-J as Nat using (_≤_; _≤↑_; pred)
 
-import Bounded-space
+open import Only-allocation
 open import Upper-bounds
-
-------------------------------------------------------------------------
--- Programs
-
-open Bounded-space public using (Stmt; Program)
-open Stmt public
 
 ------------------------------------------------------------------------
 -- Heaps
@@ -273,9 +267,6 @@ lub→wlpo find-lub = max→wlpo (λ p → find-lub (⟦ p ⟧ 0))
 
 ------------------------------------------------------------------------
 -- Some examples
-
-open Bounded-space public
-  using (constant-space; constant-space₂; unbounded-space)
 
 -- Zero is not an upper bound of the semantics of constant-space when
 -- it is started with an empty heap.
