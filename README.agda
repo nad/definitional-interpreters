@@ -27,3 +27,11 @@ import Upper-bounds
 -- Definitional interpreters can model systems with unbounded space.
 
 import Unbounded-space
+
+------------------------------------------------------------------------
+-- Other code
+
+-- A small language with lambdas, general recursion, natural numbers,
+-- references and IO.
+
+import Lambda
