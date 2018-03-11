@@ -7,12 +7,14 @@
 
 module Lambda where
 
+open import Conat using (Conat; [_]_≤_; ⌜_⌝)
 open import Equality.Propositional
 open import Logical-equivalence using (_⇔_)
 open import Prelude
 
 open import Bijection equality-with-J using (_↔_)
 open import Fin equality-with-J
+open import Maybe equality-with-J
 open import Monad equality-with-J
 open import Monad.Reader equality-with-J
 open import Monad.State equality-with-J
@@ -135,10 +137,17 @@ update σ r v =
 ------------------------------------------------------------------------
 -- The result type
 
+-- Stack size.
+
+Depth : Set
+Depth = ℕ
+
 -- The result type uses resumptions to handle IO, following Nakata and
 -- Uustalu ("Resumptions, Weak Bisimilarity and Big-Step Semantics for
 -- While with Interactive I/O: An Exercise in Mixed
--- Induction-Coinduction").
+-- Induction-Coinduction"). The optional Depth argument to later is
+-- used to track the stack size. It is ignored by both forms of
+-- bisimilarity and expansion.
 
 mutual
 
@@ -147,7 +156,7 @@ mutual
     crash : Result A i
     read  : (ℕ → Result′ A i) → Result A i
     write : ℕ → Result′ A i → Result A i
-    later : Result′ A i → Result A i
+    later : Maybe Depth → Result′ A i → Result A i
 
   record Result′ (A : Set) (i : Size) : Set where
     coinductive
@@ -163,7 +172,7 @@ drop-later r@(now _)     = r
 drop-later r@crash       = r
 drop-later r@(read _)    = r
 drop-later r@(write _ _) = r
-drop-later (later r)     = force r
+drop-later (later _ r)   = force r
 
 -- Strong and weak bisimilarity and expansion for Result ∞.
 
@@ -198,15 +207,15 @@ mutual
     write  : ∀ {k n r₁ r₂} →
              [ i ] force r₁ ⟨ k ⟩′ force r₂ →
              [ i ] write n r₁ ⟨ k ⟩ write n r₂
-    later  : ∀ {k r₁ r₂} →
+    later  : ∀ {k d₁ r₁ d₂ r₂} →
              [ i ] force r₁ ⟨ k ⟩′ force r₂ →
-             [ i ] later r₁ ⟨ k ⟩ later r₂
-    laterˡ : ∀ {k r₁ r₂} →
+             [ i ] later d₁ r₁ ⟨ k ⟩ later d₂ r₂
+    laterˡ : ∀ {k d₁ r₁ r₂} →
              [ i ] force r₁ ⟨ other k ⟩ r₂ →
-             [ i ] later r₁ ⟨ other k ⟩ r₂
-    laterʳ : ∀ {r₁ r₂} →
+             [ i ] later d₁ r₁ ⟨ other k ⟩ r₂
+    laterʳ : ∀ {d₂ r₁ r₂} →
              [ i ] r₁ ≈ force r₂ →
-             [ i ] r₁ ≈ later r₂
+             [ i ] r₁ ≈ later d₂ r₂
 
   record [_]_⟨_⟩′_
            {A : Set} (i : Size)
@@ -241,22 +250,22 @@ open [_]_⟨_⟩′_ public
 
 -- Later constructors can sometimes be removed.
 
-laterʳ⁻¹ : ∀ {k i} {j : Size< i} {A} {r₁ : Result A ∞} {r₂} →
-           [ i ] r₁ ⟨ other k ⟩ later r₂ →
+laterʳ⁻¹ : ∀ {k i} {j : Size< i} {A d₂} {r₁ : Result A ∞} {r₂} →
+           [ i ] r₁ ⟨ other k ⟩ later d₂ r₂ →
            [ j ] r₁ ⟨ other k ⟩ force r₂
 laterʳ⁻¹ (later  p) = laterˡ (force p)
 laterʳ⁻¹ (laterʳ p) = p
 laterʳ⁻¹ (laterˡ p) = laterˡ (laterʳ⁻¹ p)
 
-laterˡ⁻¹ : ∀ {i} {j : Size< i} {A r₁} {r₂ : Result A ∞} →
-           [ i ] later r₁ ≈ r₂ →
+laterˡ⁻¹ : ∀ {i} {j : Size< i} {A d₁ r₁} {r₂ : Result A ∞} →
+           [ i ] later d₁ r₁ ≈ r₂ →
            [ j ] force r₁ ≈ r₂
 laterˡ⁻¹ (later  p) = laterʳ (force p)
 laterˡ⁻¹ (laterʳ p) = laterʳ (laterˡ⁻¹ p)
 laterˡ⁻¹ (laterˡ p) = p
 
-later⁻¹ : ∀ {i} {j : Size< i} {A} {r₁ r₂ : Result′ A ∞} →
-          [ i ] later r₁ ≈ later r₂ →
+later⁻¹ : ∀ {i} {j : Size< i} {A d₁ d₂} {r₁ r₂ : Result′ A ∞} →
+          [ i ] later d₁ r₁ ≈ later d₂ r₂ →
           [ j ] force r₁ ≈ force r₂
 later⁻¹ (later  p) = force p
 later⁻¹ (laterʳ p) = laterˡ⁻¹ p
@@ -269,7 +278,7 @@ reflexive (now _)     = now
 reflexive crash       = crash
 reflexive (read r)    = read λ { n .force → reflexive (force (r n)) }
 reflexive (write n r) = write λ { .force → reflexive (force r) }
-reflexive (later r)   = later λ { .force → reflexive (force r) }
+reflexive (later _ r) = later λ { .force → reflexive (force r) }
 
 -- Strong and weak bisimilarity are symmetric.
 
@@ -387,8 +396,8 @@ mutual
   transitive-≈-write p          (laterʳ q) = laterʳ (transitive-≈-write p q)
 
   transitive-≈-later :
-    ∀ {i A r₁} {r₂ r₃ : Result A ∞} →
-    let r₁ = later r₁ in
+    ∀ {i A d₁ r₁} {r₂ r₃ : Result A ∞} →
+    let r₁ = later d₁ r₁ in
     [ ∞ ] r₁ ≈ r₂ → [ ∞ ] r₂ ≈ r₃ → [ i ] r₁ ≈ r₃
   transitive-≈-later p          (laterʳ q) = laterʳ (transitive-≈-later p q)
   transitive-≈-later p          (later q)  = later λ { .force →
@@ -404,7 +413,7 @@ mutual
   transitive-≈ {r₁ = crash}     p q = transitive-≈-crash p q
   transitive-≈ {r₁ = read _}    p q = transitive-≈-read p q
   transitive-≈ {r₁ = write _ _} p q = transitive-≈-write p q
-  transitive-≈ {r₁ = later _}   p q = transitive-≈-later p q
+  transitive-≈ {r₁ = later _ _} p q = transitive-≈-later p q
 
 -- Equational reasoning combinators.
 
@@ -453,7 +462,7 @@ module Result-reasoning {i A} where
   crash     ≳⟨⟩ p = p
   read _    ≳⟨⟩ p = p
   write _ _ ≳⟨⟩ p = p
-  later _   ≳⟨⟩ p = laterˡ p
+  later _ _ ≳⟨⟩ p = laterˡ p
 
   _≡⟨⟩∼_ : ∀ {k} (r₁ : Result A ∞) {r₂} →
            [ i ] r₁ ⟨ k ⟩ r₂ → [ i ] r₁ ⟨ k ⟩ r₂
@@ -480,7 +489,7 @@ module Alternative-weak-bisimilarity where
     crash  : crash ↓ crash
     read   : ∀ {f} → read f ↓ read f
     write  : ∀ {n r} → write n r ↓ write n r
-    later  : ∀ {r₁ r₂} → force r₁ ↓ r₂ → later r₁ ↓ r₂
+    later  : ∀ {d₁ r₁ r₂} → force r₁ ↓ r₂ → later d₁ r₁ ↓ r₂
 
   -- The alternative formulation of weak bisimilarity.
 
@@ -502,8 +511,9 @@ module Alternative-weak-bisimilarity where
                r₁ ↓ write n r₁′ → r₂ ↓ write n r₂′ →
                [ i ] force r₁′ ≈₂′ force r₂′ →
                [ i ] r₁ ≈₂ r₂
-      later  : ∀ {r₁ r₂} →
-               [ i ] force r₁ ≈₂′ force r₂ → [ i ] later r₁ ≈₂ later r₂
+      later  : ∀ {d₁ d₂ r₁ r₂} →
+               [ i ] force r₁ ≈₂′ force r₂ →
+               [ i ] later d₁ r₁ ≈₂ later d₂ r₂
 
     record [_]_≈₂′_ {A : Set} (i : Size)
                     (r₁ r₂ : Result A ∞) : Set where
@@ -515,12 +525,12 @@ module Alternative-weak-bisimilarity where
 
   -- Emulations of laterˡ and laterʳ.
 
-  laterˡ₂ : ∀ {i A r₁} {r₂ : Result A ∞} →
-            [ i ] force r₁ ≈₂ r₂ → [ i ] later r₁ ≈₂ r₂
-  laterˡ₂ {i} {r₁ = r₁} {r₂} = helper refl
+  laterˡ₂ : ∀ {i A d₁ r₁} {r₂ : Result A ∞} →
+            [ i ] force r₁ ≈₂ r₂ → [ i ] later d₁ r₁ ≈₂ r₂
+  laterˡ₂ {i} {d₁ = d₁} {r₁} {r₂} = helper refl
     where
-    helper :
-      ∀ {r₁′} → r₁′ ≡ force r₁ → [ i ] r₁′ ≈₂ r₂ → [ i ] later r₁ ≈₂ r₂
+    helper : ∀ {r₁′} →
+             r₁′ ≡ force r₁ → [ i ] r₁′ ≈₂ r₂ → [ i ] later d₁ r₁ ≈₂ r₂
     helper eq (now   r₁↓ r₂↓)   = now   (later (subst (_↓ _) eq r₁↓)) r₂↓
     helper eq (crash r₁↓ r₂↓)   = crash (later (subst (_↓ _) eq r₁↓)) r₂↓
     helper eq (read  r₁↓ r₂↓ p) = read  (later (subst (_↓ _) eq r₁↓)) r₂↓ p
@@ -528,12 +538,12 @@ module Alternative-weak-bisimilarity where
     helper eq (later p)         = later λ { .force {j} →
       subst ([ j ]_≈₂ _) eq (laterˡ₂ (force p)) }
 
-  laterʳ₂ : ∀ {i A} {r₁ : Result A ∞} {r₂} →
-            [ i ] r₁ ≈₂ force r₂ → [ i ] r₁ ≈₂ later r₂
-  laterʳ₂ {i} {r₁ = r₁} {r₂} = helper refl
+  laterʳ₂ : ∀ {i A d₂} {r₁ : Result A ∞} {r₂} →
+            [ i ] r₁ ≈₂ force r₂ → [ i ] r₁ ≈₂ later d₂ r₂
+  laterʳ₂ {i} {d₂ = d₂} {r₁} {r₂} = helper refl
     where
-    helper :
-      ∀ {r₂′} → r₂′ ≡ force r₂ → [ i ] r₁ ≈₂ r₂′ → [ i ] r₁ ≈₂ later r₂
+    helper : ∀ {r₂′} →
+             r₂′ ≡ force r₂ → [ i ] r₁ ≈₂ r₂′ → [ i ] r₁ ≈₂ later d₂ r₂
     helper eq (now   r₁↓ r₂↓)   = now   r₁↓ (later (subst (_↓ _) eq r₂↓))
     helper eq (crash r₁↓ r₂↓)   = crash r₁↓ (later (subst (_↓ _) eq r₂↓))
     helper eq (read  r₁↓ r₂↓ p) = read  r₁↓ (later (subst (_↓ _) eq r₂↓)) p
@@ -595,7 +605,7 @@ bind (now x)     f = f x
 bind crash       f = crash
 bind (read r)    f = read λ { n .force → bind (force (r n)) f }
 bind (write o r) f = write o λ { .force → bind (force r) f }
-bind (later r)   f = later λ { .force → bind (force r) f }
+bind (later d r) f = later d λ { .force → bind (force r) f }
 
 -- Result is a raw monad.
 
@@ -636,7 +646,7 @@ return->>= _ = reflexive _
 >>=-return crash       = crash
 >>=-return (read r)    = read λ { n .force → >>=-return (force (r n)) }
 >>=-return (write _ r) = write λ { .force → >>=-return (force r) }
->>=-return (later r)   = later λ { .force → >>=-return (force r) }
+>>=-return (later _ r) = later λ { .force → >>=-return (force r) }
 
 >>=-associative :
   ∀ {i A B C} r {f : A → Result B ∞} {g : B → Result C ∞} →
@@ -645,25 +655,30 @@ return->>= _ = reflexive _
 >>=-associative crash       = crash
 >>=-associative (read r)    = read λ { n .force → >>=-associative (force (r n)) }
 >>=-associative (write _ r) = write λ { .force → >>=-associative (force r) }
->>=-associative (later r)   = later λ { .force → >>=-associative (force r) }
+>>=-associative (later _ r) = later λ { .force → >>=-associative (force r) }
 
 ------------------------------------------------------------------------
 -- The monad used by the definitional interpreter
 
+-- The reader type.
+
+R : Set
+R = Depth × Env
+
 -- The monad.
 
 M : Set → Size → Set
-M A i = ReaderT Env (StateT Heap (λ A → Result A i)) A
+M A i = ReaderT R (StateT Heap (λ A → Result A i)) A
 
 -- The monad's run function.
 
-runM : ∀ {A i} → M A i → Env → Heap → Result (A × Heap) i
-runM m ρ σ = run (run m ρ) σ
+runM : ∀ {A i} → M A i → R → Heap → Result (A × Heap) i
+runM m r σ = run (run m r) σ
 
 -- The inverse of the monad's run function.
 
-runM⁻¹ : ∀ {A i} → (Env → Heap → Result (A × Heap) i) → M A i
-run (run (runM⁻¹ m) ρ) σ = m ρ σ
+runM⁻¹ : ∀ {A i} → (R → Heap → Result (A × Heap) i) → M A i
+run (run (runM⁻¹ m) r) σ = m r σ
 
 -- Lifts results into the M monad.
 
@@ -673,7 +688,7 @@ liftM r = runM⁻¹ (λ _ _ → r)
 -- A variant of drop-later.
 
 drop-laterM : ∀ {i} {j : Size< i} {A} → M A i → M A j
-drop-laterM m = runM⁻¹ λ ρ σ → drop-later (runM m ρ σ)
+drop-laterM m = runM⁻¹ λ r σ → drop-later (runM m r σ)
 
 -- A crashing computation.
 
@@ -684,15 +699,23 @@ crashM = liftʳ (liftʳ crash)
 
 lookup : ∀ {i} → Var → M Value i
 lookup x = do
-  ρ ← ask
+  _ , ρ ← ask
   case ρ x of λ where
     nothing  → crashM
     (just v) → return v
 
+-- Increases the stack depth by one, and records the new, larger size.
+
+inc : ∀ {A i} → M A i → M A i
+inc m =
+  local {S = R} (Σ-map suc id) $
+    runM⁻¹ λ { r@(d , _) σ →
+      later (just d) λ { .force → runM m r σ }}
+
 -- Modifies the environment locally in the given computation.
 
 with-env : ∀ {A i} → (Env → Env) → M A i → M A i
-with-env = local
+with-env f = local (Σ-map id f)
 
 -- Allocates a new reference with the given initial value.
 
@@ -727,15 +750,15 @@ updateM r v = do
 
 readM : ∀ {A i} → (ℕ → M A i) → M A i
 readM f =
-  runM⁻¹ λ ρ σ →
-    read λ { n .force → runM (f n) ρ σ }
+  runM⁻¹ λ r σ →
+    read λ { n .force → runM (f n) r σ }
 
 -- Writes a natural number and continues.
 
 writeM : ∀ {A i} → ℕ → M A i → M A i
 writeM n m =
-  runM⁻¹ λ ρ σ →
-    write n λ { .force → runM m ρ σ }
+  runM⁻¹ λ r σ →
+    write n λ { .force → runM m r σ }
 
 -- Strong and weak bisimilarity and expansion can be lifted to the M
 -- monad.
@@ -744,24 +767,24 @@ infix 4 [_]_⟨_⟩M_ [_]_∼M_ [_]_≳M_ [_]_≈M_
 
 record [_]_⟨_⟩M_⟨_,_⟩
          {A : Set} (i : Size) (m₁ : M A ∞) (k : Kind) (m₂ : M A ∞)
-         (ρ : Env) (σ : Heap) : Set where
+         (r : R) (σ : Heap) : Set where
   constructor wrap
   field
-    run : [ i ] runM m₁ ρ σ ⟨ k ⟩ runM m₂ ρ σ
+    run : [ i ] runM m₁ r σ ⟨ k ⟩ runM m₂ r σ
 
 open [_]_⟨_⟩M_⟨_,_⟩ public
 
-[_]_∼M_⟨_,_⟩ : {A : Set} → Size → M A ∞ → M A ∞ → Env → Heap → Set
+[_]_∼M_⟨_,_⟩ : {A : Set} → Size → M A ∞ → M A ∞ → R → Heap → Set
 [_]_∼M_⟨_,_⟩ = [_]_⟨ strong ⟩M_⟨_,_⟩
 
-[_]_≳M_⟨_,_⟩ : {A : Set} → Size → M A ∞ → M A ∞ → Env → Heap → Set
+[_]_≳M_⟨_,_⟩ : {A : Set} → Size → M A ∞ → M A ∞ → R → Heap → Set
 [_]_≳M_⟨_,_⟩ = [_]_⟨ other expansion ⟩M_⟨_,_⟩
 
-[_]_≈M_⟨_,_⟩ : {A : Set} → Size → M A ∞ → M A ∞ → Env → Heap → Set
+[_]_≈M_⟨_,_⟩ : {A : Set} → Size → M A ∞ → M A ∞ → R → Heap → Set
 [_]_≈M_⟨_,_⟩ = [_]_⟨ other weak ⟩M_⟨_,_⟩
 
 [_]_⟨_⟩M_ : {A : Set} → Size → M A ∞ → Kind → M A ∞ → Set
-[ i ] m₁ ⟨ k ⟩M m₂ = ∀ {ρ σ} → [ i ] m₁ ⟨ k ⟩M m₂ ⟨ ρ , σ ⟩
+[ i ] m₁ ⟨ k ⟩M m₂ = ∀ {r σ} → [ i ] m₁ ⟨ k ⟩M m₂ ⟨ r , σ ⟩
 
 [_]_∼M_ : {A : Set} → Size → M A ∞ → M A ∞ → Set
 [_]_∼M_ = [_]_⟨ strong ⟩M_
@@ -774,74 +797,74 @@ open [_]_⟨_⟩M_⟨_,_⟩ public
 
 -- Equational reasoning combinators.
 
-module M-reasoning {A : Set} (ρ : Env) (σ : Heap) where
+module M-reasoning {A : Set} (r : R) (σ : Heap) where
 
   infix  -1 finally-∼ _□
   infixr -2 step-∼ step-∼ˡ step-∼ʳ step-≳ step-≈ _≳⟨⟩_ _≡⟨⟩∼_
 
-  _□ : ∀ {i k} (m : M A ∞) → [ i ] m ⟨ k ⟩M m ⟨ ρ , σ ⟩
+  _□ : ∀ {i k} (m : M A ∞) → [ i ] m ⟨ k ⟩M m ⟨ r , σ ⟩
   _ □ = wrap (_ Result-reasoning.□)
 
   step-∼ : ∀ {i} (m₁ : M A ∞) {m₂ m₃} →
-           [ i ] m₂ ∼M m₃ ⟨ ρ , σ ⟩ →
-           [ i ] m₁ ∼M m₂ ⟨ ρ , σ ⟩ →
-           [ i ] m₁ ∼M m₃ ⟨ ρ , σ ⟩
+           [ i ] m₂ ∼M m₃ ⟨ r , σ ⟩ →
+           [ i ] m₁ ∼M m₂ ⟨ r , σ ⟩ →
+           [ i ] m₁ ∼M m₃ ⟨ r , σ ⟩
   step-∼ _ m₂∼m₃ m₁∼m₂ =
     wrap (Result-reasoning.step-∼ _ (run m₂∼m₃) (run m₁∼m₂))
 
   syntax step-∼ m₁ m₂∼m₃ m₁∼m₂ = m₁ ∼⟨ m₁∼m₂ ⟩ m₂∼m₃
 
   step-∼ˡ : ∀ {i k} (m₁ : M A ∞) {m₂ m₃} →
-            [ i ] m₂ ⟨ k ⟩M m₃ ⟨ ρ , σ ⟩ →
-            [ ∞ ] m₁ ∼M m₂ ⟨ ρ , σ ⟩ →
-            [ i ] m₁ ⟨ k ⟩M m₃ ⟨ ρ , σ ⟩
+            [ i ] m₂ ⟨ k ⟩M m₃ ⟨ r , σ ⟩ →
+            [ ∞ ] m₁ ∼M m₂ ⟨ r , σ ⟩ →
+            [ i ] m₁ ⟨ k ⟩M m₃ ⟨ r , σ ⟩
   step-∼ˡ _ m₂≈m₃ m₁∼m₂ =
     wrap (Result-reasoning.step-∼ˡ _ (run m₂≈m₃) (run m₁∼m₂))
 
   syntax step-∼ˡ m₁ m₂≈m₃ m₁∼m₂ = m₁ ∼⟨ m₁∼m₂ ⟩≈ m₂≈m₃
 
   step-∼ʳ : ∀ {k i} (m₁ : M A ∞) {m₂ m₃} →
-            [ ∞ ] m₂ ∼M m₃ ⟨ ρ , σ ⟩ →
-            [ i ] m₁ ⟨ k ⟩M m₂ ⟨ ρ , σ ⟩ →
-            [ i ] m₁ ⟨ k ⟩M m₃ ⟨ ρ , σ ⟩
+            [ ∞ ] m₂ ∼M m₃ ⟨ r , σ ⟩ →
+            [ i ] m₁ ⟨ k ⟩M m₂ ⟨ r , σ ⟩ →
+            [ i ] m₁ ⟨ k ⟩M m₃ ⟨ r , σ ⟩
   step-∼ʳ _ m₂∼m₃ m₁≈m₂ =
     wrap (Result-reasoning.step-∼ʳ _ (run m₂∼m₃) (run m₁≈m₂))
 
   syntax step-∼ʳ m₁ m₂∼m₃ m₁≈m₂ = m₁ ≈⟨ m₁≈m₂ ⟩∼ m₂∼m₃
 
   step-≳ : ∀ {k i} (m₁ : M A ∞) {m₂ m₃} →
-           [ i ] m₂ ⟨ other k ⟩M m₃ ⟨ ρ , σ ⟩ →
-           [ ∞ ] m₁ ≳M m₂ ⟨ ρ , σ ⟩ →
-           [ i ] m₁ ⟨ other k ⟩M m₃ ⟨ ρ , σ ⟩
+           [ i ] m₂ ⟨ other k ⟩M m₃ ⟨ r , σ ⟩ →
+           [ ∞ ] m₁ ≳M m₂ ⟨ r , σ ⟩ →
+           [ i ] m₁ ⟨ other k ⟩M m₃ ⟨ r , σ ⟩
   step-≳ _ m₂≈m₃ m₁≳m₂ =
     wrap (Result-reasoning.step-≳ _ (run m₂≈m₃) (run m₁≳m₂))
 
   syntax step-≳ m₁ m₂≈m₃ m₁≳m₂ = m₁ ≳⟨ m₁≳m₂ ⟩ m₂≈m₃
 
   step-≈ : ∀ {i} (m₁ : M A ∞) {m₂ m₃} →
-           [ ∞ ] m₂ ≈M m₃ ⟨ ρ , σ ⟩ →
-           [ ∞ ] m₁ ≈M m₂ ⟨ ρ , σ ⟩ →
-           [ i ] m₁ ≈M m₃ ⟨ ρ , σ ⟩
+           [ ∞ ] m₂ ≈M m₃ ⟨ r , σ ⟩ →
+           [ ∞ ] m₁ ≈M m₂ ⟨ r , σ ⟩ →
+           [ i ] m₁ ≈M m₃ ⟨ r , σ ⟩
   step-≈ _ m₂≈m₃ m₁≈m₂ =
     wrap (Result-reasoning.step-≈ _ (run m₂≈m₃) (run m₁≈m₂))
 
   syntax step-≈ m₁ m₂≈m₃ m₁≈m₂ = m₁ ≈⟨ m₁≈m₂ ⟩ m₂≈m₃
 
   _≳⟨⟩_ : ∀ {k i} (m₁ : M A ∞) {m₂} →
-          [ i ] drop-laterM m₁ ⟨ other k ⟩M m₂ ⟨ ρ , σ ⟩ →
-          [ i ] m₁ ⟨ other k ⟩M m₂ ⟨ ρ , σ ⟩
+          [ i ] drop-laterM m₁ ⟨ other k ⟩M m₂ ⟨ r , σ ⟩ →
+          [ i ] m₁ ⟨ other k ⟩M m₂ ⟨ r , σ ⟩
   _ ≳⟨⟩ p =
     wrap (Result-reasoning._≳⟨⟩_ _ (run p))
 
   _≡⟨⟩∼_ : ∀ {k i} (m₁ : M A ∞) {m₂} →
-           [ i ] m₁ ⟨ k ⟩M m₂ ⟨ ρ , σ ⟩ →
-           [ i ] m₁ ⟨ k ⟩M m₂ ⟨ ρ , σ ⟩
+           [ i ] m₁ ⟨ k ⟩M m₂ ⟨ r , σ ⟩ →
+           [ i ] m₁ ⟨ k ⟩M m₂ ⟨ r , σ ⟩
   _ ≡⟨⟩∼ m₁≈m₂ =
     wrap (Result-reasoning._≡⟨⟩∼_ _ (run m₁≈m₂))
 
   finally-∼ : ∀ {k i} (m₁ m₂ : M A ∞) →
-              [ i ] m₁ ⟨ k ⟩M m₂ ⟨ ρ , σ ⟩ →
-              [ i ] m₁ ⟨ k ⟩M m₂ ⟨ ρ , σ ⟩
+              [ i ] m₁ ⟨ k ⟩M m₂ ⟨ r , σ ⟩ →
+              [ i ] m₁ ⟨ k ⟩M m₂ ⟨ r , σ ⟩
   finally-∼ _ _ m₁≈m₂ =
     wrap (Result-reasoning.finally-∼ _ _ (run m₁≈m₂))
 
@@ -849,12 +872,12 @@ module M-reasoning {A : Set} (ρ : Env) (σ : Heap) where
 
 -- Conversions.
 
-∼→M : ∀ {k i A} {m₁ m₂ : M A ∞} {ρ σ} →
-      [ i ] m₁ ∼M m₂ ⟨ ρ , σ ⟩ → [ i ] m₁ ⟨ k ⟩M m₂ ⟨ ρ , σ ⟩
+∼→M : ∀ {k i A} {m₁ m₂ : M A ∞} {r σ} →
+      [ i ] m₁ ∼M m₂ ⟨ r , σ ⟩ → [ i ] m₁ ⟨ k ⟩M m₂ ⟨ r , σ ⟩
 run (∼→M p) = ∼→ (run p)
 
-≳→M : ∀ {k i A} {m₁ m₂ : M A ∞} {ρ σ} →
-      [ i ] m₁ ≳M m₂ ⟨ ρ , σ ⟩ → [ i ] m₁ ⟨ other k ⟩M m₂ ⟨ ρ , σ ⟩
+≳→M : ∀ {k i A} {m₁ m₂ : M A ∞} {r σ} →
+      [ i ] m₁ ≳M m₂ ⟨ r , σ ⟩ → [ i ] m₁ ⟨ other k ⟩M m₂ ⟨ r , σ ⟩
 run (≳→M p) = ≳→ (run p)
 
 -- Reflexivity and symmetry.
@@ -874,15 +897,6 @@ run (sym-≈M p) = symmetric-≈ (run p)
 
 -- Some laws related to return and bind for M.
 
-infixl 5 _>>=-congM_
-
-_>>=-congM_ :
-  ∀ {A B m₁ m₂} {f₁ f₂ : A → M B ∞} {k i ρ σ} →
-  [ i ] m₁ ⟨ k ⟩M m₂ ⟨ ρ , σ ⟩ →
-  (∀ {σ} x → [ i ] f₁ x ⟨ k ⟩M f₂ x ⟨ ρ , σ ⟩) →
-  [ i ] m₁ >>= f₁ ⟨ k ⟩M m₂ >>= f₂ ⟨ ρ , σ ⟩
-p >>=-congM q = wrap (run p >>=-cong λ _ → run (q _))
-
 return->>=M :
   ∀ {i A B x} (f : A → M B ∞) →
   [ i ] return x >>= f ∼M f x
@@ -898,14 +912,33 @@ return->>=M f = wrap (return->>= (λ x → runM (f x) _ _))
   [ i ] m >>= f >>= g ∼M m >>= λ p → f p >>= g
 >>=-associativeM m = wrap (>>=-associative (runM m _ _))
 
--- The with-env function preserves strong and weak bisimilarity and
--- expansion.
+-- Various rearrangement/simplification lemmas for inc.
 
-with-env-cong :
-  ∀ {k i A f ρ σ} {m₁ m₂ : M A ∞} →
-  [ i ] m₁ ⟨ k ⟩M m₂ ⟨ f ρ , σ ⟩ →
-  [ i ] with-env f m₁ ⟨ k ⟩M with-env f m₂ ⟨ ρ , σ ⟩
-run (with-env-cong p) = run p
+inc-return :
+  ∀ {A i} {x : A} →
+  [ i ] inc (return x) ≳M return x
+run (inc-return {x = x} {r} {σ}) =
+  runM (inc (return x)) r σ           ≳⟨⟩
+  runM (return x) (Σ-map suc id r) σ  ≡⟨⟩∼
+  runM (return x) r σ                 □
+  where
+  open Result-reasoning
+
+inc->>= :
+  ∀ {A B i} (m : M A ∞) {f : A → M B ∞} →
+  [ i ] inc m >>= inc ∘ f ≳M inc (m >>= f)
+run (inc->>= m {f} {r} {σ}) =
+  later λ { .force →
+    (runM m (Σ-map suc id r) σ □) >>=-cong λ { (x , σ) →
+      runM (inc (f x)) r σ           ≳⟨⟩
+      runM (f x) (Σ-map suc id r) σ  □ }}
+  where
+  open Result-reasoning
+
+inc-with-env :
+  ∀ {A i} (m : M A ∞) {f : Env → Env} →
+  [ i ] inc (with-env f m) ∼M with-env f (inc m)
+run (inc-with-env m) = later λ { .force → reflexive _ }
 
 -- A fusion lemma for with-env.
 
@@ -914,19 +947,39 @@ with-env-∘ :
   [ i ] with-env f (with-env g m) ∼M with-env (g ∘ f) m
 run (with-env-∘ _ _ _) = reflexive _
 
--- The readM and writeM functions preserve strong and weak
--- bisimilarity and expansion.
+-- Some preservation lemmas.
+
+infixl 5 _>>=-congM_
+
+_>>=-congM_ :
+  ∀ {A B m₁ m₂} {f₁ f₂ : A → M B ∞} {k i r σ} →
+  [ i ] m₁ ⟨ k ⟩M m₂ ⟨ r , σ ⟩ →
+  (∀ {σ} x → [ i ] f₁ x ⟨ k ⟩M f₂ x ⟨ r , σ ⟩) →
+  [ i ] m₁ >>= f₁ ⟨ k ⟩M m₂ >>= f₂ ⟨ r , σ ⟩
+p >>=-congM q = wrap (run p >>=-cong λ _ → run (q _))
+
+inc-cong :
+  ∀ {k i A r σ} {m₁ m₂ : M A ∞} →
+  [ i ] m₁ ⟨ k ⟩M m₂ ⟨ Σ-map suc id r , σ ⟩ →
+  [ i ] inc m₁ ⟨ k ⟩M inc m₂ ⟨ r , σ ⟩
+run (inc-cong p) = later λ { .force → run p }
+
+with-env-cong :
+  ∀ {k i A f r σ} {m₁ m₂ : M A ∞} →
+  [ i ] m₁ ⟨ k ⟩M m₂ ⟨ Σ-map id f r , σ ⟩ →
+  [ i ] with-env f m₁ ⟨ k ⟩M with-env f m₂ ⟨ r , σ ⟩
+run (with-env-cong p) = run p
 
 readM-cong :
-  ∀ {k i A ρ σ} {f₁ f₂ : ℕ → M A ∞} →
-  (∀ n → [ i ] f₁ n ⟨ k ⟩M f₂ n ⟨ ρ , σ ⟩) →
-  [ i ] readM f₁ ⟨ k ⟩M readM f₂ ⟨ ρ , σ ⟩
+  ∀ {k i A r σ} {f₁ f₂ : ℕ → M A ∞} →
+  (∀ n → [ i ] f₁ n ⟨ k ⟩M f₂ n ⟨ r , σ ⟩) →
+  [ i ] readM f₁ ⟨ k ⟩M readM f₂ ⟨ r , σ ⟩
 run (readM-cong p) = read λ { n .force → run (p n) }
 
 writeM-cong :
-  ∀ {k i A n ρ σ} {m₁ m₂ : M A ∞} →
-  [ i ] m₁ ⟨ k ⟩M m₂ ⟨ ρ , σ ⟩ →
-  [ i ] writeM n m₁ ⟨ k ⟩M writeM n m₂ ⟨ ρ , σ ⟩
+  ∀ {k i A n r σ} {m₁ m₂ : M A ∞} →
+  [ i ] m₁ ⟨ k ⟩M m₂ ⟨ r , σ ⟩ →
+  [ i ] writeM n m₁ ⟨ k ⟩M writeM n m₂ ⟨ r , σ ⟩
 run (writeM-cong p) = write λ { .force → run p }
 
 ------------------------------------------------------------------------
@@ -940,7 +993,7 @@ mutual
   ⟦ var x ⟧ = lookup x
 
   ⟦ lam x e ⟧ = do
-    ρ ← ask
+    _ , ρ ← ask
     return (closure x e ρ)
 
   ⟦ app e₁ e₂ ⟧ = apply ⟦ e₁ ⟧ ⟦ e₂ ⟧
@@ -950,82 +1003,225 @@ mutual
                      (lam x₂ (fix rec x₂ e₁ (var x₂))))
                 e₂
     in
-    runM⁻¹ λ ρ σ → later λ { .force → runM ⟦ e ⟧ ρ σ }
+    runM⁻¹ λ r σ → later nothing λ { .force → runM ⟦ e ⟧ r σ }
 
   ⟦ zero ⟧ = return (nat 0)
 
   ⟦ suc e ⟧ = do
-    nat n ← ⟦ e ⟧
+    nat n ← inc ⟦ e ⟧
       where _ → crashM
     return (nat (1 + n))
 
   ⟦ pred e ⟧ = do
-    nat n ← ⟦ e ⟧
+    nat n ← inc ⟦ e ⟧
       where _ → crashM
     return (nat (n ∸ 1))
 
   ⟦ if e =0-then e₁ else e₂ ⟧ = do
-    nat n ← ⟦ e ⟧
+    nat n ← inc ⟦ e ⟧
       where _ → crashM
     case n of λ where
       zero    → ⟦ e₁ ⟧
       (suc _) → ⟦ e₂ ⟧
 
   ⟦ ref e ⟧ = do
-    v ← ⟦ e ⟧
+    v ← inc ⟦ e ⟧
     r ← extendM v
     return (ref r)
 
   ⟦ ! e ⟧ = do
-    ref r ← ⟦ e ⟧
+    ref r ← inc ⟦ e ⟧
       where _ → crashM
     dereferenceM r
 
   ⟦ e₁ ≔ e₂ ⟧ = do
-    ref r ← ⟦ e₁ ⟧
+    ref r ← inc ⟦ e₁ ⟧
       where _ → crashM
-    v ← ⟦ e₂ ⟧
+    v ← inc ⟦ e₂ ⟧
     updateM r v
     return unit
 
   ⟦ read x e ⟧ =
-    readM λ n → with-env (_[ x ≔ nat n ]) ⟦ e ⟧
+    readM λ n → inc (with-env (_[ x ≔ nat n ]) ⟦ e ⟧)
 
   ⟦ write e ⟧ = do
-    nat n ← ⟦ e ⟧
+    nat n ← inc ⟦ e ⟧
       where _ → crashM
     writeM n (return unit)
 
   -- A function that is used to define the app case of ⟦_⟧.
 
   apply : ∀ {i} → M Value i → M Value i → M Value i
-  apply m₁ m₂ = do
+  apply = λ m₁ m₂ → apply′ (inc m₁) (inc m₂)
+
+  apply′ : ∀ {i} → M Value i → M Value i → M Value i
+  apply′ m₁ m₂ = do
     closure x e ρ ← m₁
       where _ → crashM
     v ← m₂
-    with-env (λ _ → ρ [ x ≔ v ])
-      (runM⁻¹ λ ρ σ → later λ { .force → runM ⟦ e ⟧ ρ σ })
+    inc (with-env (λ _ → ρ [ x ≔ v ])
+      (runM⁻¹ λ r σ → later nothing λ { .force → runM ⟦ e ⟧ r σ }))
 
 ------------------------------------------------------------------------
 -- Some lemmas related to the semantics
 
--- The apply function preserves strong and weak bisimilarity and
--- expansion.
+-- Lemmas stating that certain functions ignore the stack depth (up to
+-- strong bisimilarity).
 
-apply-cong :
-  ∀ {k i m₁₁ m₁₂ m₂₁ m₂₂ ρ σ} →
-  [ i ] m₁₁ ⟨ k ⟩M m₁₂ ⟨ ρ , σ ⟩ →
-  (∀ {σ} → [ i ] m₂₁ ⟨ k ⟩M m₂₂ ⟨ ρ , σ ⟩) →
-  [ i ] apply m₁₁ m₂₁ ⟨ k ⟩M apply m₁₂ m₂₂ ⟨ ρ , σ ⟩
-apply-cong {k} {m₁₁ = m₁₁} {m₁₂} {m₂₁} {m₂₂} {ρ} {σ} p q =
+lookup-depth :
+  ∀ x {d₁ d₂} ρ {σ i} →
+  [ i ] runM (lookup x) (d₁ , ρ) σ ∼
+        runM (lookup x) (d₂ , ρ) σ
+lookup-depth x ρ with ρ x
+... | nothing = crash
+... | just _  = now
+
+dereferenceM-depth :
+  ∀ r {d₁ d₂ ρ} σ {i} →
+  [ i ] runM (dereferenceM r) (d₁ , ρ) σ ∼
+        runM (dereferenceM r) (d₂ , ρ) σ
+dereferenceM-depth r σ with dereference σ r
+... | nothing = crash
+... | just _  = now
+
+updateM-depth :
+  ∀ r v {d₁ d₂ ρ} σ {i} →
+  [ i ] runM (updateM r v) (d₁ , ρ) σ ∼
+        runM (updateM r v) (d₂ , ρ) σ
+updateM-depth r v σ with update σ r v
+... | nothing = crash
+... | just _  = now
+
+inc-depth :
+  ∀ {A} {m : M A ∞} {d₁ d₂ ρ σ i k} →
+  [ i ] runM m (suc d₁ , ρ) σ ⟨ k ⟩
+        runM m (suc d₂ , ρ) σ →
+  [ i ] runM (inc m) (d₁ , ρ) σ ⟨ k ⟩
+        runM (inc m) (d₂ , ρ) σ
+inc-depth p = later λ { .force → p }
+
+drop-inc :
+  ∀ {k A} {m : M A ∞} {d₁ d₂ ρ σ i} →
+  [ i ] runM m (suc d₁ , ρ) σ ⟨ other k ⟩
+        runM m (d₂ , ρ) σ →
+  [ i ] runM (inc m) (d₁ , ρ) σ ⟨ other k ⟩
+        runM m (d₂ , ρ) σ
+drop-inc p = laterˡ p
+
+mutual
+
+  ⟦⟧-depth :
+    ∀ e {d₁ d₂ ρ σ i} →
+    [ i ] runM ⟦ e ⟧ (d₁ , ρ) σ ∼
+          runM ⟦ e ⟧ (d₂ , ρ) σ
+  ⟦⟧-depth (var x) {ρ = ρ} = lookup-depth x ρ
+
+  ⟦⟧-depth (lam x e) = now
+
+  ⟦⟧-depth (app e₁ e₂) = apply-depth (⟦⟧-depth e₁) (⟦⟧-depth e₂)
+
+  ⟦⟧-depth (fix rec x₂ e₁ e₂) = later λ { .force →
+    ⟦⟧-depth (app (app (lam rec (lam x₂ e₁))
+                  (lam x₂ (fix rec x₂ e₁ (var x₂))))
+                  e₂) }
+
+  ⟦⟧-depth zero = now
+
+  ⟦⟧-depth (suc e) = inc-depth (⟦⟧-depth e) >>=-cong λ where
+    (unit          , _) → crash
+    (ref _         , _) → crash
+    (closure _ _ _ , _) → crash
+    (nat _         , _) → now
+
+  ⟦⟧-depth (pred e) = inc-depth (⟦⟧-depth e) >>=-cong λ where
+    (unit          , _) → crash
+    (ref _         , _) → crash
+    (closure _ _ _ , _) → crash
+    (nat _         , _) → now
+
+  ⟦⟧-depth (if e =0-then e₁ else e₂) =
+    inc-depth (⟦⟧-depth e) >>=-cong λ where
+      (unit          , _) → crash
+      (ref _         , _) → crash
+      (closure _ _ _ , _) → crash
+      (nat zero      , _) → ⟦⟧-depth e₁
+      (nat (suc _)   , _) → ⟦⟧-depth e₂
+
+  ⟦⟧-depth (ref e) = inc-depth (⟦⟧-depth e) >>=-cong λ where
+    (unit          , _) → now
+    (nat _         , _) → now
+    (ref _         , _) → now
+    (closure _ _ _ , _) → now
+
+  ⟦⟧-depth (! e) = inc-depth (⟦⟧-depth e) >>=-cong λ where
+    (unit          , _) → crash
+    (nat _         , _) → crash
+    (closure _ _ _ , _) → crash
+    (ref r         , σ) → dereferenceM-depth r σ
+
+  ⟦⟧-depth (e₁ ≔ e₂) = inc-depth (⟦⟧-depth e₁) >>=-cong λ where
+    (unit          , _) → crash
+    (nat _         , _) → crash
+    (closure _ _ _ , _) → crash
+    (ref r         , _) →
+      inc-depth (⟦⟧-depth e₂) >>=-cong λ { (v , σ) →
+      updateM-depth r v σ >>=-cong λ _ →
+      now }
+
+  ⟦⟧-depth (read x e) = read λ { _ .force → inc-depth (⟦⟧-depth e) }
+
+  ⟦⟧-depth (write e) = inc-depth (⟦⟧-depth e) >>=-cong λ where
+    (unit          , _) → crash
+    (closure _ _ _ , _) → crash
+    (ref _         , _) → crash
+    (nat _         , _) → write λ { .force → now }
+
+  apply-depth :
+    ∀ {m₁ m₂ d₁ d₂ ρ σ i k} →
+    [ i ] runM m₁ (suc d₁ , ρ) σ ⟨ k ⟩
+          runM m₁ (suc d₂ , ρ) σ →
+    (∀ {σ} → [ i ] runM m₂ (suc d₁ , ρ) σ ⟨ k ⟩
+                   runM m₂ (suc d₂ , ρ) σ) →
+    [ i ] runM (apply m₁ m₂) (d₁ , ρ) σ ⟨ k ⟩
+          runM (apply m₁ m₂) (d₂ , ρ) σ
+  apply-depth {m₁} {m₂} hyp₁ hyp₂ =
+    apply′-depth (inc m₁) (inc m₂) (inc-depth hyp₁) (inc-depth hyp₂)
+
+  apply′-depth :
+    ∀ m₁ m₂ {d₁ d₂ ρ σ i k} →
+    [ i ] runM m₁ (d₁ , ρ) σ ⟨ k ⟩
+          runM m₁ (d₂ , ρ) σ →
+    (∀ {σ} → [ i ] runM m₂ (d₁ , ρ) σ ⟨ k ⟩
+                   runM m₂ (d₂ , ρ) σ) →
+    [ i ] runM (apply′ m₁ m₂) (d₁ , ρ) σ ⟨ k ⟩
+          runM (apply′ m₁ m₂) (d₂ , ρ) σ
+  apply′-depth _ _ hyp₁ hyp₂ =
+    hyp₁ >>=-cong λ where
+      (unit          , _) → crash
+      (nat _         , _) → crash
+      (ref _         , _) → crash
+      (closure _ e _ , _) →
+        hyp₂ >>=-cong λ _ →
+        inc-depth (later λ { .force → ∼→ (⟦⟧-depth e) })
+
+-- The apply and apply′ functions preserve strong and weak
+-- bisimilarity and expansion.
+
+apply′-cong :
+  ∀ {k i m₁₁ m₁₂ m₂₁ m₂₂ r σ} →
+  [ i ] m₁₁ ⟨ k ⟩M m₁₂ ⟨ r , σ ⟩ →
+  (∀ {σ} → [ i ] m₂₁ ⟨ k ⟩M m₂₂ ⟨ r , σ ⟩) →
+  [ i ] apply′ m₁₁ m₂₁ ⟨ k ⟩M apply′ m₁₂ m₂₂ ⟨ r , σ ⟩
+apply′-cong {k} {m₁₁ = m₁₁} {m₁₂} {m₂₁} {m₂₂} {r} {σ} p q =
   wrap (helper {m₁₁ = m₁₁} {m₁₂} refl refl (run p) q)
   where
   helper :
     ∀ {i r₁ r₂ m₁₁ m₁₂} →
-    runM m₁₁ ρ σ ≡ r₁ → runM m₁₂ ρ σ ≡ r₂ →
+    runM m₁₁ r σ ≡ r₁ → runM m₁₂ r σ ≡ r₂ →
     [ i ] r₁ ⟨ k ⟩ r₂ →
-    (∀ {σ} → [ i ] m₂₁ ⟨ k ⟩M m₂₂ ⟨ ρ , σ ⟩) →
-    [ i ] runM (apply m₁₁ m₂₁) ρ σ ⟨ k ⟩ runM (apply m₁₂ m₂₂) ρ σ
+    (∀ {σ} → [ i ] m₂₁ ⟨ k ⟩M m₂₂ ⟨ r , σ ⟩) →
+    [ i ] runM (apply′ m₁₁ m₂₁) r σ ⟨ k ⟩
+          runM (apply′ m₁₂ m₂₂) r σ
   helper eq₁ eq₂ (now {x = unit , _})          _ rewrite eq₁ | eq₂ = crash
   helper eq₁ eq₂ (now {x = nat _ , _})         _ rewrite eq₁ | eq₂ = crash
   helper eq₁ eq₂ (now {x = ref _ , _})         _ rewrite eq₁ | eq₂ = crash
@@ -1037,87 +1233,162 @@ apply-cong {k} {m₁₁ = m₁₁} {m₁₂} {m₂₁} {m₂₂} {ρ} {σ} p q =
   helper eq₁ eq₂ (laterˡ p)                    q rewrite eq₁ | eq₂ = laterˡ (helper refl refl p q)
   helper eq₁ eq₂ (laterʳ p)                    q rewrite eq₁ | eq₂ = laterʳ (helper refl refl p q)
 
--- Some rearrangement/simplification lemmas for apply.
+apply-cong :
+  ∀ {k i m₁₁ m₁₂ m₂₁ m₂₂ r σ} →
+  [ i ] m₁₁ ⟨ k ⟩M m₁₂ ⟨ Σ-map suc id r , σ ⟩ →
+  (∀ {σ} → [ i ] m₂₁ ⟨ k ⟩M m₂₂ ⟨ Σ-map suc id r , σ ⟩) →
+  [ i ] apply m₁₁ m₂₁ ⟨ k ⟩M apply m₁₂ m₂₂ ⟨ r , σ ⟩
+apply-cong p q = apply′-cong (inc-cong p) (inc-cong q)
+
+-- Some rearrangement/simplification lemmas for apply and apply′.
+
+apply′->>= :
+  ∀ {A} (m : M A ∞) {f g i} →
+  [ i ] (m >>= λ x → apply′ (f x) g) ∼M apply′ (m >>= f) g
+run (apply′->>= m) = symmetric-∼ (>>=-associative (runM m _ _))
 
 apply->>= :
   ∀ {A} (m : M A ∞) {f g i} →
-  [ i ] apply (m >>= f) g ∼M
-        m >>= λ x → apply (f x) g
-run (apply->>= m) = >>=-associative (runM m _ _)
+  [ i ] (inc m >>= λ x → apply (f x) g) ≳M apply (m >>= f) g
+apply->>= m {f} {g} {r = r} {σ} =
+  (inc m >>= λ x → apply (f x) g)               ≡⟨⟩∼
+  (inc m >>= λ x → apply′ (inc (f x)) (inc g))  ∼⟨ apply′->>= (inc m) ⟩≈
+  apply′ (inc m >>= inc ∘ f) (inc g)            ≈⟨ apply′-cong (inc->>= m) (reflM _) ⟩∼
+  apply′ (inc (m >>= f)) (inc g)                ≡⟨⟩∼
+  apply (m >>= f) g                             □
+  where
+  open M-reasoning r σ
 
-apply-closure :
-  ∀ m₁ {x e ρ} m₂ {ρ₀ σ k i} →
-  [ i ] m₁ ⟨ other k ⟩M return (closure x e ρ) ⟨ ρ₀ , σ ⟩ →
-  [ i ] apply m₁ m₂ ⟨ other k ⟩M
-        (do v ← m₂
-            with-env (λ _ → ρ [ x ≔ v ]) ⟦ e ⟧) ⟨ ρ₀ , σ ⟩
-apply-closure m₁ {x} {e} {ρ} m₂ {ρ₀} {σ} m₁≈ =
-  apply m₁ m₂                                 ≳⟨ reflM m₁ >>=-congM (λ where
+apply′-closure :
+  ∀ {m₁ x e ρ m₂₁ m₂₂ r σ k i} →
+  [ i ] m₁ ⟨ other k ⟩M return (closure x e ρ) ⟨ r , σ ⟩ →
+  (∀ {σ} → [ i ] m₂₁ ⟨ other k ⟩M m₂₂ ⟨ r , σ ⟩) →
+  [ i ] apply′ m₁ m₂₁ ⟨ other k ⟩M
+        (do v ← m₂₂
+            with-env (λ _ → ρ [ x ≔ v ]) ⟦ e ⟧) ⟨ r , σ ⟩
+apply′-closure {m₁} {x} {e} {ρ} {m₂₁} {m₂₂} {r} {σ} m₁≈ m₂₁≈m₂₂ =
+  apply′ m₁ m₂₁                               ≈⟨ _>>=-congM_ {f₂ = λ { (closure _ _ _) → _; _ → crashM }} m₁≈ (λ where
                                                    (unit         ) → wrap crash
                                                    (nat _        ) → wrap crash
                                                    (ref _        ) → wrap crash
-                                                   (closure _ _ _) →
-                                                     reflM m₂ >>=-congM λ _ → wrap (laterˡ (reflexive _))) ⟩
-  (do closure x e ρ ← m₁
-        where _ → crashM
-      v ← m₂
-      with-env (λ _ → ρ [ x ≔ v ]) ⟦ e ⟧)     ≈⟨ m₁≈ >>=-congM (λ _ → reflM _) ⟩∼
-
+                                                   (closure _ e _) → m₂₁≈m₂₂ >>=-congM λ _ →
+                                                                     wrap (laterˡ (laterˡ (∼→ (⟦⟧-depth e))))) ⟩∼
   (do closure x e ρ ← return (closure x e ρ)
         where _ → crashM
-      v ← m₂
+      v ← m₂₂
       with-env (λ _ → ρ [ x ≔ v ]) ⟦ e ⟧)     ≡⟨⟩∼
 
-  (do v ← m₂
+  (do v ← m₂₂
       with-env (λ _ → ρ [ x ≔ v ]) ⟦ e ⟧)     □
   where
-  open M-reasoning ρ₀ σ
+  open M-reasoning r σ
+
+apply-closure :
+  ∀ {m₁ x e ρ m₂₁ m₂₂ r σ k i} →
+  [ i ] inc m₁ ⟨ other k ⟩M return (closure x e ρ) ⟨ r , σ ⟩ →
+  (∀ {σ} → [ i ] inc m₂₁ ⟨ other k ⟩M m₂₂ ⟨ r , σ ⟩) →
+  [ i ] apply m₁ m₂₁ ⟨ other k ⟩M
+        (do v ← m₂₂
+            with-env (λ _ → ρ [ x ≔ v ]) ⟦ e ⟧) ⟨ r , σ ⟩
+apply-closure = apply′-closure
+
+with-env-apply′ :
+  ∀ {f} (m₁ : M Value ∞) {m₂ i} →
+  [ i ] with-env f (apply′ m₁ m₂) ∼M
+        apply′ (with-env f m₁) (with-env f m₂)
+run (with-env-apply′ m₁ {m₂}) =
+  (runM m₁ _ _ □) >>=-cong λ where
+    (unit          , _) → crash
+    (nat _         , _) → crash
+    (ref _         , _) → crash
+    (closure _ _ _ , _) → reflexive (runM m₂ _ _) >>=-cong λ _ →
+                          later λ { .force → reflexive _ }
+  where
+  open Result-reasoning
 
 with-env-apply :
   ∀ {f} (m₁ : M Value ∞) {m₂ i} →
   [ i ] with-env f (apply m₁ m₂) ∼M
         apply (with-env f m₁) (with-env f m₂)
-run (with-env-apply m₁) =
-  (runM m₁ _ _ □) >>=-cong λ where
-    (unit          , _) → crash
-    (nat _         , _) → crash
-    (ref _         , _) → crash
-    (closure _ _ _ , _) → reflexive _
+with-env-apply {f} m₁ {m₂} {r = r} {σ} =
+  with-env f (apply m₁ m₂)                            ≡⟨⟩∼
+  with-env f (apply′ (inc m₁) (inc m₂))               ∼⟨ with-env-apply′ (inc m₁) ⟩
+  apply′ (with-env f (inc m₁)) (with-env f (inc m₂))  ∼⟨ apply′-cong (sym-∼M (inc-with-env _)) (sym-∼M (inc-with-env _)) ⟩
+  apply′ (inc (with-env f m₁)) (inc (with-env f m₂))  ≡⟨⟩∼
+  apply (with-env f m₁) (with-env f m₂)               □
+  where
+  open M-reasoning r σ
+
+-- Some simplification lemmas.
+
+inc-⟦⟧ : ∀ {i} e → [ i ] inc ⟦ e ⟧ ≳M ⟦ e ⟧
+run (inc-⟦⟧ e {r} {σ}) =
+  runM (inc ⟦ e ⟧) r σ           ≳⟨⟩
+  runM ⟦ e ⟧ (Σ-map suc id r) σ  ∼⟨ ⟦⟧-depth e ⟩≈
+  runM ⟦ e ⟧ r σ                 □
   where
   open Result-reasoning
+
+apply-⟦⟧-⟦⟧ :
+  ∀ {i} e₁ e₂ →
+  [ i ] apply ⟦ e₁ ⟧ ⟦ e₂ ⟧ ≳M apply′ ⟦ e₁ ⟧ ⟦ e₂ ⟧
+apply-⟦⟧-⟦⟧ e₁ e₂ {r} {σ} =
+  apply ⟦ e₁ ⟧ ⟦ e₂ ⟧               ≡⟨⟩∼
+  apply′ (inc ⟦ e₁ ⟧) (inc ⟦ e₂ ⟧)  ≳⟨ apply′-cong (inc-⟦⟧ e₁) (inc-⟦⟧ e₂) ⟩
+  apply′ ⟦ e₁ ⟧ ⟦ e₂ ⟧              □
+  where
+  open M-reasoning r σ
+
+inc-apply′ :
+  ∀ {m₁ m₂ i} →
+  [ i ] apply m₁ m₂ ≳M inc (apply′ m₁ m₂)
+run (inc-apply′ {m₁} {m₂} {r = r} {σ}) =
+  later λ { .force →
+    reflexive (runM m₁ _ _) >>=-cong λ where
+      (unit          , _) → crash
+      (nat _         , _) → crash
+      (ref _         , _) → crash
+      (closure _ e _ , σ) →
+        laterˡ (reflexive (runM m₂ _ _) >>=-cong λ v₂ →
+                inc-depth (later λ { .force → ∼→ (⟦⟧-depth e) })) }
 
 -- A rearrangement/simplification lemma for fix.
 
 unfold-fix :
-  ∀ {rec x₂ e₁} e₂ {ρ σ i} →
+  ∀ {rec x₂ e₁} e₂ {d ρ σ i} →
   [ i ] ⟦ fix rec x₂ e₁ e₂ ⟧ ≳M
         (do v₂ ← ⟦ e₂ ⟧
             with-env (λ _ → ρ [ rec ≔ closure x₂
                                         (fix rec x₂ e₁ (var x₂)) ρ ]
                               [ x₂ ≔ v₂ ])
-              ⟦ e₁ ⟧) ⟨ ρ , σ ⟩
-unfold-fix {rec} {x₂} {e₁} e₂ {ρ} {σ} =
-  ⟦ fix rec x₂ e₁ e₂ ⟧                                                   ≳⟨⟩
+              ⟦ e₁ ⟧) ⟨ (d , ρ) , σ ⟩
+unfold-fix {rec} {x₂} {e₁} e₂ {d} {ρ} {σ} =
+  ⟦ fix rec x₂ e₁ e₂ ⟧                                             ≳⟨⟩
 
-  ⟦ app (app (lam rec (lam x₂ e₁))
-             (lam x₂ (fix rec x₂ e₁ (var x₂))))
-        e₂ ⟧                                                             ∼⟨ wrap (reflexive _) ⟩≈
+  apply ⟦ app (lam rec (lam x₂ e₁))
+              (lam x₂ (fix rec x₂ e₁ (var x₂))) ⟧
+        ⟦ e₂ ⟧                                                     ≳⟨ apply-cong (apply-⟦⟧-⟦⟧ (lam rec _) (lam x₂ _)) (reflM _) ⟩
 
-  apply (apply (return (closure rec (lam x₂ e₁) ρ))
-               (return (closure x₂ (fix rec x₂ e₁ (var x₂)) ρ)))
-        ⟦ e₂ ⟧                                                           ≳⟨ apply-cong (apply-closure (return (closure rec _ _)) (return _)
-                                                                                                      (reflM _))
-                                                                                       (reflM _) ⟩
+  apply (apply′ ⟦ lam rec (lam x₂ e₁) ⟧
+                ⟦ lam x₂ (fix rec x₂ e₁ (var x₂)) ⟧)
+        ⟦ e₂ ⟧                                                     ∼⟨ wrap (later λ { .force → reflexive _ }) ⟩≈
+
+  apply (apply′ (return (closure rec (lam x₂ e₁) ρ))
+                (return (closure x₂ (fix rec x₂ e₁ (var x₂)) ρ)))
+        ⟦ e₂ ⟧                                                     ≳⟨ apply-cong (apply′-closure (reflM (return (closure rec _ _)))
+                                                                                                 (reflM (return (closure x₂ _ _))))
+                                                                                 (reflM _) ⟩
   apply (do v ← return (closure x₂ (fix rec x₂ e₁ (var x₂)) ρ)
             with-env (λ _ → ρ [ rec ≔ v ]) ⟦ lam x₂ e₁ ⟧)
-        ⟦ e₂ ⟧                                                           ≡⟨⟩∼
+        ⟦ e₂ ⟧                                                     ≡⟨⟩∼
 
-  apply (with-env (λ _ → ρ′) ⟦ lam x₂ e₁ ⟧) ⟦ e₂ ⟧                       ≳⟨ apply-closure (with-env _ ⟦ lam x₂ _ ⟧) ⟦ e₂ ⟧ (reflM _) ⟩
+  apply (with-env (λ _ → ρ′) ⟦ lam x₂ e₁ ⟧) ⟦ e₂ ⟧                 ≳⟨ apply-closure inc-return (inc-⟦⟧ e₂) ⟩
 
   (do v₂ ← ⟦ e₂ ⟧
-      with-env (λ _ → ρ′ [ x₂ ≔ v₂ ]) ⟦ e₁ ⟧)                            □
+      with-env (λ _ → ρ′ [ x₂ ≔ v₂ ]) ⟦ e₁ ⟧)                      □
   where
-  open M-reasoning ρ σ
+  open M-reasoning (d , ρ) σ
+
   ρ′ = ρ [ rec ≔ closure x₂ (fix rec x₂ e₁ (var x₂)) ρ ]
 
 ------------------------------------------------------------------------
@@ -1133,34 +1404,36 @@ e₁ ⨾ e₂ = app (app (lam 0 (lam 0 (var 0))) e₁) e₂
 ⨾-correct :
   ∀ {i} e₁ e₂ →
   [ i ] ⟦ e₁ ⨾ e₂ ⟧ ≳M do ⟦ e₁ ⟧; ⟦ e₂ ⟧
-⨾-correct e₁ e₂ {ρ} {σ} =
-  ⟦ app (app (lam 0 (lam 0 (var 0))) e₁) e₂ ⟧                 ≡⟨⟩∼
+⨾-correct e₁ e₂ {d , ρ} {σ} =
+  ⟦ app (app (lam 0 (lam 0 (var 0))) e₁) e₂ ⟧                  ≡⟨⟩∼
 
-  apply (apply ⟦ lam 0 (lam 0 (var 0)) ⟧ ⟦ e₁ ⟧) ⟦ e₂ ⟧       ≳⟨ apply-cong (apply-closure ⟦ lam 0 _ ⟧ ⟦ e₁ ⟧ (wrap now)) (reflM _) ⟩
+  apply (apply ⟦ lam 0 (lam 0 (var 0)) ⟧ ⟦ e₁ ⟧) ⟦ e₂ ⟧        ≳⟨ apply-cong (apply-closure (wrap (run (inc-⟦⟧ (lam 0 _)))) (inc-⟦⟧ e₁)) (reflM _) ⟩
 
   apply (do v₁ ← ⟦ e₁ ⟧
             with-env (λ _ → ρ [ 0 ≔ v₁ ]) ⟦ lam 0 (var 0) ⟧)
-        ⟦ e₂ ⟧                                                ≡⟨⟩∼
+        ⟦ e₂ ⟧                                                 ≳⟨ inc-apply′ ⟩
 
-  apply (do v₁ ← ⟦ e₁ ⟧
-            return (closure 0 (var 0) (ρ [ 0 ≔ v₁ ])))
-        ⟦ e₂ ⟧                                                ∼⟨ apply->>= ⟦ e₁ ⟧ ⟩≈
+  inc (apply′ (do v₁ ← ⟦ e₁ ⟧
+                  return (closure 0 (var 0) (ρ [ 0 ≔ v₁ ])))
+              ⟦ e₂ ⟧)                                          ∼⟨ inc-cong (sym-∼M (apply′->>= ⟦ e₁ ⟧)) ⟩≈
 
-  (do v₁ ← ⟦ e₁ ⟧
-      apply (return (closure 0 (var 0) (ρ [ 0 ≔ v₁ ])))
-            ⟦ e₂ ⟧)                                           ≳⟨ (⟦ e₁ ⟧ □) >>=-congM (λ _ →
-                                                                 apply-closure (return (closure 0 _ _)) ⟦ e₂ ⟧ (reflM _)) ⟩
-  (do v₁ ← ⟦ e₁ ⟧
-      v₂ ← ⟦ e₂ ⟧
-      with-env (λ ρ → ρ [ 0 ≔ v₁ ] [ 0 ≔ v₂ ]) ⟦ var 0 ⟧)     ≡⟨⟩∼
+  inc (do v₁ ← ⟦ e₁ ⟧
+          apply′ (return (closure 0 (var 0) (ρ [ 0 ≔ v₁ ])))
+                 ⟦ e₂ ⟧)                                       ≳⟨ inc-cong (reflM ⟦ e₁ ⟧ >>=-congM λ _ →
+                                                                    apply′-closure (reflM (return (closure 0 _ _))) (reflM ⟦ e₂ ⟧)) ⟩
+  inc (do v₁ ← ⟦ e₁ ⟧
+          v₂ ← ⟦ e₂ ⟧
+          with-env (λ ρ → ρ [ 0 ≔ v₁ ] [ 0 ≔ v₂ ]) ⟦ var 0 ⟧)  ≡⟨⟩∼
 
-  (do v₁ ← ⟦ e₁ ⟧
-      v₂ ← ⟦ e₂ ⟧
-      return v₂)                                              ∼⟨ (⟦ e₁ ⟧ □) >>=-congM (λ _ → >>=-returnM _) ⟩≈
+  inc (do v₁ ← ⟦ e₁ ⟧
+          v₂ ← ⟦ e₂ ⟧
+          return v₂)                                           ∼⟨ inc-cong (reflM ⟦ e₁ ⟧ >>=-congM λ _ → >>=-returnM _) ⟩≈
 
-  (do ⟦ e₁ ⟧; ⟦ e₂ ⟧)                                         □
+  inc (do ⟦ e₁ ⟧; ⟦ e₂ ⟧)                                      ≳⟨ wrap (drop-inc (∼→ (⟦⟧-depth e₁ >>=-cong λ _ → ⟦⟧-depth e₂))) ⟩
+
+  (do ⟦ e₁ ⟧; ⟦ e₂ ⟧)                                          □
   where
-  open M-reasoning ρ σ
+  open M-reasoning (d , ρ) σ
 
 ------------------------------------------------------------------------
 -- A fixed-point combinator
@@ -1192,56 +1465,61 @@ fix′-is-not-fix :
 fix′-is-not-fix hyp = contradiction
   where
   fix′-lemma₁ :
-    ∀ {i} e {ρ σ} →
+    ∀ {i} e {d ρ σ} →
     [ i ] ⟦ app fix′ e ⟧ ≳M
           (do v₀ ← ⟦ e ⟧
               let ρ₀ = ρ  [ 0 ≔ v₀ ]
                   ρ₁ = ρ₀ [ 1 ≔ closure 1 Fix.body₁ ρ₀ ]
               apply (return v₀)
-                    (return (closure 2 Fix.body₂ ρ₁))) ⟨ ρ , σ ⟩
-  fix′-lemma₁ e {ρ} {σ} =
-    ⟦ app fix′ e ⟧                                     ≡⟨⟩∼
+                    (return (closure 2 Fix.body₂ ρ₁)))
+          ⟨ (d , ρ) , σ ⟩
+  fix′-lemma₁ e {d} {ρ} {σ} =
+    ⟦ app fix′ e ⟧                                           ≡⟨⟩∼
 
-    apply ⟦ fix′ ⟧ ⟦ e ⟧                               ≳⟨ apply-closure ⟦ fix′ ⟧ ⟦ e ⟧ (wrap now) ⟩
+    apply ⟦ fix′ ⟧ ⟦ e ⟧                                     ≳⟨ apply-closure (wrap (run (inc-⟦⟧ fix′))) (inc-⟦⟧ e) ⟩
 
     (do v₀ ← ⟦ e ⟧
-        with-env (λ _ → ρ₀ v₀) ⟦ app Fix.t Fix.t ⟧)    ≡⟨⟩∼
+        with-env (λ _ → ρ₀ v₀) ⟦ app Fix.t Fix.t ⟧)          ≡⟨⟩∼
 
     (do v₀ ← ⟦ e ⟧
         with-env (λ _ → ρ₀ v₀)
-          (apply ⟦ Fix.t ⟧ ⟦ Fix.t ⟧))                 ≳⟨ reflM ⟦ e ⟧ >>=-congM (λ _ → with-env-cong $
-                                                          apply-closure ⟦ Fix.t ⟧ ⟦ Fix.t ⟧ (wrap now)) ⟩
+          (apply ⟦ Fix.t ⟧ ⟦ Fix.t ⟧))                       ≳⟨ reflM ⟦ e ⟧ >>=-congM (λ _ → with-env-cong $
+                                                                apply-closure (wrap (run (inc-⟦⟧ Fix.t))) (inc-⟦⟧ Fix.t)) ⟩
     (do v₀ ← ⟦ e ⟧
         with-env (λ _ → ρ₀ v₀) do
           v₁ ← ⟦ Fix.t ⟧
-          with-env (λ _ → ρ₁ v₀ v₁) ⟦ Fix.body₁ ⟧)     ≡⟨⟩∼
+          with-env (λ _ → ρ₁ v₀ v₁) ⟦ Fix.body₁ ⟧)           ≡⟨⟩∼
 
     (do v₀ ← ⟦ e ⟧
-        with-env (λ _ → ρ₂ v₀) ⟦ Fix.body₁ ⟧)          ≡⟨⟩∼
+        with-env (λ _ → ρ₂ v₀) ⟦ Fix.body₁ ⟧)                ≡⟨⟩∼
 
     (do v₀ ← ⟦ e ⟧
         with-env (λ _ → ρ₂ v₀)
-          (apply (return v₀) ⟦ lam 2 Fix.body₂ ⟧))     ∼⟨ reflM ⟦ e ⟧ >>=-congM (λ v₀ →
-                                                          with-env-apply (return v₀)) ⟩≈
+          (apply ⟦ var 0 ⟧ ⟦ lam 2 Fix.body₂ ⟧))             ∼⟨ reflM ⟦ e ⟧ >>=-congM (λ v₀ →
+                                                                with-env-apply ⟦ var 0 ⟧) ⟩≈
+    (do v₀ ← ⟦ e ⟧
+        apply (with-env (λ _ → ρ₂ v₀) ⟦ var 0 ⟧)
+              (with-env (λ _ → ρ₂ v₀) ⟦ lam 2 Fix.body₂ ⟧))  ∼⟨ wrap (reflexive _) ⟩≈
+
     (do v₀ ← ⟦ e ⟧
         apply (return v₀)
-              (return (closure 2 Fix.body₂ (ρ₂ v₀))))  □
+              (return (closure 2 Fix.body₂ (ρ₂ v₀))))        □
     where
-    open M-reasoning ρ σ
+    open M-reasoning (d , ρ) σ
 
     ρ₀ = λ v₀ → ρ [ 0 ≔ v₀ ]
     ρ₁ = λ v₀ v₁ → ρ₀ v₀ [ 1 ≔ v₁ ]
     ρ₂ = λ v₀ → ρ₁ v₀ (closure 1 Fix.body₁ (ρ₀ v₀))
 
   fix′-lemma₂ :
-    ∀ {rec x e ρ σ i} →
+    ∀ {rec x e d ρ σ i} →
     let ρ₀ = ρ  [ 0 ≔ closure rec (lam x e) ρ ]
         ρ₁ = ρ₀ [ 1 ≔ closure 1 Fix.body₁ ρ₀ ]
     in
     [ i ] ⟦ app fix′ (lam rec (lam x e)) ⟧ ≳M
           return (closure x e (ρ [ rec ≔ closure 2 Fix.body₂ ρ₁ ]))
-          ⟨ ρ , σ ⟩
-  fix′-lemma₂ {rec} {x} {e} {ρ} {σ} =
+          ⟨ (d , ρ) , σ ⟩
+  fix′-lemma₂ {rec} {x} {e} {d} {ρ} {σ} =
     ⟦ app fix′ (lam rec (lam x e)) ⟧                                 ≳⟨ fix′-lemma₁ (lam _ (lam _ _)) ⟩
 
     (do v₀ ← ⟦ lam rec (lam x e) ⟧
@@ -1249,19 +1527,19 @@ fix′-is-not-fix hyp = contradiction
             ρ₁ = ρ₀ [ 1 ≔ closure 1 Fix.body₁ ρ₀ ]
         apply (return v₀) (return (closure 2 Fix.body₂ ρ₁)))         ∼⟨ wrap (reflexive _) ⟩≈
 
-    apply (return v₀) (return (closure 2 Fix.body₂ ρ₁))              ≳⟨ apply-closure (return v₀) (return (closure 2 _ _)) (reflM _) ⟩
+    apply (return v₀) (return (closure 2 Fix.body₂ ρ₁))              ≳⟨ apply-closure inc-return inc-return ⟩
 
     with-env (λ _ → ρ [ rec ≔ closure 2 Fix.body₂ ρ₁ ]) ⟦ lam x e ⟧  ≡⟨⟩∼
     return (closure x e (ρ [ rec ≔ closure 2 Fix.body₂ ρ₁ ]))        □
     where
-    open M-reasoning ρ σ
+    open M-reasoning (d , ρ) σ
 
     v₀ = closure rec (lam x e) ρ
     ρ₀ = ρ  [ 0 ≔ v₀ ]
     ρ₁ = ρ₀ [ 1 ≔ closure 1 Fix.body₁ ρ₀ ]
 
   consequence :
-    ∀ rec x₂ e₁ e₂ ρ σ →
+    ∀ rec x₂ e₁ e₂ d ρ σ →
     let ρ′   = ρ  [ 0 ≔ closure rec (lam x₂ e₁) ρ ]
         rec₁ = closure x₂ (app (app fix′ (lam rec (lam x₂ e₁)))
                                (var x₂))
@@ -1273,20 +1551,21 @@ fix′-is-not-fix hyp = contradiction
               with-env (λ _ → ρ [ rec ≔ rec₁ ] [ x₂ ≔ v₂ ]) ⟦ e₁ ⟧) ≈M
           (do v₂ ← ⟦ e₂ ⟧
               with-env (λ _ → ρ [ rec ≔ rec₂ ] [ x₂ ≔ v₂ ]) ⟦ e₁ ⟧)
-          ⟨ ρ , σ ⟩
-  consequence rec x₂ e₁ e₂ ρ σ =
+          ⟨ (d , ρ) , σ ⟩
+  consequence rec x₂ e₁ e₂ d ρ σ =
     (do v₂ ← ⟦ e₂ ⟧
-        with-env (λ _ → ρ [ rec ≔ rec₁ ] [ x₂ ≔ v₂ ]) ⟦ e₁ ⟧)         ≈⟨ wrap (run (sym-≈M (apply-closure (return (closure x₂ _ _)) ⟦ e₂ ⟧ (reflM _)))) ⟩
+        with-env (λ _ → ρ [ rec ≔ rec₁ ] [ x₂ ≔ v₂ ]) ⟦ e₁ ⟧)         ≈⟨ wrap (run (sym-≈M (≳→M (apply-closure inc-return (inc-⟦⟧ e₂))))) ⟩
 
-    apply (return (closure x₂ e₁ (ρ [ rec ≔ rec₁ ]))) ⟦ e₂ ⟧          ∼⟨ wrap (reflexive _) ⟩≈
+    apply (return (closure x₂ e₁ (ρ [ rec ≔ rec₁ ]))) ⟦ e₂ ⟧          ∼⟨ apply-cong (wrap (reflexive _)) (reflM _) ⟩≈
 
     apply (do v ← ⟦ ηf ⟧
               with-env (λ _ → ρ [ rec ≔ v ]) ⟦ lam x₂ e₁ ⟧)
           ⟦ e₂ ⟧                                                      ≈⟨ apply-cong
-                                                                           (sym-≈M (apply-closure (return (closure rec _ _)) ⟦ ηf ⟧ (reflM _)))
+                                                                           (sym-≈M (≳→M (apply-closure (wrap (run (inc-⟦⟧ (lam rec (lam x₂ e₁)))))
+                                                                                                       (inc-⟦⟧ ηf))))
                                                                            (reflM _) ⟩
 
-    apply (apply (return (closure rec (lam x₂ e₁) ρ)) ⟦ ηf ⟧) ⟦ e₂ ⟧  ∼⟨ wrap (reflexive _) ⟩≈
+    apply (apply ⟦ lam rec (lam x₂ e₁) ⟧ ⟦ ηf ⟧) ⟦ e₂ ⟧               ≡⟨⟩∼
 
     ⟦ app (app (lam rec (lam x₂ e₁)) ηf) e₂ ⟧                         ≈⟨ sym-≈M (hyp e₂) ⟩
 
@@ -1294,12 +1573,12 @@ fix′-is-not-fix hyp = contradiction
 
     apply ⟦ f ⟧ ⟦ e₂ ⟧                                                ≳⟨ apply-cong (fix′-lemma₂) (reflM _) ⟩
 
-    apply (return (closure x₂ e₁ (ρ [ rec ≔ rec₂ ]))) ⟦ e₂ ⟧          ≳⟨ apply-closure (return (closure x₂ _ _)) ⟦ e₂ ⟧ (reflM _) ⟩
+    apply (return (closure x₂ e₁ (ρ [ rec ≔ rec₂ ]))) ⟦ e₂ ⟧          ≳⟨ apply-closure inc-return (inc-⟦⟧ e₂) ⟩
 
     (do v₂ ← ⟦ e₂ ⟧
         with-env (λ _ → ρ [ rec ≔ rec₂ ] [ x₂ ≔ v₂ ]) ⟦ e₁ ⟧)         □
     where
-    open M-reasoning ρ σ
+    open M-reasoning (d , ρ) σ
 
     f    = app fix′ (lam rec (lam x₂ e₁))
     ηf   = lam x₂ (app f (var x₂))
@@ -1314,7 +1593,7 @@ fix′-is-not-fix hyp = contradiction
     [ ∞ ]
       now (closure 1 (app (app fix′ (lam 0 e)) (var 1)) ε , ∅) ≈
       now (closure 2 Fix.body₂ (ρ [ 1 ≔ closure 1 Fix.body₁ ρ ]) , ∅)
-  consequence₂ = run (consequence 0 1 (var 0) zero ε ∅)
+  consequence₂ = run (consequence 0 1 (var 0) zero 0 ε ∅)
 
   contradiction : ⊥
   contradiction with consequence₂
@@ -1338,52 +1617,117 @@ echo-sem = read λ { n .force → write n λ { .force → echo-sem }}
 -- The echo program has the intended semantics.
 
 echo-correct : ∀ {i} → [ i ] ⟦ echo ⟧ ≳M liftM echo-sem
-echo-correct {ρ = ρ} {σ} =
+echo-correct {r = r@(_ , ρ)} {σ} =
   ⟦ echo ⟧                                        ≡⟨⟩∼
-  apply ⟦ lam 1 Echo.body ⟧ (return (nat 0))      ≳⟨ apply-closure ⟦ lam 1 Echo.body ⟧ (return (nat 0)) (wrap now) ⟩
+  apply ⟦ lam 1 Echo.body ⟧ (return (nat 0))      ≳⟨ apply-closure (wrap (run (inc-⟦⟧ (lam 1 _)))) inc-return ⟩
   with-env (λ _ → ρ [ 1 ≔ nat 0 ]) ⟦ Echo.body ⟧  ≳⟨ echo-body-correct ⟩
   liftM echo-sem                                  □
   where
   echo-body-correct :
     ∀ {ρ₀ v i} →
     [ i ] with-env (λ _ → ρ₀ [ 1 ≔ v ]) ⟦ Echo.body ⟧ ≳M liftM echo-sem
-  echo-body-correct {ρ₀} {v} {ρ = ρ} {σ} =
-    with-env (λ _ → ρ₀ [ 1 ≔ v ]) ⟦ Echo.body ⟧                 ≳⟨ with-env-cong (unfold-fix _) ⟩
+  echo-body-correct {ρ₀} {v} {r = r} {σ} =
+    with-env (λ _ → ρ₀ [ 1 ≔ v ]) ⟦ Echo.body ⟧          ≳⟨ with-env-cong (unfold-fix _) ⟩
 
     with-env (λ _ → ρ₀ [ 1 ≔ v ]) (with-env (λ _ → ρ₂)
-       ⟦ read 1 (write (var 1) ⨾ app (var 0) zero) ⟧)           ∼⟨ with-env-∘ (λ _ → ρ₀ [ 1 ≔ v ]) (λ _ → ρ₂)
-                                                                     ⟦ read 1 (write (var 1) ⨾ app (var 0) zero) ⟧ ⟩≈
+       ⟦ read 1 (write (var 1) ⨾ app (var 0) zero) ⟧)    ∼⟨ with-env-∘ (λ _ → ρ₀ [ 1 ≔ v ]) (λ _ → ρ₂)
+                                                              ⟦ read 1 (write (var 1) ⨾ app (var 0) zero) ⟧ ⟩≈
     with-env (λ _ → ρ₂)
-      ⟦ read 1 (write (var 1) ⨾ app (var 0) zero) ⟧             ∼⟨ with-env-cong (readM-cong λ _ → reflM _) ⟩≈
+      ⟦ read 1 (write (var 1) ⨾ app (var 0) zero) ⟧      ∼⟨ with-env-cong (readM-cong λ _ → reflM _) ⟩≈
 
-    with-env (λ _ → ρ₂) (readM λ n → with-env (_[ 1 ≔ nat n ])
-      ⟦ write (var 1) ⨾ app (var 0) zero ⟧)                     ∼⟨ wrap (read λ { _ .force → reflexive _ }) ⟩≈
-
+    (with-env (λ _ → ρ₂) $ readM λ n → inc $
+      with-env (_[ 1 ≔ nat n ])
+        ⟦ write (var 1) ⨾ app (var 0) zero ⟧)            ≳⟨ wrap (read λ { _ .force →
+                                                              drop-inc (∼→ (⟦⟧-depth (write (var 1) ⨾ app (var 0) zero))) }) ⟩
     (readM λ n → with-env (λ _ → ρ₃ n)
-       ⟦ write (var 1) ⨾ app (var 0) zero ⟧)                    ≳⟨ (readM-cong λ _ → with-env-cong {f = λ _ → ρ₃ _} $
-                                                                      ⨾-correct (write (var 1)) (app (var 0) zero)) ⟩
+       ⟦ write (var 1) ⨾ app (var 0) zero ⟧)             ≳⟨ (readM-cong λ _ → with-env-cong {f = λ _ → ρ₃ _} $
+                                                               ⨾-correct (write (var 1)) (app (var 0) zero)) ⟩
     (readM λ n → with-env (λ _ → ρ₃ n)
-       (do ⟦ write (var 1) ⟧; ⟦ app (var 0) zero ⟧))            ∼⟨ (readM-cong λ n →
-                                                                    with-env-cong {m₁ = do ⟦ write (var 1) ⟧; ⟦ app (var 0) zero ⟧}
-                                                                                  {m₂ = writeM _ _} $
-                                                                      wrap (write λ { .force → reflexive _ })) ⟩≈
+       (do ⟦ write (var 1) ⟧; ⟦ app (var 0) zero ⟧))     ≳⟨ (readM-cong λ n →
+                                                             with-env-cong {m₁ = do ⟦ write (var 1) ⟧; ⟦ app (var 0) zero ⟧}
+                                                                           {m₂ = writeM _ _} $
+                                                               wrap (laterˡ (write λ { .force → later λ { .force → reflexive _ }}))) ⟩
     (readM λ n → with-env (λ _ → ρ₃ n) $ writeM n
        (apply (return (closure 1 Echo.body ρ₁))
-              (return (nat 0))))                                ≳⟨ (readM-cong λ n → with-env-cong $ writeM-cong $
-                                                                      apply-closure (return (closure 1 _ _)) (return _) (reflM _)) ⟩
+              (return (nat 0))))                         ≳⟨ (readM-cong λ n → with-env-cong $ writeM-cong $
+                                                               apply-closure inc-return inc-return) ⟩
     (readM λ n → with-env (λ _ → ρ₃ n) $ writeM n do
        v ← return (nat 0)
-       with-env (λ _ → ρ₁ [ 1 ≔ v ]) ⟦ Echo.body ⟧)             ∼⟨ wrap (read λ { _ .force → write λ { .force → reflexive _ }}) ⟩≈
+       with-env (λ _ → ρ₁ [ 1 ≔ v ]) ⟦ Echo.body ⟧)      ∼⟨ wrap (read λ { _ .force → write λ { .force → reflexive _ }}) ⟩≈
 
     (readM λ n → writeM n $
-       with-env (λ _ → ρ₁ [ 1 ≔ nat 0 ]) ⟦ Echo.body ⟧)         ∼⟨ wrap (read λ { _ .force → write λ { .force →
-                                                                     run (echo-body-correct {ρ = ρ}) }}) ⟩□
-    liftM echo-sem                                              □
+       with-env (λ _ → ρ₁ [ 1 ≔ nat 0 ]) ⟦ Echo.body ⟧)  ∼⟨ wrap (read λ { _ .force → write λ { .force →
+                                                              run (echo-body-correct {r = _ , ρ}) }}) ⟩□
+    liftM echo-sem                                       □
     where
     ρ₁ = ρ₀ [ 1 ≔ v ]
     ρ₂ = ρ₁ [ 0 ≔ closure 1 Echo.body ρ₁ ] [ 1 ≔ v ]
     ρ₃ = λ n → ρ₂ [ 1 ≔ nat n ]
 
-    open M-reasoning ρ σ
+    open M-reasoning r σ
 
-  open M-reasoning ρ σ
+  open M-reasoning r σ
+
+------------------------------------------------------------------------
+-- The maximum stack depth of a program
+
+-- An abstraction of Result that keeps track of depths.
+
+mutual
+
+  data Depths (i : Size) : Set where
+    done  : Depths i
+    read  : (ℕ → Depths′ i) → Depths i
+    later : Maybe Depth → Depths′ i → Depths i
+
+  record Depths′ (i : Size) : Set where
+    coinductive
+    field
+      force : {j : Size< i} → Depths j
+
+open Depths′ public
+
+-- Converts from Result to Depths.
+
+depths : ∀ {A i} → Result A i → Depths i
+depths (now x)     = done
+depths crash       = done
+depths (read r)    = read λ { n .force → depths (force (r n)) }
+depths (write _ r) = later nothing λ { .force → depths (force r) }
+depths (later d r) = later d λ { .force → depths (force r) }
+
+-- A "true everywhere" predicate transformer for Depths.
+
+mutual
+
+  data □ (i : Size) (P : ℕ → Set) : Depths ∞ → Set where
+    done  : □ i P done
+    read  : ∀ {ds} → (∀ n → □′ i P (force (ds n))) → □ i P (read ds)
+    later : ∀ {d ds} →
+            maybe P ⊤ d →
+            □′ i P (force ds) →
+            □ i P (later d ds)
+
+  record □′ (i : Size) (P : ℕ → Set) (ds : Depths ∞) : Set where
+    coinductive
+    field
+      force : {j : Size< i} → □ j P ds
+
+open □′ public
+
+-- [ i ] ds ⊑ n means that n is an upper bound of the depths found in
+-- ds.
+
+[_]_⊑_ : Size → Depths ∞ → Conat ∞ → Set
+[ i ] ds ⊑ n = □ i (λ d → [ ∞ ] ⌜ d ⌝ ≤ n) ds
+
+-- Maximum-depth e n means that n is the least upper bound of the
+-- stack depths encountered in any run of e.
+
+Maximum-depth : Exp → Conat ∞ → Set
+Maximum-depth e n =
+  (∀ ρ σ → [ ∞ ] depths (runM ⟦ e ⟧ (0 , ρ) σ) ⊑ n)
+    ×
+  (∀ n′ →
+     (∀ ρ σ → [ ∞ ] depths (runM ⟦ e ⟧ (0 , ρ) σ) ⊑ n′) →
+     [ ∞ ] n ≤ n′)
