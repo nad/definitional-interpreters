@@ -6,17 +6,16 @@
 
 module Lambda.Interpreter where
 
-open import Equality.Propositional
+import Equality.Propositional as E
 open import Prelude
 
-open import Maybe equality-with-J
-open import Monad equality-with-J
-open import Vec.Data equality-with-J
+open import Maybe E.equality-with-J
+open import Monad E.equality-with-J
+open import Vec.Data E.equality-with-J
 
 open import Delay-monad
+open import Delay-monad.Bisimilarity
 open import Delay-monad.Monad
-open import Delay-monad.Strong-bisimilarity
-open import Delay-monad.Weak-bisimilarity
 
 open import Lambda.Syntax
 
@@ -83,9 +82,9 @@ mutual
 
       run (⟦ v0 · v0 ⟧ (ƛ (v0 · v0) [] ∷ []))             ∼⟨⟩
       run (ƛ (v0 · v0) [] ∙ ƛ (v0 · v0) [])               ∼⟨⟩
-      run (⟦ Ω ⟧ [])                                      ∼⟨ Ω-loops ⟩
-      never                                               ∎∼ }) ⟩
+      run (⟦ Ω ⟧ [])                                      ∼⟨ Ω-loops ⟩∼
+      never                                               ∎ }) ⟩∼
 
-  never                                              ∎∼
+  never                                              ∎
   where
   v0 = var fzero

@@ -33,8 +33,8 @@ module Bounded-space where
 
 open import Colist
 open import Delay-monad
-open import Delay-monad.Weak-bisimilarity as W
-  hiding (reflexive; symmetric; transitive)
+open import Delay-monad.Bisimilarity as B
+  hiding (reflexive; symmetric)
 open import Equality.Propositional
 open import Prelude
 open import Tactic.By
@@ -148,10 +148,10 @@ p ≘ q =
 -- The relation is an equivalence relation.
 
 reflexive : ∀ {p} → p ≘ p
-reflexive = 0 , λ _ _ _ → W.reflexive _
+reflexive = 0 , λ _ _ _ → B.reflexive _
 
 symmetric : ∀ {p q} → p ≘ q → q ≘ p
-symmetric = Σ-map id λ hyp l h b → W.symmetric (hyp l h b)
+symmetric = Σ-map id λ hyp l h b → B.symmetric (hyp l h b)
 
 transitive : ∀ {p q r} → p ≘ q → q ≘ r → p ≘ r
 transitive {p} {q} {r} (b₁ , p₁) (b₂ , p₂) =
@@ -173,7 +173,7 @@ transitive {p} {q} {r} (b₁ , p₁) (b₂ , p₂) =
 -- The relation is compatible with respect to the program formers.
 
 []-cong : [] ≘ []
-[]-cong = 0 , λ _ _ _ → W.reflexive _
+[]-cong = 0 , λ _ _ _ → B.reflexive _
 
 ∷-cong : ∀ {s p q} → force p ≘ force q → s ∷ p ≘ s ∷ q
 ∷-cong {deallocate} (b , p≈q) =
@@ -266,7 +266,7 @@ constant-space≘constant-space₂ : constant-space ≘ constant-space₂
 constant-space≘constant-space₂ =
   2 , λ l h 2+h≤l →
     ⟦ constant-space ⟧ h   ≈⟨ constant-space-loop _ (<→≤ 2+h≤l) ⟩
-    never                  ≈⟨ W.symmetric (constant-space₂-loop _ 2+h≤l) ⟩∎
+    never                  ≈⟨ B.symmetric (constant-space₂-loop _ 2+h≤l) ⟩∎
     ⟦ constant-space₂ ⟧ h  ∎
 
 -- The programs constant-space and unbounded-space are not
@@ -274,8 +274,8 @@ constant-space≘constant-space₂ =
 
 ¬constant-space≘unbounded-space : ¬ constant-space ≘ unbounded-space
 ¬constant-space≘unbounded-space (b , c≈u) = now≉never (
-  crash                  ≈⟨ W.symmetric (unbounded-space-crash h) ⟩
-  ⟦ unbounded-space ⟧ h  ≈⟨ W.symmetric (c≈u _ h (≤-refl +-mono zero≤ _)) ⟩
+  crash                  ≈⟨ B.symmetric (unbounded-space-crash h) ⟩
+  ⟦ unbounded-space ⟧ h  ≈⟨ B.symmetric (c≈u _ h (≤-refl +-mono zero≤ _)) ⟩
   ⟦ constant-space ⟧ h   ≈⟨ constant-space-loop h (m≤n+m _ _) ⟩∎
   never                  ∎)
   where
