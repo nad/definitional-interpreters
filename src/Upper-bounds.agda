@@ -88,152 +88,128 @@ lub-unique :
 lub-unique (lub₁₁ , lub₁₂) (lub₂₁ , lub₂₂) =
   antisymmetric-≤ (lub₁₂ _ lub₂₁) (lub₂₂ _ lub₁₁)
 
--- If LPO holds, then the least upper bound of a colist of natural
+-- If WLPO holds, then the least upper bound of a colist of natural
 -- numbers can be determined.
 --
--- See also Unbounded-space.lub→wlpo.
+-- (In fact, WLPO is logically equivalent to the codomain of this
+-- lemma, see Unbounded-space.wlpo⇔lub.)
+--
+-- I received help with this proof from Andreas Abel and Ulf Norell: I
+-- had presented a proof that used LPO. Andreas Abel came up with the
+-- idea for the following, less complicated proof, and Ulf Norell
+-- suggested that one could get away with WLPO instead of LPO.
 
-lpo→lub : LPO → (∀ ms → ∃ λ n → Least-upper-bound ms n)
-lpo→lub lpo = λ ms → lub 0 ms , upper-bound 0 ms , least 0 ms
+wlpo→lub : WLPO → (∀ ms → ∃ λ n → Least-upper-bound ms n)
+wlpo→lub wlpo = λ ms → lub ms , □ˢ∞→□∞ (upper-bound ms) , least ms
   where
-  -- Some simple lemmas.
+  -- The boolean >0 ms n is true if the n-th number (counting from
+  -- zero) of ms is positive.
 
-  <→1≤∸ : ∀ {m n} → m < n → [ ∞ ] ⌜ 1 ⌝ ≤ ⌜ n ∸ m ⌝
-  <→1≤∸ {m} {n} =
-    m < n                    ↔⟨⟩
-    1 + m ≤ n                ↝⟨ Nat._∸-mono Nat.≤-refl {n = m} ⟩
-    1 + m ∸ m ≤ n ∸ m        ↝⟨ subst (_≤ n ∸ m) (Nat.+∸≡ m) ⟩
-    1 ≤ n ∸ m                ↝⟨ ⌜⌝-mono ⟩□
-    [ ∞ ] ⌜ 1 ⌝ ≤ ⌜ n ∸ m ⌝  □
+  >0 : Colist ℕ ∞ → ℕ → Bool
+  >0 []           _       = false
+  >0 (m     ∷ ms) (suc n) = >0 (force ms) n
+  >0 (zero  ∷ ms) zero    = false
+  >0 (suc m ∷ ms) zero    = true
 
-  ≤→∸≤0 : ∀ {m n} → [ ∞ ] ⌜ m ⌝ ≤ ⌜ n ⌝ → [ ∞ ] ⌜ m ∸ n ⌝ ≤ zero
-  ≤→∸≤0 {m} {n} =
-    [ ∞ ] ⌜ m ⌝ ≤ ⌜ n ⌝     ↝⟨ ⌜⌝-mono⁻¹ ⟩
-    (m ≤ n)                 ↝⟨ Nat._∸-mono Nat.≤-refl {n = n} ⟩
-    (m ∸ n ≤ n ∸ n)         ↝⟨ subst (m ∸ n ≤_) (Nat.∸≡0 n) ⟩
-    (m ∸ n ≤ zero)          ↝⟨ ⌜⌝-mono ⟩□
-    [ ∞ ] ⌜ m ∸ n ⌝ ≤ zero  □
+  -- The number lub ms is the least upper bound of ms.
 
-  ∸+∸∼ : ∀ {m n o} →
-         m < n →
-         Conat.[ ∞ ] ⌜ n ∸ m ⌝ ⊕ (o ⊖ n) ∼ (o ⊖ n ⊕ ⌜ n ⌝) ⊖ m
-  ∸+∸∼ {m} {n} {o} m<n =
-    ⌜ n ∸ m ⌝ ⊕ (o ⊖ n)    ∼⟨ +-comm ⌜ _ ∸ m ⌝ ⟩
-    (o ⊖ n) ⊕ ⌜ n ∸ m ⌝    ∼⟨ (_ ∎∼) +-cong ⌜⌝-∸ _ m ⟩
-    (o ⊖ n) ⊕ (⌜ n ⌝ ⊖ m)  ∼⟨ Conat.symmetric-∼ (+-∸-assoc (⌜⌝-mono (Nat.<→≤ m<n))) ⟩∎
-    (o ⊖ n ⊕ ⌜ n ⌝) ⊖ m    ∎∼
+  mutual
 
-  -- The boolean next-> d ms n is true if the n-th number (counting
-  -- from zero) of ms is the first one which is greater than d.
+    lub : ∀ {i} → Colist ℕ ∞ → Conat i
+    lub = λ ms → case wlpo (>0 ms) of λ where
+      (inj₁ _) → zero
+      (inj₂ _) → suc (lub′ (map pred ms))
 
-  next-> : ℕ → Colist ℕ ∞ → ℕ → Bool
-  next-> _ []       _       = false
-  next-> d (m ∷ ms) n       with Nat.≤⊎> m d
-  next-> d (m ∷ ms) zero    | inj₁ _ = false
-  next-> d (m ∷ ms) (suc n) | inj₁ _ = next-> d (force ms) n
-  next-> d (m ∷ ms) zero    | inj₂ _ = true
-  next-> d (m ∷ ms) (suc _) | inj₂ _ = false
+    lub′ : ∀ {i} → Colist ℕ ∞ → Conat′ i
+    force (lub′ ms) = lub ms
 
-  -- The number lub d ms is the least upper bound of ms minus d.
+  -- Zero is an upper bound of ms iff >0 ms is universally false.
 
-  lub : ∀ {i} → ℕ → Colist ℕ ∞ → Conat i
-  lub d = λ ms → case lpo (next-> d ms) of λ where
-      (inj₁ _)           → zero
-      (inj₂ (n , ≡true)) → step ms n ≡true
-    module M where
-    step : ∀ {i} ms n → next-> d ms n ≡ true → Conat i
-    step []       _       ()
-    step (m ∷ ms) n       ≡true with Nat.≤⊎> m d
-    step (m ∷ ms) zero    ()    | inj₁ _
-    step (m ∷ ms) (suc _) ()    | inj₂ _
-    step (m ∷ ms) (suc n) ≡true | inj₁ _ = step (force ms) n ≡true
-    step (m ∷ ms) zero    _     | inj₂ m>d =
-      <→1≤∸ m>d ⁺+ λ { .force → lub m (force ms) }
-
-  -- The number lub d ms is an upper bound of ms with d subtracted
-  -- from every element.
-
-  upper-bound :
-    ∀ {i} d ms →
-    □ i (λ m → [ ∞ ] ⌜ m ∸ d ⌝ ≤ lub d ms) ms
-  upper-bound d ms with lpo (next-> d ms)
-  ... | inj₁ ≡false = □-map ≤→∸≤0 (step ms ≡false)
+  ⊑0⇔≡false : ∀ ms → [ ∞ ] ms ⊑ zero ⇔ (∀ n → >0 ms n ≡ false)
+  ⊑0⇔≡false = λ ms → record { to = to ms; from = from ms }
     where
-    step : ∀ {i} ms (≡false : ∀ n → next-> d ms n ≡ false) →
-           [ i ] ms ⊑ ⌜ d ⌝
-    step []       _      = []
-    step (m ∷ ms) ≡false with Nat.≤⊎> m d
-    step (m ∷ ms) ≡false | inj₁ m≤d = ⌜⌝-mono m≤d ∷ λ { .force →
-                                      step (force ms) (≡false ∘ suc) }
-    step (m ∷ ms) ≡false | inj₂ _   =
-      ⊥-elim (Bool.true≢false (≡false 0))
+    to : ∀ ms → [ ∞ ] ms ⊑ zero → (∀ n → >0 ms n ≡ false)
+    to _            []         _       = refl
+    to (zero  ∷ ms) _          zero    = refl
+    to (suc _ ∷ _)  (() ∷ _)   _
+    to (m     ∷ ms) (_ ∷ ms⊑0) (suc n) = to (force ms) (force ms⊑0) n
 
-  ... | inj₂ (n , ≡true) = step ms n ≡true
+    from : ∀ {i} ms → (∀ n → >0 ms n ≡ false) → [ i ] ms ⊑ zero
+    from []           _      = []
+    from (suc m ∷ ms) ≡false = ⊥-elim (Bool.true≢false (≡false zero))
+    from (zero  ∷ ms) ≡false =
+      zero ∷ λ { .force → from (force ms) (≡false ∘ suc) }
+
+  -- If force n is an upper bound of map pred ms, then suc n is an
+  -- upper bound of ms. Note that the lemma is size-preserving and
+  -- takes □ˢ′ to □ˢ.
+
+  pred-lemma₁ :
+    ∀ {i n} ms →
+    □ˢ′ i (λ i m → [ i ] ⌜ m ⌝ ≤ force n) (map pred ms) →
+    □ˢ i (λ i m → [ i ] ⌜ m ⌝ ≤ suc n) ms
+  pred-lemma₁ []       hyp = []
+  pred-lemma₁ (m ∷ ms) hyp =
+    helper m hyp
+      ∷ λ { .force →
+    pred-lemma₁ (force ms) λ { .force → □ˢ-tail (force hyp) }}
     where
-    step : ∀ {i} ms n (≡true : next-> d ms n ≡ true) →
-           □ i (λ m → [ ∞ ] ⌜ m ∸ d ⌝ ≤ M.step d ms n ≡true) ms
-    step []       _       ()
-    step (m ∷ ms) n       ≡true with Nat.≤⊎> m d
-    step (m ∷ ms) zero    ()    | inj₁ _
-    step (m ∷ ms) (suc _) ()    | inj₂ _
-    step (m ∷ ms) (suc n) ≡true | inj₁ m≤d =
-      (⌜ m ∸ d ⌝                    ≤⟨ ≤→∸≤0 (⌜⌝-mono m≤d) ⟩
-       zero                         ≤⟨ zero ⟩∎
-       M.step d (force ms) n ≡true  ∎≤)
-        ∷
-      λ { .force → step (force ms) n ≡true }
+    helper :
+      ∀ {i n} m →
+      □ˢ′ i (λ i m → [ i ] ⌜ m ⌝ ≤ force n) (map pred (m ∷ ms)) →
+      [ i ] ⌜ m ⌝ ≤ suc n
+    helper zero    hyp = zero
+    helper (suc m) hyp = suc λ { .force → □ˢ-head (force hyp) }
 
-    step (m ∷ ms) zero ≡true | inj₂ m>d =
-      lemma₁ ∷ λ { .force →
-      □-map (lemma₃ _) (upper-bound m (force ms)) }
-      where
-      o = lub m (force ms)
+  -- If suc n is an upper bound of ms, then force n is an upper bound
+  -- of map pred ms.
 
-      lemma₁ =
-        ⌜ m ∸ d ⌝       ≤⟨ m≤m+n ⟩
-        ⌜ m ∸ d ⌝ ⊕ o   ∼⟨ Conat.symmetric-∼ (⁺+∼+ _ _) ⟩≤
-        <→1≤∸ m>d ⁺+ _  ∎≤
+  pred-lemma₂ :
+    ∀ {n ms i} →
+    [ i ] ms ⊑ suc n →
+    [ i ] map pred ms ⊑ force n
+  pred-lemma₂     []                         = []
+  pred-lemma₂ {n} (_∷_ {x = m} m≤1+n ms⊑1+n) =
+    (⌜ pred m ⌝        ∼⟨ ⌜⌝-pred m ⟩≤
+     Conat.pred ⌜ m ⌝  ≤⟨ pred-mono m≤1+n ⟩∎
+     force n           ∎≤)
+      ∷ λ { .force →
+    pred-lemma₂ (force ms⊑1+n) }
 
-      lemma₂ = λ n →
-        ⌜ n ∸ d ⌝                ∼⟨ ⌜⌝-∸ _ d ⟩≤
-        ⌜ n ⌝ ⊖ d                ≤⟨ ≤∸+ _ m ∸-mono Nat.≤-refl {n = d} ⟩
-        (⌜ n ⌝ ⊖ m ⊕ ⌜ m ⌝) ⊖ d  ∼⟨ Conat.symmetric-∼ (∸+∸∼ m>d) ⟩≤
-        ⌜ m ∸ d ⌝ ⊕ (⌜ n ⌝ ⊖ m)  ∼⟨ (_ ∎∼) +-cong Conat.symmetric-∼ (⌜⌝-∸ _ m) ⟩≤
-        ⌜ m ∸ d ⌝ ⊕ ⌜ n ∸ m ⌝    ∎≤
+  -- The number lub ms is an upper bound of ms.
 
-      lemma₃ = λ n →
-        [ ∞ ] ⌜ n ∸ m ⌝ ≤ o                          ↝⟨ reflexive-≤ _ +-mono_ ⟩
-        [ ∞ ] ⌜ m ∸ d ⌝ ⊕ ⌜ n ∸ m ⌝ ≤ ⌜ m ∸ d ⌝ ⊕ o  ↝⟨ transitive-≤ (lemma₂ _) ⟩
-        [ ∞ ] ⌜ n ∸ d ⌝ ≤ ⌜ m ∸ d ⌝ ⊕ o              ↝⟨ flip transitive-≤ (∼→≤ (Conat.symmetric-∼ (⁺+∼+ _ _))) ⟩□
-        [ ∞ ] ⌜ n ∸ d ⌝ ≤ <→1≤∸ m>d ⁺+ _             □
+  upper-bound : ∀ {i} ms → □ˢ i (λ i m → [ i ] ⌜ m ⌝ ≤ lub ms) ms
+  upper-bound {i} ms with wlpo (>0 ms)
+  ... | inj₂ _ =
+    pred-lemma₁ _ (λ { .force → upper-bound (map pred ms) })
 
-  -- The number lub d ms is less than or equal to every number that is
-  -- an upper bound of ms, minus d.
+  ... | inj₁ ≡false =                     $⟨ ≡false ⟩
+    (∀ n → >0 ms n ≡ false)               ↝⟨ _⇔_.from (⊑0⇔≡false ms) ⟩
+    [ ∞ ] ms ⊑ zero                       ↝⟨ id ⟩
+    [ i ] ms ⊑ zero                       ↝⟨ _⇔_.from □ˢ⇔□ ⟩
+    □ˢ i (λ _ m → [ ∞ ] ⌜ m ⌝ ≤ zero) ms  ↝⟨ id ⟩□
+    □ˢ i (λ i m → [ i ] ⌜ m ⌝ ≤ zero) ms  □
+
+  -- The number lub ms is less than or equal to every number that is
+  -- an upper bound of ms.
 
   least :
-    ∀ {i} d ms ub →
-    □ ∞ (λ m → [ ∞ ] ⌜ m ⌝ ≤ ub) ms →
-    [ i ] lub d ms ≤ ub ⊖ d
-  least d ms ub with lpo (next-> d ms)
-  ... | inj₁ _           = λ _ → zero
-  ... | inj₂ (n , ≡true) = step ms n ≡true ub
-    where
-    step : ∀ {i} ms n (≡true : next-> d ms n ≡ true) ub →
-           □ ∞ (λ m → [ ∞ ] ⌜ m ⌝ ≤ ub) ms →
-           [ i ] M.step d ms n ≡true ≤ ub ⊖ d
-    step []       _       ()
-    step (m ∷ ms) n       ≡true ub with Nat.≤⊎> m d
-    step (m ∷ ms) zero    ()    _  | inj₁ _
-    step (m ∷ ms) (suc _) ()    _  | inj₂ _
-    step (m ∷ ms) (suc n) ≡true ub | inj₁ _   =
-      step (force ms) n ≡true ub ∘ □-tail
-    step (m ∷ ms) zero    ≡true ub | inj₂ m>d = λ where
-      (m≤ub ∷ ms⊑ub) →
-        <→1≤∸ m>d ⁺+ _                        ≤⟨ (⁺+-mono _ _ (_ ∎≤) λ { .force → least m (force ms) ub (force ms⊑ub) }) ⟩
-        <→1≤∸ m>d ⁺+ (λ { .force → ub ⊖ m })  ∼⟨ ⁺+∼+ _ _ ⟩≤
-        ⌜ m ∸ d ⌝ ⊕ (ub ⊖ m)                  ∼⟨ ∸+∸∼ m>d ⟩≤
-        (ub ⊖ m ⊕ ⌜ m ⌝) ⊖ d                  ∼⟨ ∸+≡ m≤ub ∸-cong refl {x = d} ⟩≤
-        ub ⊖ d                                ∎≤
+    ∀ {i} ms ub →
+    [ ∞ ] ms ⊑ ub →
+    [ i ] lub ms ≤ ub
+  least ms ub ms⊑ub with wlpo (>0 ms)
+  least ms ub ms⊑ub | inj₁ _ = zero
+
+  least ms (suc ub) ms⊑1+ub | inj₂ _ =
+    suc λ { .force →
+      least (map pred ms) (force ub) (pred-lemma₂ ms⊑1+ub) }
+
+  least ms zero ms⊑0 | inj₂ ¬≡false =
+                             $⟨ ms⊑0 ⟩
+    [ ∞ ] ms ⊑ zero          ↝⟨ _⇔_.to (⊑0⇔≡false _) ⟩
+    (∀ n → >0 ms n ≡ false)  ↝⟨ ¬≡false ⟩
+    ⊥                        ↝⟨ ⊥-elim ⟩□
+    _                        □
 
 ------------------------------------------------------------------------
 -- A relation that can be used to relate the least upper bounds of two

@@ -175,8 +175,8 @@ no-finite-max→infinite-max p hyp =
       Conat.[ ∞ ] n′ ∼ infinity  ↝⟨ ∼→≤ ∘ Conat.symmetric-∼ ⟩□
       [ ∞ ] infinity ≤ n′        □
 
--- If the maximum heap usage could always be determined, then WLPO
--- (which is a constructive taboo) would hold.
+-- If the maximum heap usage could always be determined (in a certain
+-- sense), then WLPO (which is a constructive taboo) would hold.
 
 max→wlpo : (∀ p → ∃ λ n → Maximum-heap-usage p n) → WLPO
 max→wlpo find-max = λ f → case find-max (p f) of λ where
@@ -253,17 +253,24 @@ max→wlpo find-max = λ f → case find-max (p f) of λ where
     ¬ Maximum-heap-usage (p f) ⌜ 0 ⌝    ↝⟨ (λ hyp ≡false → hyp (_⇔_.from 0⇔≡false ≡false)) ⟩□
     ¬ (∀ n → f n ≡ false)               □
 
--- Furthermore, if LPO holds, then the maximum heap usage can always
--- be determined.
+-- In fact, WLPO is logically equivalent to a certain formulation of
+-- "the maximum heap usage can always be determined".
 
-lpo→max : LPO → (∀ p → ∃ λ n → Maximum-heap-usage p n)
-lpo→max lpo p = lpo→lub lpo (⟦ p ⟧ 0)
+wlpo⇔max : WLPO ⇔ (∀ p → ∃ λ n → Maximum-heap-usage p n)
+wlpo⇔max = record
+  { to   = λ wlpo p → wlpo→lub wlpo (⟦ p ⟧ 0)
+  ; from = max→wlpo
+  }
 
--- Note that max→wlpo implies that if least upper bounds could always
--- be determined, then WLPO would hold.
+-- We also get that WLPO is logically equivalent to a certain
+-- formulation of "least upper bounds of colists of natural numbers
+-- can always be determined".
 
-lub→wlpo : (∀ ms → ∃ λ n → Least-upper-bound ms n) → WLPO
-lub→wlpo find-lub = max→wlpo (λ p → find-lub (⟦ p ⟧ 0))
+wlpo⇔lub : WLPO ⇔ (∀ ms → ∃ λ n → Least-upper-bound ms n)
+wlpo⇔lub = record
+  { to   = wlpo→lub
+  ; from = λ find-lub → max→wlpo (λ p → find-lub (⟦ p ⟧ 0))
+  }
 
 ------------------------------------------------------------------------
 -- Some examples
