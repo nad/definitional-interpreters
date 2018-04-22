@@ -43,9 +43,9 @@ transitive-⊑≤ p q = □-map (flip transitive-≤ q) p
 -- Another form of transitivity.
 
 transitive-◇≤⊑ :
-  ∀ {m ns o} → ◇ (m ≤_) ns → [ ∞ ] ns ⊑ o → [ ∞ ] ⌜ m ⌝ ≤ o
-transitive-◇≤⊑ {m} {ns} {o} = curry (
-  ◇ (m ≤_) ns × [ ∞ ] ns ⊑ o         ↝⟨ Σ-map id swap ∘ uncurry □◇-witness ∘ swap ⟩
+  ∀ {m ns o i} → ◇ i (m ≤_) ns → [ ∞ ] ns ⊑ o → [ ∞ ] ⌜ m ⌝ ≤ o
+transitive-◇≤⊑ {m} {ns} {o} {i} = curry (
+  ◇ i (m ≤_) ns × [ ∞ ] ns ⊑ o       ↝⟨ Σ-map id swap ∘ uncurry □◇-witness ∘ swap ⟩
   (∃ λ n → m ≤ n × [ ∞ ] ⌜ n ⌝ ≤ o)  ↝⟨ (λ { (_ , m≤n , n≤o) → transitive-≤ (⌜⌝-mono m≤n) n≤o }) ⟩□
   [ ∞ ] ⌜ m ⌝ ≤ o                    □)
 
@@ -245,10 +245,10 @@ lpo→lub lpo = λ ms → lub 0 ms , upper-bound 0 ms , least 0 ms
 infix 4 [_]_≲_ [_]_≲′_
 
 [_]_≲_ : Size → Colist ℕ ∞ → Colist ℕ ∞ → Set
-[ i ] ms ≲ ns = □ i (λ m → m ≡ zero ⊎ ◇ (m ≤_) ns) ms
+[ i ] ms ≲ ns = □ i (λ m → m ≡ zero ⊎ ◇ ∞ (m ≤_) ns) ms
 
 [_]_≲′_ : Size → Colist ℕ ∞ → Colist ℕ ∞ → Set
-[ i ] ms ≲′ ns = □′ i (λ m → m ≡ zero ⊎ ◇ (m ≤_) ns) ms
+[ i ] ms ≲′ ns = □′ i (λ m → m ≡ zero ⊎ ◇ ∞ (m ≤_) ns) ms
 
 -- Some derived cons-like operations.
 
@@ -278,11 +278,11 @@ step-≲ : ∀ {i} ms {ns os} →
 step-≲ _ {ns} {os} ns≲os ms≲ns = □-map [ inj₁ , lemma ] ms≲ns
   where
   lemma = λ {n} →
-    ◇ (n ≤_) ns                                 ↝⟨ □◇-witness ns≲os ⟩
-    (∃ λ o → (o ≡ zero ⊎ ◇ (o ≤_) os) × n ≤ o)  ↝⟨ (λ { (_ , yes refl   , n≤0) → inj₁ (Nat.≤-antisymmetric n≤0 (Nat.zero≤ _))
-                                                      ; (_ , inj₂ ◇o≤os , n≤o) → inj₂ (◇-map (Nat.≤-trans n≤o) ◇o≤os)
-                                                      }) ⟩□
-    n ≡ zero ⊎ ◇ (n ≤_) os                      □
+    ◇ ∞ (n ≤_) ns                                 ↝⟨ □◇-witness ns≲os ⟩
+    (∃ λ o → (o ≡ zero ⊎ ◇ ∞ (o ≤_) os) × n ≤ o)  ↝⟨ (λ { (_ , yes refl   , n≤0) → inj₁ (Nat.≤-antisymmetric n≤0 (Nat.zero≤ _))
+                                                        ; (_ , inj₂ ◇o≤os , n≤o) → inj₂ (◇-map (Nat.≤-trans n≤o) ◇o≤os)
+                                                        }) ⟩□
+    n ≡ zero ⊎ ◇ ∞ (n ≤_) os                      □
 
 syntax step-≲ ms ns≲os ms≲ns = ms ≲⟨ ms≲ns ⟩ ns≲os
 
@@ -313,14 +313,14 @@ n ∷ ns □≲ = cons′-≲ λ { .force → force ns □≲ }
   Least-upper-bound ns n →
   [ ∞ ] ms ≲ ns → [ ∞ ] m ≤ n
 ≲→least-upper-bounds-≤ {⨆ms} {⨆ns} {ms} {ns} ⨆ms-lub = flip λ ms≲ns →
-  Least-upper-bound ns ⨆ns                              ↝⟨ proj₁ ⟩
-  [ ∞ ] ns ⊑ ⨆ns                                        ↝⟨ (λ hyp → flip transitive-◇≤⊑ hyp) ⟩
-  (∀ {m} → ◇ (m ≤_) ns → [ ∞ ] ⌜ m ⌝ ≤ ⨆ns)             ↝⟨ (λ { _   (inj₁ refl)  → zero
-                                                              ; hyp (inj₂ ◇m≤ns) → hyp ◇m≤ns
-                                                              }) ⟩
-  (∀ {m} → m ≡ zero ⊎ ◇ (m ≤_) ns → [ ∞ ] ⌜ m ⌝ ≤ ⨆ns)  ↝⟨ (λ hyp → □-map hyp ms≲ns) ⟩
-  [ ∞ ] ms ⊑ ⨆ns                                        ↝⟨ proj₂ ⨆ms-lub _ ⟩□
-  [ ∞ ] ⨆ms ≤ ⨆ns                                       □
+  Least-upper-bound ns ⨆ns                                ↝⟨ proj₁ ⟩
+  [ ∞ ] ns ⊑ ⨆ns                                          ↝⟨ (λ hyp → flip transitive-◇≤⊑ hyp) ⟩
+  (∀ {m} → ◇ ∞ (m ≤_) ns → [ ∞ ] ⌜ m ⌝ ≤ ⨆ns)             ↝⟨ (λ { _   (inj₁ refl)  → zero
+                                                                ; hyp (inj₂ ◇m≤ns) → hyp ◇m≤ns
+                                                                }) ⟩
+  (∀ {m} → m ≡ zero ⊎ ◇ ∞ (m ≤_) ns → [ ∞ ] ⌜ m ⌝ ≤ ⨆ns)  ↝⟨ (λ hyp → □-map hyp ms≲ns) ⟩
+  [ ∞ ] ms ⊑ ⨆ns                                          ↝⟨ proj₂ ⨆ms-lub _ ⟩□
+  [ ∞ ] ⨆ms ≤ ⨆ns                                         □
 
 -- If LPO holds, the least upper bound of ms is m, and the least upper
 -- bound of ns is n, then [ ∞ ] ms ≲ ns holds if and only if
@@ -352,7 +352,7 @@ lpo→≲⇔least-upper-bounds-≤ lpo {⨆ms} {⨆ns} {ns = ns} ⨆ms-lub ⨆ns
     ◇≤ (n ∷ ns) zero    = if Nat.≤⊎> m n then true else false
     ◇≤ (n ∷ ns) (suc i) = ◇≤ (force ns) i
 
-    ◇≤-witness : ∀ ns i → ◇≤ ns i ≡ true → ◇ (m ≤_) ns
+    ◇≤-witness : ∀ ns i → ◇≤ ns i ≡ true → ◇ ∞ (m ≤_) ns
     ◇≤-witness []       _       ()
     ◇≤-witness (n ∷ ns) (suc i) ≡true = there (◇≤-witness
                                                  (force ns) i ≡true)
