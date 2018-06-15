@@ -1704,7 +1704,7 @@ mutual
     done  : □ i P done
     read  : ∀ {ds} → (∀ n → □′ i P (force (ds n))) → □ i P (read ds)
     later : ∀ {d ds} →
-            maybe P ⊤ d →
+            maybe {B = λ _ → Set} P ⊤ d →
             □′ i P (force ds) →
             □ i P (later d ds)
 
