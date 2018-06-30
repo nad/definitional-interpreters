@@ -296,6 +296,33 @@ _□≲ : ∀ {i} ns → [ i ] ns ≲ ns
 []     □≲ = []
 n ∷ ns □≲ = cons′-≲ λ { .force → force ns □≲ }
 
+-- If ms ≲ ns and n is an upper bound of ns, then n is also an upper
+-- bound of ms.
+
+≲⊑→⊑ :
+  ∀ {i ms ns n} →
+  [ i ] ms ≲ ns → [ ∞ ] ns ⊑ n → [ i ] ms ⊑ n
+≲⊑→⊑ {i} {ms} {ns} {n} ms≲ns =
+  [ ∞ ] ns ⊑ n                                          ↝⟨ (λ hyp {_} → flip transitive-◇≤⊑ hyp) ⟩
+  (∀ {m} → ◇ ∞ (m ≤_) ns → [ ∞ ] ⌜ m ⌝ ≤ n)             ↝⟨ (λ { _   (inj₁ refl)  → zero
+                                                              ; hyp (inj₂ ◇m≤ns) → hyp ◇m≤ns
+                                                              }) ⟩
+  (∀ {m} → m ≡ zero ⊎ ◇ ∞ (m ≤_) ns → [ ∞ ] ⌜ m ⌝ ≤ n)  ↝⟨ (λ hyp → □-map (hyp {_}) ms≲ns) ⟩□
+  [ i ] ms ⊑ n                                          □
+
+-- If both ms ≲ ns and ns ≲ ms hold, then any least upper bound of ms
+-- is also a least upper bound of ns.
+
+Least-upper-bound-≲≳ :
+  ∀ {ms ns n} →
+  [ ∞ ] ms ≲ ns → [ ∞ ] ns ≲ ms →
+  Least-upper-bound ms n → Least-upper-bound ns n
+Least-upper-bound-≲≳ {ms} {ns} {n} ms≲ns ns≲ms = Σ-map
+  ([ ∞ ] ms ⊑ n  ↝⟨ ≲⊑→⊑ ns≲ms ⟩□
+   [ ∞ ] ns ⊑ n  □)
+  ((∀ n′ → [ ∞ ] ms ⊑ n′ → [ ∞ ] n ≤ n′)  ↝⟨ (λ hyp n′ → hyp n′ ∘ ≲⊑→⊑ ms≲ns) ⟩□
+   (∀ n′ → [ ∞ ] ns ⊑ n′ → [ ∞ ] n ≤ n′)  □)
+
 -- If [ ∞ ] ms ≲ ns, then any least upper bound of ms is less than or
 -- equal to any least upper bound of ns.
 
@@ -305,14 +332,10 @@ n ∷ ns □≲ = cons′-≲ λ { .force → force ns □≲ }
   Least-upper-bound ns n →
   [ ∞ ] ms ≲ ns → [ ∞ ] m ≤ n
 ≲→least-upper-bounds-≤ {⨆ms} {⨆ns} {ms} {ns} ⨆ms-lub = flip λ ms≲ns →
-  Least-upper-bound ns ⨆ns                                ↝⟨ proj₁ ⟩
-  [ ∞ ] ns ⊑ ⨆ns                                          ↝⟨ (λ hyp → flip transitive-◇≤⊑ hyp) ⟩
-  (∀ {m} → ◇ ∞ (m ≤_) ns → [ ∞ ] ⌜ m ⌝ ≤ ⨆ns)             ↝⟨ (λ { _   (inj₁ refl)  → zero
-                                                                ; hyp (inj₂ ◇m≤ns) → hyp ◇m≤ns
-                                                                }) ⟩
-  (∀ {m} → m ≡ zero ⊎ ◇ ∞ (m ≤_) ns → [ ∞ ] ⌜ m ⌝ ≤ ⨆ns)  ↝⟨ (λ hyp → □-map hyp ms≲ns) ⟩
-  [ ∞ ] ms ⊑ ⨆ns                                          ↝⟨ proj₂ ⨆ms-lub _ ⟩□
-  [ ∞ ] ⨆ms ≤ ⨆ns                                         □
+  Least-upper-bound ns ⨆ns  ↝⟨ proj₁ ⟩
+  [ ∞ ] ns ⊑ ⨆ns            ↝⟨ ≲⊑→⊑ ms≲ns ⟩
+  [ ∞ ] ms ⊑ ⨆ns            ↝⟨ proj₂ ⨆ms-lub _ ⟩□
+  [ ∞ ] ⨆ms ≤ ⨆ns           □
 
 -- If LPO holds, the least upper bound of ms is m, and the least upper
 -- bound of ns is n, then [ ∞ ] ms ≲ ns holds if and only if
