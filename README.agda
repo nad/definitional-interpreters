@@ -38,11 +38,18 @@ import Unbounded-space
 -- "Coinductive big-step operational semantics" by Leroy and Grall.
 --
 -- The main differences compared to those two pieces of work are
--- perhaps the use of sized types, and the analysis of stack space
--- usage.
+-- perhaps the following ones:
+--
+-- * Sized types are used.
+--
+-- * Stack space usage is analysed.
+--
+-- * The infinite set of uninterpreted constants has been replaced by
+--   booleans, and definitions (named, unary, recursive functions)
+--   have been included.
 
--- The syntax of, and a type system for, the untyped λ-calculus with
--- constants.
+-- The syntax of, and a type system for, an untyped λ-calculus with
+-- booleans and recursive unary function calls.
 
 import Lambda.Syntax
 
@@ -62,6 +69,10 @@ import Lambda.Type-soundness
 -- and a kind of writer monad yielding colists.
 
 import Lambda.Delay-crash-colist
+
+-- Virtual machine instructions, state etc.
+
+import Lambda.Virtual-machine.Instructions
 
 -- A virtual machine.
 

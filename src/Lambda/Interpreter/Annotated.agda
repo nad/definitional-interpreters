@@ -5,14 +5,20 @@
 
 {-# OPTIONS --without-K --safe #-}
 
-module Lambda.Interpreter.Annotated where
+import Lambda.Syntax
+
+module Lambda.Interpreter.Annotated
+  {Name : Set}
+  (open Lambda.Syntax Name)
+  (def : Name → Tm 1)
+  where
 
 open import Colist as C
 open import Conat using (infinity)
 import Equality.Propositional as E
 open import Prelude
 
-open import Function-universe E.equality-with-J hiding (_∘_)
+open import Function-universe E.equality-with-J hiding (id; _∘_)
 open import Maybe E.equality-with-J
 open import Monad E.equality-with-J
 open import Nat E.equality-with-J
@@ -26,8 +32,7 @@ open import Upper-bounds
 
 open import Lambda.Delay-crash as DC
 open import Lambda.Delay-crash-colist as DCC
-import Lambda.Interpreter as I
-open import Lambda.Syntax
+import Lambda.Interpreter def as I
 
 open Closure Tm
 
@@ -42,18 +47,31 @@ mutual
   -- type ℕ → ℕ).
 
   ⟦_⟧⁺ : ∀ {i n} → Tm n → Env n → Delay-crash-colist (ℕ → ℕ) Value i
-  ⟦ con i ⟧⁺   ρ = tell suc (return (con i))
-  ⟦ var x ⟧⁺   ρ = tell suc (return (index x ρ))
-  ⟦ ƛ t ⟧⁺     ρ = tell suc (return (ƛ t ρ))
-  ⟦ t₁ · t₂ ⟧⁺ ρ = do v₁ ← ⟦ t₁ ⟧⁺ ρ
-                      v₂ ← ⟦ t₂ ⟧⁺ ρ
-                      v₁ ∙⁺ v₂
+  ⟦ var x ⟧⁺       ρ = tell suc (return (index x ρ))
+  ⟦ ƛ t ⟧⁺         ρ = tell suc (return (ƛ t ρ))
+  ⟦ t₁ · t₂ ⟧⁺     ρ = do v₁ ← ⟦ t₁ ⟧⁺ ρ
+                          v₂ ← ⟦ t₂ ⟧⁺ ρ
+                          [ pred ] v₁ ∙⁺ v₂
+  ⟦ call f t ⟧⁺    ρ = do v ← ⟦ t ⟧⁺ ρ
+                          [ id ] ƛ (def f) [] ∙⁺ v
+  ⟦ con b ⟧⁺       ρ = tell suc (return (con b))
+  ⟦ if t₁ t₂ t₃ ⟧⁺ ρ = do v₁ ← ⟦ t₁ ⟧⁺ ρ
+                          ⟦if⟧⁺ v₁ t₂ t₃ ρ
 
-  _∙⁺_ : ∀ {i} → Value → Value → Delay-crash-colist (ℕ → ℕ) Value i
-  con i  ∙⁺ v₂ = crash
-  ƛ t₁ ρ ∙⁺ v₂ = later pred λ { .force → do
-                   v ← ⟦ t₁ ⟧⁺ (v₂ ∷ ρ)
-                   tell pred (return v) }
+  [_]_∙⁺_ :
+    ∀ {i} →
+    (ℕ → ℕ) → Value → Value → Delay-crash-colist (ℕ → ℕ) Value i
+  [ f ] ƛ t₁ ρ ∙⁺ v₂ = later f λ { .force → do
+                         v ← ⟦ t₁ ⟧⁺ (v₂ ∷ ρ)
+                         tell pred (return v) }
+  [ f ] con _  ∙⁺ _  = crash
+
+  ⟦if⟧⁺ :
+    ∀ {i n} →
+    Value → Tm n → Tm n → Env n → Delay-crash-colist (ℕ → ℕ) Value i
+  ⟦if⟧⁺ (ƛ _ _)     _  _  _ = crash
+  ⟦if⟧⁺ (con true)  t₂ t₃ ρ = tell pred (⟦ t₂ ⟧⁺ ρ)
+  ⟦if⟧⁺ (con false) t₂ t₃ ρ = tell pred (⟦ t₃ ⟧⁺ ρ)
 
 -- The unannotated semantics.
 
@@ -61,7 +79,10 @@ mutual
 ⟦ t ⟧ ρ = delay-crash (⟦ t ⟧⁺ ρ)
 
 _∙_ : ∀ {i} → Value → Value → Delay-crash Value i
-t₁ ∙ t₂ = delay-crash (t₁ ∙⁺ t₂)
+t₁ ∙ t₂ = delay-crash ([ pred ] t₁ ∙⁺ t₂)
+
+⟦if⟧ : ∀ {i n} → Value → Tm n → Tm n → Env n → Delay-crash Value i
+⟦if⟧ v₁ t₂ t₃ ρ = delay-crash (⟦if⟧⁺ v₁ t₂ t₃ ρ)
 
 -- Applies the functions, one after another, to the starting value
 -- (that is also the first value in the resulting list).
@@ -90,27 +111,40 @@ mutual
   -- bisimilar results.
 
   ⟦⟧∼⟦⟧ :
-    ∀ {i n} (t : Tm n) (ρ : Env n) →
+    ∀ {i n} (t : Tm n) {ρ : Env n} →
     D.[ i ] run (⟦ t ⟧ ρ) ∼ run (I.⟦ t ⟧ ρ)
-  ⟦⟧∼⟦⟧ (con i)   ρ = D.reflexive _
-  ⟦⟧∼⟦⟧ (var x)   ρ = D.reflexive _
-  ⟦⟧∼⟦⟧ (ƛ t)     ρ = D.reflexive _
-  ⟦⟧∼⟦⟧ (t₁ · t₂) ρ =
+  ⟦⟧∼⟦⟧ (var x) = D.reflexive _
+
+  ⟦⟧∼⟦⟧ (ƛ t) = D.reflexive _
+
+  ⟦⟧∼⟦⟧ (t₁ · t₂) {ρ} =
     run (delay-crash
-           (⟦ t₁ ⟧⁺ ρ >>= λ v₁ → ⟦ t₂ ⟧⁺ ρ >>= λ v₂ → v₁ ∙⁺ v₂))  D.∼⟨ delay-crash->>= (⟦ t₁ ⟧⁺ _) ⟩
+           (⟦ t₁ ⟧⁺ ρ >>= λ v₁ → ⟦ t₂ ⟧⁺ ρ >>= λ v₂ →
+            [ pred ] v₁ ∙⁺ v₂))                                   D.∼⟨ delay-crash->>= (⟦ t₁ ⟧⁺ _) ⟩
 
     run (⟦ t₁ ⟧ ρ >>= λ v₁ →
-         delay-crash (⟦ t₂ ⟧⁺ ρ >>= λ v₂ → v₁ ∙⁺ v₂))             D.∼⟨ ((run (⟦ t₁ ⟧ _) D.∎) DC.>>=-cong λ _ → delay-crash->>= (⟦ t₂ ⟧⁺ _)) ⟩
+         delay-crash (⟦ t₂ ⟧⁺ ρ >>= λ v₂ → [ pred ] v₁ ∙⁺ v₂))    D.∼⟨ ((run (⟦ t₁ ⟧ _) D.∎) DC.>>=-cong λ _ → delay-crash->>= (⟦ t₂ ⟧⁺ _)) ⟩
 
-    run (⟦ t₁ ⟧ ρ >>= λ v₁ → ⟦ t₂ ⟧ ρ >>= λ v₂ → v₁ ∙ v₂)         D.∼⟨ (⟦⟧∼⟦⟧ t₁ _ DC.>>=-cong λ v₁ → ⟦⟧∼⟦⟧ t₂ _ DC.>>=-cong λ v₂ → ∙∼∙ v₁ v₂) ⟩∼
+    run (⟦ t₁ ⟧ ρ >>= λ v₁ → ⟦ t₂ ⟧ ρ >>= λ v₂ → v₁ ∙ v₂)         D.∼⟨ (⟦⟧∼⟦⟧ t₁ DC.>>=-cong λ v₁ → ⟦⟧∼⟦⟧ t₂ DC.>>=-cong λ _ → ∙∼∙ v₁) ⟩∼
 
     run (I.⟦ t₁ ⟧ ρ >>= λ v₁ → I.⟦ t₂ ⟧ ρ >>= λ v₂ → v₁ I.∙ v₂)   D.∎
 
+  ⟦⟧∼⟦⟧ (call f t) {ρ} =
+    run (delay-crash (⟦ t ⟧⁺ ρ >>= λ v → [ id ] ƛ (def f) [] ∙⁺ v))  D.∼⟨ delay-crash->>= (⟦ t ⟧⁺ _) ⟩
+    run (⟦ t ⟧ ρ >>= λ v → ƛ (def f) [] ∙ v)                         D.∼⟨ (⟦⟧∼⟦⟧ t DC.>>=-cong λ _ → ∙∼∙ (ƛ (def f) [])) ⟩∼
+    run (I.⟦ t ⟧ ρ >>= λ v → ƛ (def f) [] I.∙ v)                     D.∎
+
+  ⟦⟧∼⟦⟧ (con b) = D.reflexive _
+
+  ⟦⟧∼⟦⟧ (if t₁ t₂ t₃) {ρ} =
+    run (delay-crash (⟦ t₁ ⟧⁺ ρ >>= λ v₁ → ⟦if⟧⁺ v₁ t₂ t₃ ρ))  D.∼⟨ delay-crash->>= (⟦ t₁ ⟧⁺ _) ⟩
+    run (⟦ t₁ ⟧ ρ >>= λ v₁ → ⟦if⟧ v₁ t₂ t₃ ρ)                  D.∼⟨ (⟦⟧∼⟦⟧ t₁ DC.>>=-cong λ v₁ → ⟦if⟧∼⟦if⟧ v₁ t₂ t₃) ⟩∼
+    run (I.⟦ t₁ ⟧ ρ >>= λ v₁ → I.⟦if⟧ v₁ t₂ t₃ ρ)              D.∎
+
   ∙∼∙ :
-    ∀ {i} (v₁ v₂ : Value) →
+    ∀ {i} (v₁ {v₂} : Value) →
     D.[ i ] run (v₁ ∙ v₂) ∼ run (v₁ I.∙ v₂)
-  ∙∼∙ (con i)  v₂ = D.reflexive _
-  ∙∼∙ (ƛ t₁ ρ) v₂ = later λ { .force →
+  ∙∼∙ (ƛ t₁ ρ) {v₂} = later λ { .force →
     run (delay-crash (⟦ t₁ ⟧⁺ (v₂ ∷ ρ) >>=
                       Delay-crash-colist.tell pred ∘ return))  D.∼⟨ delay-crash->>= (⟦ t₁ ⟧⁺ _) ⟩
 
@@ -119,9 +153,18 @@ mutual
 
     run (⟦ t₁ ⟧ (v₂ ∷ ρ) >>= return)                           D.∼⟨ DC.right-identity _ ⟩
 
-    run (⟦ t₁ ⟧ (v₂ ∷ ρ))                                      D.∼⟨ ⟦⟧∼⟦⟧ t₁ _ ⟩∼
+    run (⟦ t₁ ⟧ (v₂ ∷ ρ))                                      D.∼⟨ ⟦⟧∼⟦⟧ t₁ ⟩∼
 
     run (I.⟦ t₁ ⟧ (v₂ ∷ ρ))                                    D.∎ }
+
+  ∙∼∙ (con _) = D.reflexive _
+
+  ⟦if⟧∼⟦if⟧ :
+    ∀ {i n} v₁ (t₂ t₃ : Tm n) {ρ} →
+    D.[ i ] run (⟦if⟧ v₁ t₂ t₃ ρ) ∼ run (I.⟦if⟧ v₁ t₂ t₃ ρ)
+  ⟦if⟧∼⟦if⟧ (ƛ _ _)     _  _  = D.reflexive _
+  ⟦if⟧∼⟦if⟧ (con true)  t₂ t₃ = ⟦⟧∼⟦⟧ t₂
+  ⟦if⟧∼⟦if⟧ (con false) t₂ t₃ = ⟦⟧∼⟦⟧ t₃
 
 ------------------------------------------------------------------------
 -- A lemma
@@ -140,7 +183,7 @@ numbers-cong = scanl-cong ∘ colist-cong
 
 Ω-loops : ∀ {i} → D.[ i ] run (⟦ Ω ⟧ []) ∼ never
 Ω-loops =
-  run (⟦ Ω ⟧ [])    D.∼⟨ ⟦⟧∼⟦⟧ Ω _ ⟩
+  run (⟦ Ω ⟧ [])    D.∼⟨ ⟦⟧∼⟦⟧ Ω ⟩
   run (I.⟦ Ω ⟧ [])  D.∼⟨ I.Ω-loops ⟩
   never             D.∎
 
@@ -215,7 +258,8 @@ stack-sizes-Ω∼Ω-sizes-0 =
   lemma n {k} =
     numbers (⟦ ω-body ⟧⁺ (ƛ ω-body [] ∷ []) >>= k) n                    C.∼⟨⟩
 
-    numbers (tell suc (tell suc (ƛ ω-body [] ∙⁺ ƛ ω-body [])) >>= k) n  C.∼⟨ (E.refl ∷ λ { .force → E.refl ∷ λ { .force → E.refl ∷ λ { .force →
+    numbers (tell suc (tell suc
+               ([ pred ] ƛ ω-body [] ∙⁺ ƛ ω-body []) >>= k)) n          C.∼⟨ (E.refl ∷ λ { .force → E.refl ∷ λ { .force → E.refl ∷ λ { .force →
                                                                               C.reflexive-∼ _ }}}) ⟩
     n ∷′ 1 + n ∷′ 2 + n ∷′
     numbers (⟦ ω-body ⟧⁺ (ƛ ω-body [] ∷ []) >>=

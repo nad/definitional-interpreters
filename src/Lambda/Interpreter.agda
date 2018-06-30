@@ -4,7 +4,13 @@
 
 {-# OPTIONS --without-K --safe #-}
 
-module Lambda.Interpreter where
+import Lambda.Syntax
+
+module Lambda.Interpreter
+  {Name : Set}
+  (open Lambda.Syntax Name)
+  (def : Name → Tm 1)
+  where
 
 import Equality.Propositional as E
 open import Prelude
@@ -18,7 +24,6 @@ open import Delay-monad.Bisimilarity
 open import Delay-monad.Monad
 
 open import Lambda.Delay-crash
-open import Lambda.Syntax
 
 open Closure Tm
 
@@ -30,16 +35,25 @@ infix 10 _∙_
 mutual
 
   ⟦_⟧ : ∀ {i n} → Tm n → Env n → Delay-crash Value i
-  ⟦ con i ⟧   ρ = return (con i)
-  ⟦ var x ⟧   ρ = return (index x ρ)
-  ⟦ ƛ t ⟧     ρ = return (ƛ t ρ)
-  ⟦ t₁ · t₂ ⟧ ρ = ⟦ t₁ ⟧ ρ >>= λ v₁ →
-                  ⟦ t₂ ⟧ ρ >>= λ v₂ →
-                  v₁ ∙ v₂
+  ⟦ var x ⟧       ρ = return (index x ρ)
+  ⟦ ƛ t ⟧         ρ = return (ƛ t ρ)
+  ⟦ t₁ · t₂ ⟧     ρ = do v₁ ← ⟦ t₁ ⟧ ρ
+                         v₂ ← ⟦ t₂ ⟧ ρ
+                         v₁ ∙ v₂
+  ⟦ call f t ⟧    ρ = do v ← ⟦ t ⟧ ρ
+                         ƛ (def f) [] ∙ v
+  ⟦ con b ⟧       ρ = return (con b)
+  ⟦ if t₁ t₂ t₃ ⟧ ρ = do v₁ ← ⟦ t₁ ⟧ ρ
+                         ⟦if⟧ v₁ t₂ t₃ ρ
 
   _∙_ : ∀ {i} → Value → Value → Delay-crash Value i
-  con i  ∙ v₂ = fail
   ƛ t₁ ρ ∙ v₂ = laterDC (⟦ t₁ ⟧′ (v₂ ∷ ρ))
+  con _  ∙ _  = fail
+
+  ⟦if⟧ : ∀ {i n} → Value → Tm n → Tm n → Env n → Delay-crash Value i
+  ⟦if⟧ (ƛ _ _)     _  _  _ = fail
+  ⟦if⟧ (con true)  t₂ t₃ ρ = ⟦ t₂ ⟧ ρ
+  ⟦if⟧ (con false) t₂ t₃ ρ = ⟦ t₃ ⟧ ρ
 
   ⟦_⟧′ : ∀ {i n} → Tm n → Env n → Delay-crash′ Value i
   force (run (⟦ t ⟧′ ρ)) = run (⟦ t ⟧ ρ)

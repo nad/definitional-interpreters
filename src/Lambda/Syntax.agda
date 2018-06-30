@@ -1,11 +1,11 @@
 ------------------------------------------------------------------------
--- The syntax of, and a type system for, the untyped λ-calculus with
--- constants
+-- The syntax of, and a type system for, an untyped λ-calculus with
+-- booleans and recursive unary function calls
 ------------------------------------------------------------------------
 
 {-# OPTIONS --without-K --safe #-}
 
-module Lambda.Syntax where
+module Lambda.Syntax (Name : Set) where
 
 open import Equality.Propositional
 open import Prelude
@@ -21,10 +21,12 @@ open import Vec.Data equality-with-J
 infixl 9 _·_
 
 data Tm (n : ℕ) : Set where
-  con : (i : ℕ) → Tm n
-  var : (x : Fin n) → Tm n
-  ƛ   : Tm (suc n) → Tm n
-  _·_ : Tm n → Tm n → Tm n
+  var  : (x : Fin n) → Tm n
+  ƛ    : Tm (suc n) → Tm n
+  _·_  : Tm n → Tm n → Tm n
+  call : (f : Name) → Tm n → Tm n
+  con  : Bool → Tm n
+  if   : Tm n → Tm n → Tm n → Tm n
 
 ------------------------------------------------------------------------
 -- Closure-based definition of values
@@ -45,8 +47,8 @@ module Closure (Tm : ℕ → Set) where
     -- not contain any free variables.
 
     data Value : Set where
-      con : (i : ℕ) → Value
       ƛ   : ∀ {n} (t : Tm (suc n)) (ρ : Env n) → Value
+      con : Bool → Value
 
 ------------------------------------------------------------------------
 -- Type system
@@ -58,7 +60,7 @@ infixr 8 _⇾_ _⇾′_
 mutual
 
   data Ty (i : Size) : Set where
-    nat  : Ty i
+    bool : Ty i
     _⇾′_ : (σ τ : Ty′ i) → Ty i
 
   record Ty′ (i : Size) : Set where
@@ -80,16 +82,27 @@ Ctxt n = Vec (Ty ∞) n
 
 -- Type system.
 
-infix 4 _⊢_∈_
+infix 4 _,_⊢_∈_
 
-data _⊢_∈_ {n} (Γ : Ctxt n) : Tm n → Ty ∞ → Set where
-  con : ∀ {i} → Γ ⊢ con i ∈ nat
-  var : ∀ {x} → Γ ⊢ var x ∈ index x Γ
-  ƛ   : ∀ {t σ τ} →
-        force σ ∷ Γ ⊢ t ∈ force τ → Γ ⊢ ƛ t ∈ σ ⇾′ τ
-  _·_ : ∀ {t₁ t₂ σ τ} →
-        Γ ⊢ t₁ ∈ σ ⇾′ τ → Γ ⊢ t₂ ∈ force σ →
-        Γ ⊢ t₁ · t₂ ∈ force τ
+data _,_⊢_∈_ (Σ : Name → Ty ∞ × Ty ∞) {n} (Γ : Ctxt n) :
+             Tm n → Ty ∞ → Set where
+  var  : ∀ {x} → Σ , Γ ⊢ var x ∈ index x Γ
+  ƛ    : ∀ {t σ τ} →
+         Σ , force σ ∷ Γ ⊢ t ∈ force τ →
+         Σ , Γ ⊢ ƛ t ∈ σ ⇾′ τ
+  _·_  : ∀ {t₁ t₂ σ τ} →
+         Σ , Γ ⊢ t₁ ∈ σ ⇾′ τ →
+         Σ , Γ ⊢ t₂ ∈ force σ →
+         Σ , Γ ⊢ t₁ · t₂ ∈ force τ
+  call : ∀ {f t} →
+         Σ , Γ ⊢ t ∈ proj₁ (Σ f) →
+         Σ , Γ ⊢ call f t ∈ proj₂ (Σ f)
+  con  : ∀ {b} → Σ , Γ ⊢ con b ∈ bool
+  if   : ∀ {t₁ t₂ t₃ σ} →
+         Σ , Γ ⊢ t₁ ∈ bool →
+         Σ , Γ ⊢ t₂ ∈ σ →
+         Σ , Γ ⊢ t₃ ∈ σ →
+         Σ , Γ ⊢ if t₁ t₂ t₃ ∈ σ
 
 ------------------------------------------------------------------------
 -- Examples
@@ -107,7 +120,7 @@ data _⊢_∈_ {n} (Γ : Ctxt n) : Tm n → Ty ∞ → Set where
 
 -- Ω is well-typed.
 
-Ω-well-typed : (τ : Ty ∞) → [] ⊢ Ω ∈ τ
+Ω-well-typed : ∀ {Σ} (τ : Ty ∞) → Σ , [] ⊢ Ω ∈ τ
 Ω-well-typed τ =
   _·_ {σ = σ} {τ = λ { .force → τ }} (ƛ (var · var)) (ƛ (var · var))
   where
@@ -125,7 +138,8 @@ Z = ƛ (t · t)
 -- This combinator is also well-typed.
 
 Z-well-typed :
-  {σ τ : Ty ∞} → [] ⊢ Z ∈ ((σ ⇾ τ) ⇾ (σ ⇾ τ)) ⇾ (σ ⇾ τ)
+  ∀ {Σ} {σ τ : Ty ∞} →
+  Σ , [] ⊢ Z ∈ ((σ ⇾ τ) ⇾ (σ ⇾ τ)) ⇾ (σ ⇾ τ)
 Z-well-typed {σ = σ} {τ = τ} =
   ƛ (_·_ {σ = υ} {τ = λ { .force → σ ⇾ τ }}
          (ƛ (var · ƛ (var · var · var)))
