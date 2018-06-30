@@ -10,16 +10,16 @@ import Equality.Propositional as E
 open import Prelude
 open import Tactic.By using (by)
 
-open import Maybe E.equality-with-J hiding (_>>=′_)
-open import Monad E.equality-with-J
+open import Maybe E.equality-with-J
+open import Monad E.equality-with-J using (return; _>>=_)
 open import Vec.Data E.equality-with-J
 
 open import Delay-monad.Bisimilarity
-open import Delay-monad.Monad
+import Delay-monad.Monad
 
 open import Lambda.Compiler
+open import Lambda.Delay-crash
 open import Lambda.Interpreter
-open import Lambda.Virtual-machine
 open import Lambda.Syntax
 open import Lambda.Virtual-machine
 
@@ -27,41 +27,41 @@ private
   module C = Closure Code
   module T = Closure Tm
 
--- Bind preserves strong bisimilarity.
+------------------------------------------------------------------------
+-- A lemma
 
-infixl 5 _>>=-congM_
+-- A rearrangement lemma for ⟦_⟧.
 
-_>>=-congM_ :
-  ∀ {i ℓ} {A B : Set ℓ} {x y : M ∞ A} {f g : A → M ∞ B} →
-  [ i ] run x ∼ run y →
-  (∀ z → [ i ] run (f z) ∼ run (g z)) →
-  [ i ] run (x >>= f) ∼ run (y >>= g)
-p >>=-congM q = p >>=-cong [ (λ _ → run fail ∎) , q ]
+⟦⟧-· :
+  ∀ {n} (t₁ t₂ : Tm n) {ρ} {k : T.Value → Delay-crash C.Value ∞} →
+  run (⟦ t₁ · t₂ ⟧ ρ >>= k) ∼
+  run (⟦ t₁ ⟧ ρ >>= λ v₁ → ⟦ t₂ ⟧ ρ >>= λ v₂ → v₁ ∙ v₂ >>= k)
+⟦⟧-· t₁ t₂ {ρ} {k} =
+  run (⟦ t₁ · t₂ ⟧ ρ >>= k)    ∼⟨⟩
 
--- Bind is associative.
+  run ((do v₁ ← ⟦ t₁ ⟧ ρ
+           v₂ ← ⟦ t₂ ⟧ ρ
+           v₁ ∙ v₂) >>= k)     ∼⟨ symmetric (associativity (⟦ t₁ ⟧ _) _ _) ⟩
 
-associativityM :
-  ∀ {ℓ} {A B C : Set ℓ} (x : M ∞ A) (f : A → M ∞ B) (g : B → M ∞ C) →
-  run (x >>= (λ x → f x >>= g)) ∼ run (x >>= f >>= g)
-associativityM x f g =
-  run (x >>= λ x → f x >>= g)                                       ∼⟨⟩
+  run (do v₁ ← ⟦ t₁ ⟧ ρ
+          (do v₂ ← ⟦ t₂ ⟧ ρ
+              v₁ ∙ v₂) >>= k)  ∼⟨ (run (⟦ t₁ ⟧ _) ∎) >>=-cong (λ _ → symmetric (associativity (⟦ t₂ ⟧ _) _ _)) ⟩
 
-  run x >>=′ maybe (λ x → run (f x >>= g)) (return nothing)         ∼⟨ (run x ∎) >>=-cong [ (λ _ → run fail ∎) , (λ x → run (f x >>= g) ∎) ] ⟩
+  run (do v₁ ← ⟦ t₁ ⟧ ρ
+          v₂ ← ⟦ t₂ ⟧ ρ
+          v₁ ∙ v₂ >>= k)       ∎
 
-  run x >>=′ (λ x → maybe (MaybeT.run ∘ f) (return nothing) x >>=′
-                    maybe (MaybeT.run ∘ g) (return nothing))        ∼⟨ associativity′ (run x) _ _ ⟩
+------------------------------------------------------------------------
+-- The semantics of the compiled program matches that of the source
+-- code
 
-  run x >>=′ maybe (MaybeT.run ∘ f) (return nothing)
-        >>=′ maybe (MaybeT.run ∘ g) (return nothing)                ∼⟨⟩
-
-  run (x >>= f >>= g)                                               ∎
-
--- Compiler correctness.
+-- Some lemmas.
 
 mutual
 
   ⟦⟧-correct :
-    ∀ {i n} t (ρ : T.Env n) {c s} {k : T.Value → M ∞ C.Value} →
+    ∀ {i n} t (ρ : T.Env n) {c s}
+      {k : T.Value → Delay-crash C.Value ∞} →
     (∀ v → [ i ] run (exec ⟨ c , val (comp-val v) ∷ s , comp-env ρ ⟩) ≈
                  run (k v)) →
     [ i ] run (exec ⟨ comp t c , s , comp-env ρ ⟩) ≈ run (⟦ t ⟧ ρ >>= k)
@@ -86,16 +86,13 @@ mutual
     run (⟦ ƛ t ⟧ ρ >>= k)                                         ∎
 
   ⟦⟧-correct (t₁ · t₂) ρ {c} {s} {k} hyp =
-    run (exec ⟨ comp t₁ (comp t₂ (app ∷ c)) , s , comp-env ρ ⟩)    ≈⟨ (⟦⟧-correct t₁ _ λ v₁ → ⟦⟧-correct t₂ _ λ v₂ → ∙-correct v₁ v₂ hyp) ⟩∼
-
-    run (⟦ t₁ ⟧ ρ >>= λ v₁ → ⟦ t₂ ⟧ ρ >>= λ v₂ → v₁ ∙ v₂ >>= k)    ∼⟨ (run (⟦ t₁ ⟧ ρ) ∎) >>=-congM (λ _ → associativityM (⟦ t₂ ⟧ ρ) _ _) ⟩
-
-    run (⟦ t₁ ⟧ ρ >>= λ v₁ → (⟦ t₂ ⟧ ρ >>= λ v₂ → v₁ ∙ v₂) >>= k)  ∼⟨ associativityM (⟦ t₁ ⟧ ρ) _ _ ⟩
-
-    run (⟦ t₁ · t₂ ⟧ ρ >>= k)                                      ∎
+    run (exec ⟨ comp t₁ (comp t₂ (app ∷ c)) , s , comp-env ρ ⟩)  ≈⟨ (⟦⟧-correct t₁ _ λ v₁ → ⟦⟧-correct t₂ _ λ v₂ → ∙-correct v₁ v₂ hyp) ⟩∼
+    run (⟦ t₁ ⟧ ρ >>= λ v₁ → ⟦ t₂ ⟧ ρ >>= λ v₂ → v₁ ∙ v₂ >>= k)  ∼⟨ symmetric (⟦⟧-· t₁ t₂) ⟩
+    run (⟦ t₁ · t₂ ⟧ ρ >>= k)                                    ∎
 
   ∙-correct :
-    ∀ {i n} v₁ v₂ {ρ : T.Env n} {c s} {k : T.Value → M ∞ C.Value} →
+    ∀ {i n} v₁ v₂ {ρ : T.Env n} {c s}
+      {k : T.Value → Delay-crash C.Value ∞} →
     (∀ v → [ i ] run (exec ⟨ c , val (comp-val v) ∷ s , comp-env ρ ⟩) ≈
                  run (k v)) →
     [ i ] run (exec ⟨ app ∷ c
@@ -107,7 +104,7 @@ mutual
     run (exec ⟨ app ∷ c
               , val (comp-val v₂) ∷ val (C.con i) ∷ s
               , comp-env ρ
-              ⟩)                                       ∼⟨⟩
+              ⟩)                                       ≳⟨⟩
 
     run fail                                           ∼⟨⟩
 
@@ -142,13 +139,14 @@ mutual
 
     run (T.ƛ t₁ ρ₁ ∙ v₂ >>= k)                                      ∎
 
--- Note that the equality that is used here is syntactic.
+-- Compiler correctness. Note that the equality that is used here is
+-- syntactic.
 
 correct :
   ∀ t →
-  exec ⟨ comp t [] , [] , [] ⟩ ≈M
-  ⟦ t ⟧ [] >>= λ v → return (comp-val v)
+  run (exec ⟨ comp t [] , [] , [] ⟩) ≈
+  run (⟦ t ⟧ [] >>= λ v → return (comp-val v))
 correct t =
   run (exec ⟨ comp t [] , [] , [] ⟩)            ∼⟨⟩
-  run (exec ⟨ comp t [] , [] , comp-env [] ⟩)   ≈⟨ ⟦⟧-correct t [] (λ v → return (just (comp-val v)) ∎) ⟩
+  run (exec ⟨ comp t [] , [] , comp-env [] ⟩)   ≈⟨ ⟦⟧-correct t [] (λ v → laterˡ (return (just (comp-val v)) ∎)) ⟩
   run (⟦ t ⟧ [] >>= λ v → return (comp-val v))  ∎

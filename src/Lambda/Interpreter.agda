@@ -17,34 +17,10 @@ open import Delay-monad
 open import Delay-monad.Bisimilarity
 open import Delay-monad.Monad
 
+open import Lambda.Delay-crash
 open import Lambda.Syntax
 
 open Closure Tm
-
-------------------------------------------------------------------------
--- An interpreter monad
-
--- The interpreter monad.
-
-M : ∀ {ℓ} → Size → Set ℓ → Set ℓ
-M i = MaybeT (λ A → Delay A i)
-
--- A variant of the interpreter monad.
-
-M′ : ∀ {ℓ} → Size → Set ℓ → Set ℓ
-M′ i = MaybeT (λ A → Delay′ A i)
-
--- A lifted variant of later.
-
-laterM : ∀ {i a} {A : Set a} → M′ i A → M i A
-run (laterM x) = later (run x)
-
--- A lifted variant of weak bisimilarity.
-
-infix 4 _≈M_
-
-_≈M_ : ∀ {a} {A : Set a} → M ∞ A → M ∞ A → Set a
-x ≈M y = run x ≈ run y
 
 ------------------------------------------------------------------------
 -- The interpreter
@@ -53,7 +29,7 @@ infix 10 _∙_
 
 mutual
 
-  ⟦_⟧ : ∀ {i n} → Tm n → Env n → M i Value
+  ⟦_⟧ : ∀ {i n} → Tm n → Env n → Delay-crash Value i
   ⟦ con i ⟧   ρ = return (con i)
   ⟦ var x ⟧   ρ = return (index x ρ)
   ⟦ ƛ t ⟧     ρ = return (ƛ t ρ)
@@ -61,11 +37,11 @@ mutual
                   ⟦ t₂ ⟧ ρ >>= λ v₂ →
                   v₁ ∙ v₂
 
-  _∙_ : ∀ {i} → Value → Value → M i Value
+  _∙_ : ∀ {i} → Value → Value → Delay-crash Value i
   con i  ∙ v₂ = fail
-  ƛ t₁ ρ ∙ v₂ = laterM (⟦ t₁ ⟧′ (v₂ ∷ ρ))
+  ƛ t₁ ρ ∙ v₂ = laterDC (⟦ t₁ ⟧′ (v₂ ∷ ρ))
 
-  ⟦_⟧′ : ∀ {i n} → Tm n → Env n → M′ i Value
+  ⟦_⟧′ : ∀ {i n} → Tm n → Env n → Delay-crash′ Value i
   force (run (⟦ t ⟧′ ρ)) = run (⟦ t ⟧ ρ)
 
 ------------------------------------------------------------------------
@@ -75,16 +51,14 @@ mutual
 
 Ω-loops : ∀ {i} → [ i ] run (⟦ Ω ⟧ []) ∼ never
 Ω-loops =
-  run (⟦ Ω ⟧ [])                                     ∼⟨⟩
-  run (⟦ ω · ω ⟧ [])                                 ∼⟨⟩
-  run (ƛ (v0 · v0) [] ∙ ƛ (v0 · v0) [])              ∼⟨⟩
-  run (laterM (⟦ v0 · v0 ⟧′ (ƛ (v0 · v0) [] ∷ [])))  ∼⟨ later (λ { .force →
+  run (⟦ Ω ⟧ [])                                  ∼⟨⟩
+  run (⟦ ω · ω ⟧ [])                              ∼⟨⟩
+  run (ƛ ω-body [] ∙ ƛ ω-body [])                 ∼⟨⟩
+  run (laterDC (⟦ ω-body ⟧′ (ƛ ω-body [] ∷ [])))  ∼⟨ later (λ { .force →
 
-      run (⟦ v0 · v0 ⟧ (ƛ (v0 · v0) [] ∷ []))             ∼⟨⟩
-      run (ƛ (v0 · v0) [] ∙ ƛ (v0 · v0) [])               ∼⟨⟩
-      run (⟦ Ω ⟧ [])                                      ∼⟨ Ω-loops ⟩∼
-      never                                               ∎ }) ⟩∼
+      run (⟦ ω-body ⟧ (ƛ ω-body [] ∷ []))              ∼⟨⟩
+      run (ƛ ω-body [] ∙ ƛ ω-body [])                  ∼⟨⟩
+      run (⟦ Ω ⟧ [])                                   ∼⟨ Ω-loops ⟩∼
+      never                                            ∎ }) ⟩∼
 
-  never                                              ∎
-  where
-  v0 = var fzero
+  never                                           ∎

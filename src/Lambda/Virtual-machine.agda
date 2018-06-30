@@ -6,17 +6,19 @@
 
 module Lambda.Virtual-machine where
 
+open import Colist using (Colist)
 open import Equality.Propositional
 open import Prelude
 
+open import List equality-with-J using (length)
 open import Maybe equality-with-J
 open import Monad equality-with-J
 open import Vec.Data equality-with-J
 
 open import Delay-monad
-open import Delay-monad.Monad
 
-open import Lambda.Interpreter
+open import Lambda.Delay-crash
+open import Lambda.Delay-crash-colist
 open import Lambda.Syntax
 
 ------------------------------------------------------------------------
@@ -61,6 +63,11 @@ data State : Set where
 
 pattern ⟨_∣_,_,_⟩ n c s ρ = ⟨_,_,_⟩ {n} c s ρ
 
+-- The length of the stack.
+
+stack-size : State → ℕ
+stack-size ⟨ _ , s , _ ⟩ = length s
+
 ------------------------------------------------------------------------
 -- A kind of small-step semantics for the virtual machine
 
@@ -82,15 +89,25 @@ step ⟨ ret    ∷ c , val v ∷ ret c′ ρ′     ∷  s , ρ ⟩ = continue 
 step ⟨ zero ∣ []  ,                 val v ∷ [] , ρ ⟩ = done v
 step _                                               = crash
 
+-- A functional semantics for the VM. The result includes a trace of
+-- all the encountered states.
+
 mutual
 
-  -- A functional semantics for the VM.
+  exec⁺ : ∀ {i} → State → Delay-crash-colist State Value i
+  exec⁺ s = later s λ { .force → exec⁺′ (step s) }
 
-  exec : ∀ {i} → State → M i Value
-  exec s with step s
-  ... | continue s′ = laterM (exec′ s′)
-  ... | done v      = return v
-  ... | crash       = fail
+  exec⁺′ : ∀ {i} → Result → Delay-crash-colist State Value i
+  exec⁺′ (continue s) = exec⁺ s
+  exec⁺′ (done v)     = return v
+  exec⁺′ crash        = crash
 
-  exec′ : ∀ {i} → State → M′ i Value
-  force (run (exec′ s)) = run (exec s)
+-- The semantics without the trace of states.
+
+exec : ∀ {i} → State → Delay-crash Value i
+exec = delay-crash ∘ exec⁺
+
+-- The stack sizes of all the encountered states.
+
+stack-sizes : ∀ {i} → State → Colist ℕ i
+stack-sizes = Colist.map stack-size ∘ colist ∘ exec⁺

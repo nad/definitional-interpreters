@@ -96,8 +96,11 @@ data _⊢_∈_ {n} (Γ : Ctxt n) : Tm n → Ty ∞ → Set where
 
 -- A non-terminating term.
 
+ω-body : Tm 1
+ω-body = var fzero · var fzero
+
 ω : Tm 0
-ω = ƛ (var fzero · var fzero)
+ω = ƛ ω-body
 
 Ω : Tm 0
 Ω = ω · ω

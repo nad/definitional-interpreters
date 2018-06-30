@@ -18,6 +18,7 @@ open import Delay-monad.Always
 open import Delay-monad.Bisimilarity
 open import Delay-monad.Monad
 
+open import Lambda.Delay-crash
 open import Lambda.Interpreter
 open import Lambda.Syntax
 
@@ -56,8 +57,8 @@ _∷-wf_ : ∀ {n} {Γ : Ctxt n} {ρ σ v} →
 
 -- If we can prove □ ∞ (WF-MV σ) (run x), then x does not "go wrong".
 
-does-not-go-wrong : ∀ {σ} {x : M ∞ Value} →
-                    □ ∞ (WF-MV σ) (run x) → ¬ x ≈M fail
+does-not-go-wrong : ∀ {σ} {x : Delay-crash Value ∞} →
+                    □ ∞ (WF-MV σ) (run x) → ¬ run x ≈ run fail
 does-not-go-wrong (now {x = nothing} ())
 does-not-go-wrong (now {x = just x} x-wf) ()
 does-not-go-wrong (later x-wf)            (laterˡ x↯) =
@@ -66,10 +67,10 @@ does-not-go-wrong (later x-wf)            (laterˡ x↯) =
 -- A "constructor" for □ i ∘ WF-MV.
 
 _>>=-wf_ :
-  ∀ {i σ τ} {x : M ∞ Value} {f : Value → M ∞ Value} →
+  ∀ {i σ τ} {x : Delay-crash Value ∞} {f : Value → Delay-crash Value ∞} →
   □ i (WF-MV σ) (run x) →
   (∀ {v} → WF-Value σ v → □ i (WF-MV τ) (run (f v))) →
-  □ i (WF-MV τ) (MaybeT.run (x >>= f))
+  □ i (WF-MV τ) (run (x >>= f))
 x-wf >>=-wf f-wf =
   □->>= x-wf λ { {nothing} ()
                ; {just v}  v-wf → f-wf v-wf
@@ -97,8 +98,8 @@ mutual
     later λ { .force → ⟦⟧-wf _ t₁∈ (v₂-wf ∷-wf ρ₁-wf) }
 
 type-soundness : ∀ {t : Tm 0} {σ} →
-                 [] ⊢ t ∈ σ → ¬ ⟦ t ⟧ [] ≈M fail
+                 [] ⊢ t ∈ σ → ¬ run (⟦ t ⟧ []) ≈ run fail
 type-soundness {t} {σ} =
   [] ⊢ t ∈ σ                      ↝⟨ (λ t∈ → ⟦⟧-wf _ t∈ []-wf) ⟩
   □ ∞ (WF-MV σ) (run (⟦ t ⟧ []))  ↝⟨ does-not-go-wrong ⟩□
-  ¬ ⟦ t ⟧ [] ≈M fail              □
+  ¬ run (⟦ t ⟧ []) ≈ run fail     □
