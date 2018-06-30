@@ -165,9 +165,9 @@ private
 nats-from≲Ω-sizes : ∀ {i} n → [ i ] nats-from n ≲ Ω-sizes n
 nats-from≲Ω-sizes n =
   nats-from n                             ∼⟨ ∷∼∷′ ⟩≲
-  n ∷′ nats-from (suc n)                  ≲⟨ (cons′-≲ λ { .force → nats-from≲Ω-sizes (suc n) }) ⟩
-  n ∷′ Ω-sizes (suc n)                    ≲⟨ (cons′-≲ λ { .force → consʳ-≲ (_ □≲) }) ⟩
-  n ∷′ 1 + n ∷′ Ω-sizes (suc n)           ≲⟨ (cons′-≲ λ { .force → cons′-≲ λ { .force → consʳ-≲ (_ □≲) }}) ⟩
+  n ∷′ nats-from (suc n)                  ≲⟨ (cons′-≲ λ { hyp .force → nats-from≲Ω-sizes (suc n) hyp }) ⟩
+  n ∷′ Ω-sizes (suc n)                    ≲⟨ (cons′-≲ λ { hyp .force → consʳ-≲ (_ □≲) hyp }) ⟩
+  n ∷′ 1 + n ∷′ Ω-sizes (suc n)           ≲⟨ (cons′-≲ λ { hyp .force → cons′-≲ (λ { hyp .force → consʳ-≲ (_ □≲) hyp }) hyp }) ⟩
   n ∷′ 1 + n ∷′ 2 + n ∷′ Ω-sizes (suc n)  ∼⟨ (cong₃ λ { .force → C.reflexive-∼ _ }) ⟩≲
   Ω-sizes n                               □≲
 
@@ -176,8 +176,10 @@ nats-from≲Ω-sizes n =
 Ω-sizes≲nats-from : ∀ {i} n → [ i ] Ω-sizes n ≲ nats-from n
 Ω-sizes≲nats-from n =
   Ω-sizes n                               ∼⟨ (cong₃ λ { .force → C.reflexive-∼ _ }) ⟩≲
-  n ∷′ 1 + n ∷′ 2 + n ∷′ Ω-sizes (suc n)  ≲⟨ (cons′-≲ λ { .force → inj₂ (here ≤-refl) ∷ λ { .force → inj₂ (there (here ≤-refl)) ∷ λ { .force →
-                                              Ω-sizes≲nats-from (suc n) }}}) ⟩
+  n ∷′ 1 + n ∷′ 2 + n ∷′ Ω-sizes (suc n)  ≲⟨ (cons′-≲                        λ { hyp .force →
+                                              consˡ-≲ (here ≤-refl)         (λ { hyp .force →
+                                              consˡ-≲ (there (here ≤-refl)) (λ { hyp .force →
+                                              Ω-sizes≲nats-from (suc n)      hyp }) hyp }) hyp }) ⟩
   n ∷′ nats-from (suc n)                  ∼⟨ C.symmetric-∼ ∷∼∷′ ⟩≲
   nats-from n                             □≲
 

@@ -22,10 +22,13 @@ open import Nat equality-with-J as Nat using (_≤_; _<_; pred)
 
 -- [ ∞ ] ms ⊑ n means that n is an upper bound of every number in ms.
 
-infix 4 [_]_⊑_
+infix 4 [_]_⊑_ [_]_⊑′_
 
 [_]_⊑_ : Size → Colist ℕ ∞ → Conat ∞ → Set
 [ i ] ms ⊑ n = □ i (λ m → [ ∞ ] ⌜ m ⌝ ≤ n) ms
+
+[_]_⊑′_ : Size → Colist ℕ ∞ → Conat ∞ → Set
+[ i ] ms ⊑′ n = □′ i (λ m → [ ∞ ] ⌜ m ⌝ ≤ n) ms
 
 -- The conatural number infinity is always an upper bound.
 
@@ -257,33 +260,56 @@ wlpo→lub wlpo = λ ms → lub ms , □ˢ∞→□∞ (upper-bound ms) , least 
 -- A relation that can be used to relate the least upper bounds of two
 -- colists
 
--- [ ∞ ] ms ≲ ns implies that the least upper bound of ms is less than
--- or equal to that of ns (see ≲→least-upper-bounds-≤ below).
+-- [ ∞ ] ms ≲ ns means that every upper bound of ns is also an upper
+-- bound of ms.
 
 infix 4 [_]_≲_ [_]_≲′_
 
 [_]_≲_ : Size → Colist ℕ ∞ → Colist ℕ ∞ → Set
-[ i ] ms ≲ ns = □ i (λ m → m ≡ zero ⊎ ◇ ∞ (m ≤_) ns) ms
+[ i ] ms ≲ ns = ∀ {n} → [ ∞ ] ns ⊑ n → [ i ] ms ⊑ n
 
 [_]_≲′_ : Size → Colist ℕ ∞ → Colist ℕ ∞ → Set
-[ i ] ms ≲′ ns = □′ i (λ m → m ≡ zero ⊎ ◇ ∞ (m ≤_) ns) ms
+[ i ] ms ≲′ ns = ∀ {n} → [ ∞ ] ns ⊑ n → [ i ] ms ⊑′ n
 
 -- Some derived cons-like operations.
 
-consʳ-≲ : ∀ {ms ns n i} →
-          [ i ] ms ≲ force ns →
-          [ i ] ms ≲ n ∷ ns
-consʳ-≲ = □-map (⊎-map id there)
+consʳ-≲ :
+  ∀ {ms ns n i} →
+  [ i ] ms ≲ force ns →
+  [ i ] ms ≲ n ∷ ns
+consʳ-≲ = _∘ □-tail
 
-cons-≲ : ∀ {i m ms n ns} →
-         m ≤ n →
-         [ i ] force ms ≲′ force ns →
-         [ i ] m ∷ ms ≲ n ∷ ns
-cons-≲ p q = inj₂ (here p) ∷ λ { .force → consʳ-≲ (force q) }
+consˡ-≲ :
+  ∀ {i m ms ns} →
+  ◇ ∞ (m ≤_) ns →
+  [ i ] force ms ≲′ ns →
+  [ i ] m ∷ ms ≲ ns
+consˡ-≲ ◇m≤ns ms≲′ns ns⊑n =
+  transitive-◇≤⊑ ◇m≤ns ns⊑n ∷ λ { .force → force (ms≲′ns ns⊑n) }
 
-cons′-≲ : ∀ {i m ms ns} →
-          [ i ] force ms ≲′ force ns →
-          [ i ] m ∷ ms ≲ m ∷ ns
+consˡ-zero-≲ :
+  ∀ {i ms ns} →
+  [ i ] force ms ≲′ ns →
+  [ i ] zero ∷ ms ≲ ns
+consˡ-zero-≲ ms≲′ns ns⊑n =
+  zero ∷ λ { .force → force (ms≲′ns ns⊑n) }
+
+cons-≲ :
+  ∀ {i m ms n ns} →
+  m ≤ n →
+  [ i ] force ms ≲′ force ns →
+  [ i ] m ∷ ms ≲ n ∷ ns
+cons-≲ {m = m} {n = n} m≤n ms≲′ns {n = n′} n∷ns⊑n′ =
+  (⌜ m ⌝  ≤⟨ ⌜⌝-mono m≤n ⟩
+   ⌜ n ⌝  ≤⟨ □-head n∷ns⊑n′ ⟩∎
+   n′     ∎≤)
+    ∷
+  λ { .force → force (ms≲′ns (□-tail n∷ns⊑n′)) }
+
+cons′-≲ :
+  ∀ {i m ms ns} →
+  [ i ] force ms ≲′ force ns →
+  [ i ] m ∷ ms ≲ m ∷ ns
 cons′-≲ = cons-≲ Nat.≤-refl
 
 -- "Equational" reasoning combinators.
@@ -293,14 +319,10 @@ infixr -2 step-≲ step-≡≲ _≡⟨⟩≲_ step-∼≲
 
 step-≲ : ∀ {i} ms {ns os} →
          [ ∞ ] ns ≲ os → [ i ] ms ≲ ns → [ i ] ms ≲ os
-step-≲ _ {ns} {os} ns≲os ms≲ns = □-map [ inj₁ , lemma ] ms≲ns
-  where
-  lemma = λ {n} →
-    ◇ ∞ (n ≤_) ns                                 ↝⟨ □◇-witness ns≲os ⟩
-    (∃ λ o → (o ≡ zero ⊎ ◇ ∞ (o ≤_) os) × n ≤ o)  ↝⟨ (λ { (_ , inj₁ refl  , n≤0) → inj₁ (Nat.≤-antisymmetric n≤0 (Nat.zero≤ _))
-                                                        ; (_ , inj₂ ◇o≤os , n≤o) → inj₂ (◇-map (Nat.≤-trans n≤o) ◇o≤os)
-                                                        }) ⟩□
-    n ≡ zero ⊎ ◇ ∞ (n ≤_) os                      □
+step-≲ {i} ms {ns} {os} ns≲os ms≲ns {n = n} =
+  [ ∞ ] os ⊑ n  ↝⟨ ns≲os ⟩
+  [ ∞ ] ns ⊑ n  ↝⟨ ms≲ns ⟩□
+  [ i ] ms ⊑ n  □
 
 syntax step-≲ ms ns≲os ms≲ns = ms ≲⟨ ms≲ns ⟩ ns≲os
 
@@ -314,27 +336,17 @@ _ ≡⟨⟩≲ ms≲ns = ms≲ns
 
 step-∼≲ : ∀ {i} ms {ns os} →
           [ i ] ns ≲ os → Colist.[ i ] ms ∼ ns → [ i ] ms ≲ os
-step-∼≲ _ ns≲os ms∼ns = □-∼ (Colist.symmetric-∼ ms∼ns) ns≲os
+step-∼≲ {i} ms {ns} {os} ns≲os ms∼ns {n} =
+  [ ∞ ] os ⊑ n  ↝⟨ ns≲os ⟩
+  [ i ] ns ⊑ n  ↝⟨ □-∼ (Colist.symmetric-∼ ms∼ns) ⟩□
+  [ i ] ms ⊑ n  □
 
 syntax step-∼≲ ms ns≲os ms∼ns = ms ∼⟨ ms∼ns ⟩≲ ns≲os
 
 _□≲ : ∀ {i} ns → [ i ] ns ≲ ns
-[]     □≲ = []
-n ∷ ns □≲ = cons′-≲ λ { .force → force ns □≲ }
-
--- If ms ≲ ns and n is an upper bound of ns, then n is also an upper
--- bound of ms.
-
-≲⊑→⊑ :
-  ∀ {i ms ns n} →
-  [ i ] ms ≲ ns → [ ∞ ] ns ⊑ n → [ i ] ms ⊑ n
-≲⊑→⊑ {i} {ms} {ns} {n} ms≲ns =
-  [ ∞ ] ns ⊑ n                                          ↝⟨ (λ hyp {_} → flip transitive-◇≤⊑ hyp) ⟩
-  (∀ {m} → ◇ ∞ (m ≤_) ns → [ ∞ ] ⌜ m ⌝ ≤ n)             ↝⟨ (λ { _   (inj₁ refl)  → zero
-                                                              ; hyp (inj₂ ◇m≤ns) → hyp ◇m≤ns
-                                                              }) ⟩
-  (∀ {m} → m ≡ zero ⊎ ◇ ∞ (m ≤_) ns → [ ∞ ] ⌜ m ⌝ ≤ n)  ↝⟨ (λ hyp → □-map (hyp {_}) ms≲ns) ⟩□
-  [ i ] ms ⊑ n                                          □
+_□≲ {i} ns {n} =
+  [ ∞ ] ns ⊑ n  ↝⟨ id ⟩□
+  [ i ] ns ⊑ n  □
 
 -- If both ms ≲ ns and ns ≲ ms hold, then any least upper bound of ms
 -- is also a least upper bound of ns.
@@ -344,77 +356,27 @@ Least-upper-bound-≲≳ :
   [ ∞ ] ms ≲ ns → [ ∞ ] ns ≲ ms →
   Least-upper-bound ms n → Least-upper-bound ns n
 Least-upper-bound-≲≳ {ms} {ns} {n} ms≲ns ns≲ms = Σ-map
-  ([ ∞ ] ms ⊑ n  ↝⟨ ≲⊑→⊑ ns≲ms ⟩□
+  ([ ∞ ] ms ⊑ n  ↝⟨ ns≲ms ⟩□
    [ ∞ ] ns ⊑ n  □)
-  ((∀ n′ → [ ∞ ] ms ⊑ n′ → [ ∞ ] n ≤ n′)  ↝⟨ (λ hyp n′ → hyp n′ ∘ ≲⊑→⊑ ms≲ns) ⟩□
+  ((∀ n′ → [ ∞ ] ms ⊑ n′ → [ ∞ ] n ≤ n′)  ↝⟨ (λ hyp n′ → hyp n′ ∘ ms≲ns) ⟩□
    (∀ n′ → [ ∞ ] ns ⊑ n′ → [ ∞ ] n ≤ n′)  □)
 
--- If [ ∞ ] ms ≲ ns, then any least upper bound of ms is less than or
--- equal to any least upper bound of ns.
+-- If the least upper bound of ms is m and the least upper bound of ns
+-- is n, then [ ∞ ] ms ≲ ns holds if and only if [ ∞ ] m ≤ n holds.
 
-≲→least-upper-bounds-≤ :
-  ∀ {m n ms ns} →
-  Least-upper-bound ms m →
-  Least-upper-bound ns n →
-  [ ∞ ] ms ≲ ns → [ ∞ ] m ≤ n
-≲→least-upper-bounds-≤ {⨆ms} {⨆ns} {ms} {ns} ⨆ms-lub = flip λ ms≲ns →
-  Least-upper-bound ns ⨆ns  ↝⟨ proj₁ ⟩
-  [ ∞ ] ns ⊑ ⨆ns            ↝⟨ ≲⊑→⊑ ms≲ns ⟩
-  [ ∞ ] ms ⊑ ⨆ns            ↝⟨ proj₂ ⨆ms-lub _ ⟩□
-  [ ∞ ] ⨆ms ≤ ⨆ns           □
-
--- If LPO holds, the least upper bound of ms is m, and the least upper
--- bound of ns is n, then [ ∞ ] ms ≲ ns holds if and only if
--- [ ∞ ] m ≤ n holds.
-
-lpo→≲⇔least-upper-bounds-≤ :
-  LPO →
+≲⇔least-upper-bounds-≤ :
   ∀ {m n ms ns} →
   Least-upper-bound ms m →
   Least-upper-bound ns n →
   [ ∞ ] ms ≲ ns ⇔ [ ∞ ] m ≤ n
-lpo→≲⇔least-upper-bounds-≤ lpo {⨆ms} {⨆ns} {ns = ns} ⨆ms-lub ⨆ns-lub =
-  record
-    { to   = ≲→least-upper-bounds-≤ ⨆ms-lub ⨆ns-lub
-    ; from = from (proj₁ ⨆ms-lub)
-    }
-  where
-  from : ∀ {ms i} → [ ∞ ] ms ⊑ ⨆ms → [ ∞ ] ⨆ms ≤ ⨆ns → [ i ] ms ≲ ns
-  from {[]}     _        _   = []
-  from {m ∷ ms} m∷ms⊑⨆ms m≤n =
-    ⊎-map ≡0 (uncurry (◇≤-witness ns)) (lpo (◇≤ ns)) ∷ λ { .force →
-    from (□-tail m∷ms⊑⨆ms) m≤n }
-    where
-    -- ◇≤ ns i is true if the value at position i in ns (if any) is
-    -- greater than or equal to m.
-
-    ◇≤ : Colist ℕ ∞ → ℕ → Bool
-    ◇≤ []       _       = false
-    ◇≤ (n ∷ ns) zero    = if Nat.≤⊎> m n then true else false
-    ◇≤ (n ∷ ns) (suc i) = ◇≤ (force ns) i
-
-    ◇≤-witness : ∀ ns i → ◇≤ ns i ≡ true → ◇ ∞ (m ≤_) ns
-    ◇≤-witness []       _       ()
-    ◇≤-witness (n ∷ ns) (suc i) ≡true = there (◇≤-witness
-                                                 (force ns) i ≡true)
-    ◇≤-witness (n ∷ ns) zero    ≡true with Nat.≤⊎> m n
-    ◇≤-witness (n ∷ ns) zero    _     | inj₁ m≤n = here m≤n
-    ◇≤-witness (n ∷ ns) zero    ()    | inj₂ _
-
-    ⊏ : ∀ ns {i} → (∀ i → ◇≤ ns i ≡ false) → [ i ] ns ⊑ ⌜ pred m ⌝
-    ⊏ []       _      = []
-    ⊏ (n ∷ ns) ≡false with Nat.≤⊎> m n | ≡false 0
-    ... | inj₁ _   | ()
-    ... | inj₂ m>n | _  =
-      ⌜⌝-mono (Nat.pred-mono m>n) ∷ λ { .force →
-      ⊏ (force ns) (≡false ∘ suc) }
-
-    ≡0 : (∀ i → ◇≤ ns i ≡ false) → m ≡ zero
-    ≡0 =
-      (∀ i → ◇≤ ns i ≡ false)   ↝⟨ ⊏ ns ⟩
-      [ ∞ ] ns ⊑ ⌜ pred m ⌝     ↝⟨ proj₂ ⨆ns-lub ⌜ pred m ⌝ ⟩
-      [ ∞ ] ⨆ns ≤ ⌜ pred m ⌝    ↝⟨ transitive-≤ m≤n ⟩
-      [ ∞ ] ⨆ms ≤ ⌜ pred m ⌝    ↝⟨ transitive-≤ (□-head m∷ms⊑⨆ms) ⟩
-      [ ∞ ] ⌜ m ⌝ ≤ ⌜ pred m ⌝  ↝⟨ ⌜⌝-mono⁻¹ ⟩
-      (m ≤ pred m)              ↝⟨ Nat.≤pred→≡zero ⟩□
-      m ≡ zero                  □
+≲⇔least-upper-bounds-≤ {⨆ms} {⨆ns} {ms} {ns} ⨆ms-lub ⨆ns-lub = record
+  { to   = λ ms≲ns →          $⟨ proj₁ ⨆ns-lub ⟩
+             [ ∞ ] ns ⊑ ⨆ns   ↝⟨ ms≲ns ⟩
+             [ ∞ ] ms ⊑ ⨆ns   ↝⟨ proj₂ ⨆ms-lub _ ⟩□
+             [ ∞ ] ⨆ms ≤ ⨆ns  □
+  ; from = λ ⨆ms≤⨆ns {n} →
+             [ ∞ ] ns ⊑ n   ↝⟨ proj₂ ⨆ns-lub n ⟩
+             [ ∞ ] ⨆ns ≤ n  ↝⟨ transitive-≤ ⨆ms≤⨆ns ⟩
+             [ ∞ ] ⨆ms ≤ n  ↝⟨ transitive-⊑≤ (proj₁ ⨆ms-lub) ⟩□
+             [ ∞ ] ms ⊑ n   □
+  }

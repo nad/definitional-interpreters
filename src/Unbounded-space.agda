@@ -383,7 +383,7 @@ mutual
     Maximum-heap-usage p n →
     [ i ] m ≤ n
   optimise-correct p max₁ max₂ =
-    ≲→least-upper-bounds-≤ max₁ max₂ (optimise-correct-≲ p)
+    _⇔_.to (≲⇔least-upper-bounds-≤ max₁ max₂) (optimise-correct-≲ p)
 
   optimise-correct-≲ : ∀ {h i} p → [ i ] ⟦ optimise p ⟧ h ≲ ⟦ p ⟧ h
   optimise-correct-≲ {h} [] =
@@ -393,7 +393,7 @@ mutual
 
   optimise-correct-≲ {h} (deallocate ∷ p) =
     ⟦ optimise (deallocate ∷ p) ⟧ h       ∼⟨ ∷∼∷′ ⟩≲
-    h ∷′ ⟦ optimise (force p) ⟧ (pred h)  ≲⟨ (cons′-≲ λ { .force → optimise-correct-≲ (force p) }) ⟩
+    h ∷′ ⟦ optimise (force p) ⟧ (pred h)  ≲⟨ (cons′-≲ λ { hyp .force → optimise-correct-≲ (force p) hyp }) ⟩
     h ∷′ ⟦ force p ⟧ (pred h)             ∼⟨ Colist.symmetric-∼ ∷∼∷′ ⟩≲
     ⟦ deallocate ∷ p ⟧ h                  □≲
 
@@ -409,7 +409,7 @@ mutual
       [ i ] ⟦ Optimise.default p ⟧ h ≲ h ∷′ ⟦ p′ ⟧ (1 + h)
     default-correct refl =
       ⟦ Optimise.default p ⟧ h             ∼⟨ ∷∼∷′ ⟩≲
-      h ∷′ ⟦ optimise (force p) ⟧ (1 + h)  ≲⟨ (cons′-≲ λ { .force → optimise-correct-≲ (force p) }) ⟩
+      h ∷′ ⟦ optimise (force p) ⟧ (1 + h)  ≲⟨ (cons′-≲ λ { hyp .force → optimise-correct-≲ (force p) hyp }) ⟩
       h ∷′ ⟦ force p ⟧ (1 + h)             □≲
 
     optimise-correct₁ :
@@ -429,7 +429,7 @@ mutual
       optimise-correct₂ (allocate   ∷ p″) _   = default-correct a∷≡
       optimise-correct₂ (deallocate ∷ p″) d∷≡ =
         ⟦ Optimise.optimise₂ p (deallocate ∷ p″) ⟧ h  ∼⟨ ∷∼∷′ ⟩≲
-        h ∷′ ⟦ optimise (force p″) ⟧ (1 + h)          ≲⟨ (cons′-≲ λ { .force → consʳ-≲ (consʳ-≲ (optimise-correct-≲ (force p″))) }) ⟩
+        h ∷′ ⟦ optimise (force p″) ⟧ (1 + h)          ≲⟨ (cons′-≲ λ { hyp .force → consʳ-≲ (consʳ-≲ (optimise-correct-≲ (force p″))) hyp }) ⟩
         h ∷′ 1 + h ∷′ 2 + h ∷′ ⟦ force p″ ⟧ (1 + h)   ∼⟨ (refl ∷ λ { .force → refl ∷ λ { .force → Colist.symmetric-∼ ∷∼∷′ } }) ⟩≲
         h ∷′ 1 + h ∷′ ⟦ deallocate ∷ p″ ⟧ (2 + h)     ≡⟨ by d∷≡ ⟩≲
         h ∷′ 1 + h ∷′ ⟦ force p′ ⟧ (2 + h)            ∼⟨ (refl ∷ λ { .force → Colist.symmetric-∼ ∷∼∷′ }) ⟩≲
