@@ -88,6 +88,22 @@ lub-unique :
 lub-unique (lub₁₁ , lub₁₂) (lub₂₁ , lub₂₂) =
   antisymmetric-≤ (lub₁₂ _ lub₂₁) (lub₂₂ _ lub₁₁)
 
+-- Least-upper-bound respects bisimilarity.
+
+Least-upper-bound-∼ :
+  ∀ {ms ns m n} →
+  Colist.[ ∞ ] ms ∼ ns → Conat.[ ∞ ] m ∼ n →
+  Least-upper-bound ms m → Least-upper-bound ns n
+Least-upper-bound-∼ {ms} {ns} {m} {n} p q = Σ-map
+  ([ ∞ ] ms ⊑ m  ↝⟨ □-∼ p ⟩
+   [ ∞ ] ns ⊑ m  ↝⟨ □-map (flip transitive-≤ (∼→≤ q)) ⟩□
+   [ ∞ ] ns ⊑ n  □)
+  (λ hyp n′ →
+     [ ∞ ] ns ⊑ n′  ↝⟨ □-∼ (Colist.symmetric-∼ p) ⟩
+     [ ∞ ] ms ⊑ n′  ↝⟨ hyp n′ ⟩
+     [ ∞ ] m ≤ n′   ↝⟨ transitive-≤ (∼→≤ (Conat.symmetric-∼ q)) ⟩□
+     [ ∞ ] n ≤ n′   □)
+
 -- If WLPO holds, then the least upper bound of a colist of natural
 -- numbers can be determined.
 --
