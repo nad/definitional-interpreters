@@ -68,6 +68,20 @@ no-finite→infinite {m} {ms} no-finite =
   Infinite m                 ↝⟨ Infinite→∼infinity ⟩□
   Conat.[ ∞ ] m ∼ infinity   □
 
+-- No natural number is an upper bound of nats.
+
+nats⋢ : ∀ n → ¬ [ ∞ ] nats ⊑ ⌜ n ⌝
+nats⋢ zero =
+  [ ∞ ] nats ⊑ ⌜ 0 ⌝         ↝⟨ □-head ∘ □-tail ⟩
+  Conat.[ ∞ ] ⌜ 1 ⌝ ≤ ⌜ 0 ⌝  ↝⟨ ≮0 ⟩□
+  ⊥                          □
+nats⋢ (suc n) =
+  [ ∞ ] nats ⊑ ⌜ suc n ⌝          ↝⟨ □-tail ⟩
+  [ ∞ ] map suc nats ⊑ ⌜ suc n ⌝  ↝⟨ □-map′ (⌜⌝-mono ∘ Nat.suc≤suc⁻¹ ∘ ⌜⌝-mono⁻¹) ⟩
+  [ ∞ ] map id nats ⊑ ⌜ id n ⌝    ↝⟨ □-∼ (map-id _) ⟩
+  [ ∞ ] nats ⊑ ⌜ n ⌝              ↝⟨ nats⋢ n ⟩□
+  ⊥                               □
+
 ------------------------------------------------------------------------
 -- Least upper bounds
 
@@ -103,6 +117,18 @@ Least-upper-bound-∼ {ms} {ns} {m} {n} p q = Σ-map
      [ ∞ ] ms ⊑ n′  ↝⟨ hyp n′ ⟩
      [ ∞ ] m ≤ n′   ↝⟨ transitive-≤ (∼→≤ (Conat.symmetric-∼ q)) ⟩□
      [ ∞ ] n ≤ n′   □)
+
+-- The least upper bound of nats is infinity.
+
+lub-nats-infinity : Least-upper-bound nats Conat.infinity
+lub-nats-infinity =
+    (nats ⊑infinity)
+  , λ n →
+      [ ∞ ] nats ⊑ n                                             ↝⟨ flip no-finite→infinite ⟩
+      ((∀ n → ¬ [ ∞ ] nats ⊑ ⌜ n ⌝) → Conat.[ ∞ ] n ∼ infinity)  ↝⟨ _$ nats⋢ ⟩
+      Conat.[ ∞ ] n ∼ infinity                                   ↝⟨ Conat.symmetric-∼ ⟩
+      Conat.[ ∞ ] infinity ∼ n                                   ↝⟨ ∼→≤ ⟩□
+      [ ∞ ] infinity ≤ n                                         □
 
 -- If WLPO holds, then the least upper bound of a colist of natural
 -- numbers can be determined.
