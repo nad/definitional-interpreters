@@ -297,7 +297,7 @@ step-≲ _ {ns} {os} ns≲os ms≲ns = □-map [ inj₁ , lemma ] ms≲ns
   where
   lemma = λ {n} →
     ◇ ∞ (n ≤_) ns                                 ↝⟨ □◇-witness ns≲os ⟩
-    (∃ λ o → (o ≡ zero ⊎ ◇ ∞ (o ≤_) os) × n ≤ o)  ↝⟨ (λ { (_ , yes refl   , n≤0) → inj₁ (Nat.≤-antisymmetric n≤0 (Nat.zero≤ _))
+    (∃ λ o → (o ≡ zero ⊎ ◇ ∞ (o ≤_) os) × n ≤ o)  ↝⟨ (λ { (_ , inj₁ refl  , n≤0) → inj₁ (Nat.≤-antisymmetric n≤0 (Nat.zero≤ _))
                                                         ; (_ , inj₂ ◇o≤os , n≤o) → inj₂ (◇-map (Nat.≤-trans n≤o) ◇o≤os)
                                                         }) ⟩□
     n ≡ zero ⊎ ◇ ∞ (n ≤_) os                      □
