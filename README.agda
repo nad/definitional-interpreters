@@ -42,11 +42,14 @@ import Unbounded-space
 --
 -- * Sized types are used.
 --
--- * Stack space usage is analysed.
---
 -- * The infinite set of uninterpreted constants has been replaced by
 --   booleans, and definitions (named, unary, recursive functions)
---   have been included.
+--   are included.
+--
+-- * The virtual machine and the compiler include support for tail
+--   calls.
+--
+-- * Stack space usage is analysed.
 
 -- The syntax of, and a type system for, an untyped λ-calculus with
 -- booleans and recursive unary function calls.
@@ -95,6 +98,11 @@ import Lambda.Interpreter.Annotated
 -- maximum stack size of the annotated source-level semantics.
 
 import Lambda.Compiler-correctness.Sizes-match
+
+-- An example: A non-terminating program that runs in bounded stack
+-- space.
+
+import Lambda.Interpreter.Annotated.Example
 
 ------------------------------------------------------------------------
 -- Other code

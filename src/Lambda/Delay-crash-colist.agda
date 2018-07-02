@@ -11,7 +11,7 @@ open import Colist as C using (Colist; []; _∷_; force)
 open import Equality.Propositional as E using (_≡_; refl)
 open import Prelude
 
-open import Maybe E.equality-with-J using (run)
+open import Maybe E.equality-with-J using (maybe; run)
 open import Monad E.equality-with-J
   using (Raw-monad; return; _>>=_; _⟨$⟩_)
 
@@ -55,6 +55,16 @@ mutual
       force : {j : Size< i} → Delay-crash-colist A B j
 
 open Delay-crash-colist′ public
+
+-- A conditional variant of tell.
+
+maybe-tell :
+  ∀ {A B i} →
+  Maybe A →
+  Delay-crash-colist A B i →
+  Delay-crash-colist A B i
+maybe-tell nothing  = id
+maybe-tell (just x) = tell x
 
 ------------------------------------------------------------------------
 -- Extracting or deleting the colist

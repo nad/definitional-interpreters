@@ -12,7 +12,7 @@ module Lambda.Type-soundness
   {Name : Set}
   (open Lambda.Syntax Name)
   (open Closure Tm)
-  (def : Name → Tm 1)
+  (def : Name → Tm true 1)
   (Σ : Name → Ty ∞ × Ty ∞)
   where
 
@@ -37,7 +37,7 @@ open import Lambda.Interpreter def
 mutual
 
   data WF-Value : Ty ∞ → Value → Set where
-    ƛ     : ∀ {n Γ σ τ} {t : Tm (1 + n)} {ρ} →
+    ƛ     : ∀ {p n Γ σ τ} {t : Tm p (1 + n)} {ρ} →
             Σ , force σ ∷ Γ ⊢ t ∈ force τ →
             WF-Env Γ ρ →
             WF-Value (σ ⇾′ τ) (ƛ t ρ)
@@ -89,7 +89,7 @@ module _ (def∈ : (f : Name) →
 
   mutual
 
-    ⟦⟧-wf : ∀ {i n Γ} (t : Tm n) {σ} → Σ , Γ ⊢ t ∈ σ →
+    ⟦⟧-wf : ∀ {i p n Γ} (t : Tm p n) {σ} → Σ , Γ ⊢ t ∈ σ →
             ∀ {ρ} → WF-Env Γ ρ →
             □ i (WF-MV σ) (run (⟦ t ⟧ ρ))
     ⟦⟧-wf (var x)   var         ρ-wf = now (ρ-wf x)
@@ -114,7 +114,7 @@ module _ (def∈ : (f : Name) →
     ∙-wf (ƛ t₁∈ ρ₁-wf) v₂-wf =
       later λ { .force → ⟦⟧-wf _ t₁∈ (v₂-wf ∷-wf ρ₁-wf) }
 
-    ⟦if⟧-wf : ∀ {i n Γ σ v} {t₂ t₃ : Tm n} →
+    ⟦if⟧-wf : ∀ {i p n Γ σ v} {t₂ t₃ : Tm p n} →
               WF-Value bool v →
               Σ , Γ ⊢ t₂ ∈ σ →
               Σ , Γ ⊢ t₃ ∈ σ →
@@ -123,9 +123,9 @@ module _ (def∈ : (f : Name) →
     ⟦if⟧-wf (con true)  t₂∈ t₃∈ ρ-wf = ⟦⟧-wf _ t₂∈ ρ-wf
     ⟦if⟧-wf (con false) t₂∈ t₃∈ ρ-wf = ⟦⟧-wf _ t₃∈ ρ-wf
 
-  type-soundness : ∀ {t : Tm 0} {σ} →
+  type-soundness : ∀ {p} {t : Tm p 0} {σ} →
                    Σ , [] ⊢ t ∈ σ → ¬ run (⟦ t ⟧ []) ≈ run fail
-  type-soundness {t} {σ} =
+  type-soundness {t = t} {σ} =
     Σ , [] ⊢ t ∈ σ                  ↝⟨ (λ t∈ → ⟦⟧-wf _ t∈ []-wf) ⟩
     □ ∞ (WF-MV σ) (run (⟦ t ⟧ []))  ↝⟨ does-not-go-wrong ⟩□
     ¬ run (⟦ t ⟧ []) ≈ run fail     □

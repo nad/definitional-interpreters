@@ -26,6 +26,7 @@ mutual
     app : Instr n
     ret : Instr n
     cal : Name → Instr n
+    tcl : Name → Instr n  -- Tail call.
     con : Bool → Instr n
     bra : Code n → Code n → Instr n
 
@@ -36,7 +37,7 @@ mutual
 
 -- Environments and values.
 
-open Closure Code
+open Closure (const Code)
 
 ------------------------------------------------------------------------
 -- Stacks and states
