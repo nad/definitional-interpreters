@@ -14,7 +14,7 @@ open import Omniscience
 open import Prelude
 
 open import Equality.Decision-procedures equality-with-J
-open import Function-universe equality-with-J hiding (id; _∘_)
+open import Function-universe equality-with-J as F hiding (id; _∘_)
 open import Nat equality-with-J as Nat using (_≤_; _<_; pred)
 
 ------------------------------------------------------------------------
@@ -120,6 +120,49 @@ Least-upper-bound-∼ {ms} {ns} {m} {n} p q = Σ-map
      [ ∞ ] ms ⊑ n′  ↝⟨ hyp n′ ⟩
      [ ∞ ] m ≤ n′   ↝⟨ transitive-≤ (∼→≤ (Conat.symmetric-∼ q)) ⟩□
      [ ∞ ] n ≤ n′   □)
+
+-- The least upper bound of the empty colist is 0.
+
+lub-[] : Least-upper-bound [] ⌜ 0 ⌝
+lub-[] = [] , λ _ _ → zero
+
+-- Some lemmas that can be used to establish the least upper bound of
+-- a non-empty colist.
+
+lub-∷ˡ :
+  ∀ {m ms n} →
+  [ ∞ ] n ≤ ⌜ m ⌝ →
+  Least-upper-bound (force ms) n →
+  Least-upper-bound (m ∷ ms) ⌜ m ⌝
+lub-∷ˡ {m} {ms} {n} n≤m = Σ-map
+  ([ ∞ ] force ms ⊑ n      ↝⟨ (λ hyp → reflexive-≤ _ ∷ λ { .force → □-map (flip transitive-≤ n≤m) hyp }) ⟩□
+   [ ∞ ] m ∷ ms   ⊑ ⌜ m ⌝  □)
+  ((∀ n′ → [ ∞ ] force ms ⊑ n′ → [ ∞ ] n     ≤ n′)  ↝⟨ (λ _ _ → □-head) ⟩□
+   (∀ n′ → [ ∞ ] m ∷ ms   ⊑ n′ → [ ∞ ] ⌜ m ⌝ ≤ n′)  □)
+
+lub-∷ʳ :
+  ∀ {m ms n} →
+  [ ∞ ] ⌜ m ⌝ ≤ n →
+  Least-upper-bound (force ms) n →
+  Least-upper-bound (m ∷ ms) n
+lub-∷ʳ {m} {ms} {n} m≤n = Σ-map
+  ([ ∞ ] force ms ⊑ n  ↝⟨ (λ hyp → m≤n ∷ λ { .force → hyp }) ⟩□
+   [ ∞ ] m ∷ ms   ⊑ n  □)
+  ((∀ n′ → [ ∞ ] force ms ⊑ n′ → [ ∞ ] n ≤ n′)  ↝⟨ (λ hyp n′ → hyp n′ ∘ □-tail) ⟩□
+   (∀ n′ → [ ∞ ] m ∷ ms   ⊑ n′ → [ ∞ ] n ≤ n′)  □)
+
+-- If m ∷ ms has a least upper bound, then cycle m ms has the same
+-- least upper bound.
+
+lub-cycle :
+  ∀ {m ms n} →
+  Least-upper-bound (m ∷ ms) n →
+  Least-upper-bound (cycle m ms) n
+lub-cycle {m} {ms} {n} = Σ-map
+  ([ ∞ ] m ∷ ms     ⊑ n  ↝⟨ _⇔_.from □-cycle⇔ ⟩□
+   [ ∞ ] cycle m ms ⊑ n  □)
+  ((∀ n′ → [ ∞ ] m ∷ ms     ⊑ n′ → [ ∞ ] n ≤ n′)  ↝⟨ (∀-cong _ λ _ → →-cong-→ (_⇔_.to □-cycle⇔) id) ⟩□
+   (∀ n′ → [ ∞ ] cycle m ms ⊑ n′ → [ ∞ ] n ≤ n′)  □)
 
 -- The least upper bound of nats is infinity.
 
