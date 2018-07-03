@@ -16,29 +16,17 @@ open import Vec.Data equality-with-J
 ------------------------------------------------------------------------
 -- Terms
 
--- The term type is parametrised by In-tail-context. The value "true"
--- means that the term is in a tail context. (I have based the
--- definition of tail context on the one in Section 4.5 of "Revised⁵
--- Report on the Algorithmic Language Scheme" by Abelson et al.) The
--- value "false" means that no such information is present.
---
--- The compiler compiles calls known to be in a tail context in a
--- special way.
-
-In-tail-context : Set
-In-tail-context = Bool
-
 -- Variables are represented using de Bruijn indices.
 
 infixl 9 _·_
 
-data Tm (p : In-tail-context) (n : ℕ) : Set where
-  var  : (x : Fin n) → Tm p n
-  ƛ    : Tm true (suc n) → Tm p n
-  _·_  : Tm false n → Tm false n → Tm p n
-  call : (f : Name) → Tm false n → Tm p n
-  con  : Bool → Tm p n
-  if   : Tm false n → Tm p n → Tm p n → Tm p n
+data Tm (n : ℕ) : Set where
+  var  : (x : Fin n) → Tm n
+  ƛ    : Tm (suc n) → Tm n
+  _·_  : Tm n → Tm n → Tm n
+  call : (f : Name) → Tm n → Tm n
+  con  : Bool → Tm n
+  if   : Tm n → Tm n → Tm n → Tm n
 
 ------------------------------------------------------------------------
 -- Closure-based definition of values
@@ -46,7 +34,7 @@ data Tm (p : In-tail-context) (n : ℕ) : Set where
 -- Environments and values. Defined in a module parametrised by the
 -- type of terms.
 
-module Closure (Tm : In-tail-context → ℕ → Set) where
+module Closure (Tm : ℕ → Set) where
 
   mutual
 
@@ -59,7 +47,7 @@ module Closure (Tm : In-tail-context → ℕ → Set) where
     -- not contain any free variables.
 
     data Value : Set where
-      ƛ   : ∀ {p n} (t : Tm p (suc n)) (ρ : Env n) → Value
+      ƛ   : ∀ {n} (t : Tm (suc n)) (ρ : Env n) → Value
       con : Bool → Value
 
 ------------------------------------------------------------------------
@@ -96,8 +84,8 @@ Ctxt n = Vec (Ty ∞) n
 
 infix 4 _,_⊢_∈_
 
-data _,_⊢_∈_ (Σ : Name → Ty ∞ × Ty ∞) {p n} (Γ : Ctxt n) :
-             Tm p n → Ty ∞ → Set where
+data _,_⊢_∈_ (Σ : Name → Ty ∞ × Ty ∞) {n} (Γ : Ctxt n) :
+             Tm n → Ty ∞ → Set where
   var  : ∀ {x} → Σ , Γ ⊢ var x ∈ index x Γ
   ƛ    : ∀ {t σ τ} →
          Σ , force σ ∷ Γ ⊢ t ∈ force τ →
@@ -121,13 +109,13 @@ data _,_⊢_∈_ (Σ : Name → Ty ∞ × Ty ∞) {p n} (Γ : Ctxt n) :
 
 -- A non-terminating term.
 
-ω-body : Tm true 1
+ω-body : Tm 1
 ω-body = var fzero · var fzero
 
-ω : Tm false 0
+ω : Tm 0
 ω = ƛ ω-body
 
-Ω : Tm true 0
+Ω : Tm 0
 Ω = ω · ω
 
 -- Ω is well-typed.
@@ -141,7 +129,7 @@ data _,_⊢_∈_ (Σ : Name → Ty ∞ × Ty ∞) {p n} (Γ : Ctxt n) :
 
 -- A call-by-value fixpoint combinator.
 
-Z : Tm true 0
+Z : Tm 0
 Z = ƛ (t · t)
   where
   t = ƛ (var (fsuc fzero) ·

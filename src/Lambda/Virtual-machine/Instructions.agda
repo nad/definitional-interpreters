@@ -37,7 +37,7 @@ mutual
 
 -- Environments and values.
 
-open Closure (const Code)
+open Closure Code
 
 ------------------------------------------------------------------------
 -- Stacks and states

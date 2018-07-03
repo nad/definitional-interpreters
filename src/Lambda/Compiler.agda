@@ -11,7 +11,7 @@ import Lambda.Syntax
 module Lambda.Compiler
   {Name : Set}
   (open Lambda.Syntax Name)
-  (def : Name → Tm true 1)
+  (def : Name → Tm 1)
   where
 
 open import Equality.Propositional
@@ -23,24 +23,37 @@ open import Vec.Data equality-with-J
 open import Lambda.Virtual-machine.Instructions Name
 
 private
-  module C = Closure (const Code)
+  module C = Closure Code
   module T = Closure Tm
+
+-- The compiler takes an argument of type In-tail-context. The value
+-- "true" means that the term is in a tail context. (I have based the
+-- definition of tail context on the one in Section 4.5 of "Revised⁵
+-- Report on the Algorithmic Language Scheme" by Abelson et al.) The
+-- value "false" means that no such information is present.
+--
+-- The compiler compiles calls claimed to be in a tail context in a
+-- special way.
+
+In-tail-context : Set
+In-tail-context = Bool
 
 -- The compiler (which takes a code continuation).
 
-comp : ∀ {p n} → Tm p n → Code n → Code n
-comp         (var x)       c = var x ∷ c
-comp         (ƛ t)         c = clo (comp t (ret ∷ [])) ∷ c
-comp         (t₁ · t₂)     c = comp t₁ (comp t₂ (app ∷ c))
-comp {true}  (call f t)    c = comp t (tcl f ∷ c)
-comp {false} (call f t)    c = comp t (cal f ∷ c)
-comp         (con b)       c = con b ∷ c
-comp         (if t₁ t₂ t₃) c = comp t₁ (bra (comp t₂ []) (comp t₃ []) ∷ c)
+comp : ∀ {n} → In-tail-context → Tm n → Code n → Code n
+comp _     (var x)       c = var x ∷ c
+comp _     (ƛ t)         c = clo (comp true t (ret ∷ [])) ∷ c
+comp _     (t₁ · t₂)     c = comp false t₁ (comp false t₂ (app ∷ c))
+comp true  (call f t)    c = comp false t (tcl f ∷ c)
+comp false (call f t)    c = comp false t (cal f ∷ c)
+comp _     (con b)       c = con b ∷ c
+comp tc    (if t₁ t₂ t₃) c =
+  comp false t₁ (bra (comp tc t₂ []) (comp tc t₃ []) ∷ c)
 
 -- Compiler for named definitions.
 
 comp-name : Name → Code 1
-comp-name f = comp (def f) (ret ∷ [])
+comp-name f = comp true (def f) (ret ∷ [])
 
 -- Environments and values can also be compiled.
 
@@ -51,7 +64,7 @@ mutual
   comp-env (v ∷ ρ) = comp-val v ∷ comp-env ρ
 
   comp-val : T.Value → C.Value
-  comp-val (T.ƛ t ρ) = C.ƛ {p = true} (comp t (ret ∷ [])) (comp-env ρ)
+  comp-val (T.ƛ t ρ) = C.ƛ (comp true t (ret ∷ [])) (comp-env ρ)
   comp-val (T.con b) = C.con b
 
 -- Indexing commutes with compilation.
@@ -62,18 +75,18 @@ comp-index ()       []
 comp-index fzero    (v ∷ ρ) = refl
 comp-index (fsuc i) (v ∷ ρ) = comp-index i ρ
 
--- The function comp t commutes with _++ c₂.
+-- The function comp tc t commutes with _++ c₂.
 
 comp-++ :
-  ∀ {p n} (t : Tm p n) {c₁ c₂ : Code n} →
-  comp t c₁ ++ c₂ ≡ comp t (c₁ ++ c₂)
-comp-++         (var x)             = refl
-comp-++         (ƛ t)               = refl
-comp-++ {true}  (call f t)          = comp-++ t
-comp-++ {false} (call f t)          = comp-++ t
-comp-++         (con b)             = refl
-comp-++         (if t₁ t₂ t₃)       = comp-++ t₁
-comp-++         (t₁ · t₂) {c₁} {c₂} =
-  comp t₁ (comp t₂ (app ∷ c₁)) ++ c₂  ≡⟨ comp-++ t₁ ⟩
-  comp t₁ (comp t₂ (app ∷ c₁) ++ c₂)  ≡⟨ by (comp-++ t₂) ⟩∎
-  comp t₁ (comp t₂ (app ∷ c₁ ++ c₂))  ∎
+  ∀ {n} tc (t : Tm n) {c₁ c₂ : Code n} →
+  comp tc t c₁ ++ c₂ ≡ comp tc t (c₁ ++ c₂)
+comp-++ _     (var x)             = refl
+comp-++ _     (ƛ t)               = refl
+comp-++ true  (call f t)          = comp-++ _ t
+comp-++ false (call f t)          = comp-++ _ t
+comp-++ _     (con b)             = refl
+comp-++ _     (if t₁ t₂ t₃)       = comp-++ _ t₁
+comp-++ _     (t₁ · t₂) {c₁} {c₂} =
+  comp false t₁ (comp false t₂ (app ∷ c₁)) ++ c₂  ≡⟨ comp-++ _ t₁ ⟩
+  comp false t₁ (comp false t₂ (app ∷ c₁) ++ c₂)  ≡⟨ by (comp-++ _ t₂) ⟩∎
+  comp false t₁ (comp false t₂ (app ∷ c₁ ++ c₂))  ∎

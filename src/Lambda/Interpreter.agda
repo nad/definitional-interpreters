@@ -11,7 +11,7 @@ import Lambda.Syntax
 module Lambda.Interpreter
   {Name : Set}
   (open Lambda.Syntax Name)
-  (def : Name → Tm true 1)
+  (def : Name → Tm 1)
   where
 
 import Equality.Propositional as E
@@ -35,7 +35,7 @@ infix 10 _∙_
 
 mutual
 
-  ⟦_⟧ : ∀ {i p n} → Tm p n → Env n → Delay-crash Value i
+  ⟦_⟧ : ∀ {i n} → Tm n → Env n → Delay-crash Value i
   ⟦ var x ⟧       ρ = return (index x ρ)
   ⟦ ƛ t ⟧         ρ = return (ƛ t ρ)
   ⟦ t₁ · t₂ ⟧     ρ = do v₁ ← ⟦ t₁ ⟧ ρ
@@ -51,13 +51,13 @@ mutual
   ƛ t₁ ρ ∙ v₂ = laterDC (⟦ t₁ ⟧′ (v₂ ∷ ρ))
   con _  ∙ _  = fail
 
-  ⟦if⟧ : ∀ {i p n} →
-         Value → Tm p n → Tm p n → Env n → Delay-crash Value i
+  ⟦if⟧ : ∀ {i n} →
+         Value → Tm n → Tm n → Env n → Delay-crash Value i
   ⟦if⟧ (ƛ _ _)     _  _  _ = fail
   ⟦if⟧ (con true)  t₂ t₃ ρ = ⟦ t₂ ⟧ ρ
   ⟦if⟧ (con false) t₂ t₃ ρ = ⟦ t₃ ⟧ ρ
 
-  ⟦_⟧′ : ∀ {i p n} → Tm p n → Env n → Delay-crash′ Value i
+  ⟦_⟧′ : ∀ {i n} → Tm n → Env n → Delay-crash′ Value i
   force (run (⟦ t ⟧′ ρ)) = run (⟦ t ⟧ ρ)
 
 ------------------------------------------------------------------------
@@ -68,7 +68,7 @@ mutual
 Ω-loops : ∀ {i} → [ i ] run (⟦ Ω ⟧ []) ∼ never
 Ω-loops =
   run (⟦ Ω ⟧ [])                                  ∼⟨⟩
-  run (⟦ _·_ {p = true} ω ω ⟧ [])                 ∼⟨⟩
+  run (⟦ ω · ω ⟧ [])                              ∼⟨⟩
   run (ƛ ω-body [] ∙ ƛ ω-body [])                 ∼⟨⟩
   run (laterDC (⟦ ω-body ⟧′ (ƛ ω-body [] ∷ [])))  ∼⟨ later (λ { .force →
 
