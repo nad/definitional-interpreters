@@ -314,6 +314,21 @@ infix 4 [_]_≲_ [_]_≲′_
 [_]_≲′_ : Size → Colist ℕ ∞ → Colist ℕ ∞ → Set
 [ i ] ms ≲′ ns = ∀ {n} → [ ∞ ] ns ⊑ n → [ i ] ms ⊑′ n
 
+-- Bounded m ns means that m is smaller than or equal to some element
+-- in ns, or equal to zero.
+
+Bounded : ℕ → Colist ℕ ∞ → Set
+Bounded m ns = ◇ ∞ (m ≤_) ns ⊎ m ≡ zero
+
+-- If Bounded m ns holds, then m is less than or equal to every upper
+-- bound of ns.
+
+bounded-lemma :
+  ∀ {m ns n} →
+  Bounded m ns → [ ∞ ] ns ⊑ n → [ ∞ ] ⌜ m ⌝ ≤ n
+bounded-lemma (inj₁ ◇m≤ns) = transitive-◇≤⊑ ◇m≤ns
+bounded-lemma (inj₂ refl)  = const zero
+
 -- Some derived cons-like operations.
 
 consʳ-≲ :
@@ -324,36 +339,28 @@ consʳ-≲ = _∘ □-tail
 
 consˡ-≲ :
   ∀ {i m ms ns} →
-  ◇ ∞ (m ≤_) ns →
+  Bounded m ns →
   [ i ] force ms ≲′ ns →
   [ i ] m ∷ ms ≲ ns
 consˡ-≲ ◇m≤ns ms≲′ns ns⊑n =
-  transitive-◇≤⊑ ◇m≤ns ns⊑n ∷ λ { .force → force (ms≲′ns ns⊑n) }
-
-consˡ-zero-≲ :
-  ∀ {i ms ns} →
-  [ i ] force ms ≲′ ns →
-  [ i ] zero ∷ ms ≲ ns
-consˡ-zero-≲ ms≲′ns ns⊑n =
-  zero ∷ λ { .force → force (ms≲′ns ns⊑n) }
+  bounded-lemma ◇m≤ns ns⊑n ∷ λ { .force →
+  force (ms≲′ns ns⊑n) }
 
 cons-≲ :
   ∀ {i m ms n ns} →
-  m ≤ n →
+  Bounded m (n ∷ ns) →
   [ i ] force ms ≲′ force ns →
   [ i ] m ∷ ms ≲ n ∷ ns
-cons-≲ {m = m} {n = n} m≤n ms≲′ns {n = n′} n∷ns⊑n′ =
-  (⌜ m ⌝  ≤⟨ ⌜⌝-mono m≤n ⟩
-   ⌜ n ⌝  ≤⟨ □-head n∷ns⊑n′ ⟩∎
-   n′     ∎≤)
-    ∷
-  λ { .force → force (ms≲′ns (□-tail n∷ns⊑n′)) }
+cons-≲ {i} {m} {ms} {n} {ns} ◇m≤n∷ns =
+  [ i ] force ms ≲′ force ns  ↝⟨ (λ { ms≲′ns hyp .force → consʳ-≲ (λ hyp → ms≲′ns hyp .force) hyp }) ⟩
+  [ i ] force ms ≲′ n ∷ ns    ↝⟨ consˡ-≲ ◇m≤n∷ns ⟩□
+  [ i ] m ∷ ms ≲ n ∷ ns       □
 
 cons′-≲ :
   ∀ {i m ms ns} →
   [ i ] force ms ≲′ force ns →
   [ i ] m ∷ ms ≲ m ∷ ns
-cons′-≲ = cons-≲ Nat.≤-refl
+cons′-≲ = cons-≲ (inj₁ (here Nat.≤-refl))
 
 -- "Equational" reasoning combinators.
 
@@ -391,19 +398,6 @@ _□≲ {i} ns {n} =
   [ ∞ ] ns ⊑ n  ↝⟨ id ⟩□
   [ i ] ns ⊑ n  □
 
--- If both ms ≲ ns and ns ≲ ms hold, then any least upper bound of ms
--- is also a least upper bound of ns.
-
-Least-upper-bound-≲≳ :
-  ∀ {ms ns n} →
-  [ ∞ ] ms ≲ ns → [ ∞ ] ns ≲ ms →
-  Least-upper-bound ms n → Least-upper-bound ns n
-Least-upper-bound-≲≳ {ms} {ns} {n} ms≲ns ns≲ms = Σ-map
-  ([ ∞ ] ms ⊑ n  ↝⟨ ns≲ms ⟩□
-   [ ∞ ] ns ⊑ n  □)
-  ((∀ n′ → [ ∞ ] ms ⊑ n′ → [ ∞ ] n ≤ n′)  ↝⟨ (λ hyp n′ → hyp n′ ∘ ms≲ns) ⟩□
-   (∀ n′ → [ ∞ ] ns ⊑ n′ → [ ∞ ] n ≤ n′)  □)
-
 -- If the least upper bound of ms is m and the least upper bound of ns
 -- is n, then [ ∞ ] ms ≲ ns holds if and only if [ ∞ ] m ≤ n holds.
 
@@ -423,3 +417,241 @@ Least-upper-bound-≲≳ {ms} {ns} {n} ms≲ns ns≲ms = Σ-map
              [ ∞ ] ⨆ms ≤ n  ↝⟨ transitive-⊑≤ (proj₁ ⨆ms-lub) ⟩□
              [ ∞ ] ms ⊑ n   □
   }
+
+------------------------------------------------------------------------
+-- Another relation that can be used to relate the least upper bounds
+-- of two colists
+
+-- [ ∞ ] ms ≲≳ ns means that every upper bound of ns is also an upper
+-- bound of ms, and vice versa.
+
+infix 4 [_]_≲≳_ [_]_≲≳′_
+
+[_]_≲≳_ : Size → Colist ℕ ∞ → Colist ℕ ∞ → Set
+[ i ] ms ≲≳ ns = [ i ] ms ≲ ns × [ i ] ns ≲ ms
+
+[_]_≲≳′_ : Size → Colist ℕ ∞ → Colist ℕ ∞ → Set
+[ i ] ms ≲≳′ ns = [ i ] ms ≲′ ns × [ i ] ns ≲′ ms
+
+-- The relation is symmetric.
+
+symmetric-≲≳ : ∀ {i ms ns} → [ i ] ms ≲≳ ns → [ i ] ns ≲≳ ms
+symmetric-≲≳ = swap
+
+-- Some derived cons-like operations.
+
+consʳ-≲≳ :
+  ∀ {i ms n ns} →
+  Bounded n ms →
+  [ i ] ms ≲≳ force ns →
+  [ i ] ms ≲≳ n ∷ ns
+consʳ-≲≳ ◇n≤ms = Σ-map
+  consʳ-≲
+  (λ ns≲ms → consˡ-≲ ◇n≤ms λ hyp → λ { .force → ns≲ms hyp })
+
+consˡ-≲≳ :
+  ∀ {i m ms ns} →
+  Bounded m ns →
+  [ i ] force ms ≲≳ ns →
+  [ i ] m ∷ ms ≲≳ ns
+consˡ-≲≳ ◇m≤ns = symmetric-≲≳ ∘ consʳ-≲≳ ◇m≤ns ∘ symmetric-≲≳
+
+cons-≲≳ :
+  ∀ {i m ms n ns} →
+  Bounded m (n ∷ ns) →
+  Bounded n (m ∷ ms) →
+  [ i ] force ms ≲≳′ force ns →
+  [ i ] m ∷ ms ≲≳ n ∷ ns
+cons-≲≳ ◇m≤n∷ns ◇n≤m∷ms = Σ-map (cons-≲ ◇m≤n∷ns) (cons-≲ ◇n≤m∷ms)
+
+cons′-≲≳ :
+  ∀ {i m ms ns} →
+  [ i ] force ms ≲≳′ force ns →
+  [ i ] m ∷ ms ≲≳ m ∷ ns
+cons′-≲≳ = Σ-map cons′-≲ cons′-≲
+
+-- "Equational" reasoning combinators.
+
+infix  -1 _□≲≳
+infixr -2 step-≲≳ step-≡≲≳ _≡⟨⟩≲≳_ step-∼≲≳ step-≲≳∼
+
+step-≲≳ : ∀ {i} ms {ns os} →
+          [ ∞ ] ns ≲≳ os → [ ∞ ] ms ≲≳ ns → [ i ] ms ≲≳ os
+step-≲≳ _ = Σ-zip (step-≲ _) (flip (step-≲ _))
+
+syntax step-≲≳ ms ns≲≳os ms≲≳ns = ms ≲≳⟨ ms≲≳ns ⟩ ns≲≳os
+
+step-≡≲≳ : ∀ {i} ms {ns os} → [ i ] ns ≲≳ os → ms ≡ ns → [ i ] ms ≲≳ os
+step-≡≲≳ _ ns≲≳os refl = ns≲≳os
+
+syntax step-≡≲≳ ms ns≲≳os ms≡ns = ms ≡⟨ ms≡ns ⟩≲≳ ns≲≳os
+
+_≡⟨⟩≲≳_ : ∀ {i} ms {ns} → [ i ] ms ≲≳ ns → [ i ] ms ≲≳ ns
+_ ≡⟨⟩≲≳ ms≲≳ns = ms≲≳ns
+
+step-∼≲≳ : ∀ {i} ms {ns os} →
+           [ i ] ns ≲≳ os → Colist.[ ∞ ] ms ∼ ns → [ i ] ms ≲≳ os
+step-∼≲≳ {i} ms {ns} {os} (ns≲os , os≲ns) ms∼ns =
+    step-∼≲ ms ns≲os ms∼ns
+  , λ {n} →
+      [ ∞ ] ms ⊑ n  ↝⟨ □-∼ ms∼ns ⟩
+      [ ∞ ] ns ⊑ n  ↝⟨ os≲ns ⟩□
+      [ i ] os ⊑ n  □
+
+syntax step-∼≲≳ ms ns≲≳os ms∼ns = ms ∼⟨ ms∼ns ⟩≲≳ ns≲≳os
+
+step-≲≳∼ : ∀ {i} ms {ns os} →
+           Colist.[ ∞ ] ns ∼ os → [ i ] ms ≲≳ ns → [ i ] ms ≲≳ os
+step-≲≳∼ _ ns∼os ms≲≳ns =
+  symmetric-≲≳
+    (step-∼≲≳ _ (symmetric-≲≳ ms≲≳ns) (Colist.symmetric-∼ ns∼os))
+
+syntax step-≲≳∼ ms ns∼os ms≲≳ns = ms ≲≳⟨ ms≲≳ns ⟩∼ ns∼os
+
+_□≲≳ : ∀ {i} ns → [ i ] ns ≲≳ ns
+ns □≲≳ = (ns □≲) , (ns □≲)
+
+-- If the least upper bound of ms is m and the least upper bound of ns
+-- is n, then [ ∞ ] ms ≲≳ ns holds if and only if m and n are
+-- bisimilar.
+
+≲≳⇔least-upper-bounds-∼ :
+  ∀ {m n ms ns} →
+  Least-upper-bound ms m →
+  Least-upper-bound ns n →
+  [ ∞ ] ms ≲≳ ns ⇔ Conat.[ ∞ ] m ∼ n
+≲≳⇔least-upper-bounds-∼ {⨆ms} {⨆ns} {ms} {ns} ⨆ms-lub ⨆ns-lub =
+  [ ∞ ] ms ≲≳ ns                     ↝⟨ ≲⇔least-upper-bounds-≤ ⨆ms-lub ⨆ns-lub
+                                          ×-cong
+                                        ≲⇔least-upper-bounds-≤ ⨆ns-lub ⨆ms-lub ⟩
+  [ ∞ ] ⨆ms ≤ ⨆ns × [ ∞ ] ⨆ns ≤ ⨆ms  ↝⟨ record { to   = uncurry antisymmetric-≤
+                                               ; from = λ hyp → ∼→≤ hyp , ∼→≤ (Conat.symmetric-∼ hyp)
+                                               } ⟩□
+  Conat.[ ∞ ] ⨆ms ∼ ⨆ns              □
+
+-- The predicate flip Least-upper-bound n respects [ ∞ ]_≲≳_.
+
+Least-upper-bound-≲≳ :
+  ∀ {ms ns} →
+  [ ∞ ] ms ≲≳ ns →
+  ∀ {n} → Least-upper-bound ms n → Least-upper-bound ns n
+Least-upper-bound-≲≳ {ms} {ns} (ms≲ns , ns≲ms) {n} = Σ-map
+  ([ ∞ ] ms ⊑ n  ↝⟨ ns≲ms ⟩□
+   [ ∞ ] ns ⊑ n  □)
+  ((∀ n′ → [ ∞ ] ms ⊑ n′ → [ ∞ ] n ≤ n′)  ↝⟨ (λ hyp n′ → hyp n′ ∘ ms≲ns) ⟩□
+   (∀ n′ → [ ∞ ] ns ⊑ n′ → [ ∞ ] n ≤ n′)  □)
+
+-- If [ ∞ ] ms ≲≳ ns holds, then ms and ns have the same least upper
+-- bounds.
+
+Least-upper-bound-cong :
+  ∀ {ms ns} →
+  [ ∞ ] ms ≲≳ ns →
+  ∀ {n} → Least-upper-bound ms n ⇔ Least-upper-bound ns n
+Least-upper-bound-cong ms≲≳ns = record
+  { to   = Least-upper-bound-≲≳               ms≲≳ns
+  ; from = Least-upper-bound-≲≳ (symmetric-≲≳ ms≲≳ns)
+  }
+
+------------------------------------------------------------------------
+-- Variants of [_]_≲_ and [_]_≲≳_ that are intended to make certain
+-- proofs easier to write
+
+-- Using consˡ-≲/cons-≲/cons′-≲ in recursive proofs can be awkward.
+-- [_]_≲D_ is intended to make it a little easier.
+
+mutual
+
+  infix 4 [_]_≲D_ [_]_≲D′_
+
+  data [_]_≲D_ (i : Size) : Colist ℕ ∞ → Colist ℕ ∞ → Set where
+    ⌈_⌉      : ∀ {ms ns} →
+               [ i ] ms ≲ ns →
+               [ i ] ms ≲D ns
+    consˡ-≲D : ∀ {m ms ns} →
+               Bounded m ns →
+               [ i ] force ms ≲D′ ns →
+               [ i ] m ∷ ms ≲D ns
+    cons-≲D  : ∀ {m ms n ns} →
+               Bounded m (n ∷ ns) →
+               [ i ] force ms ≲D′ force ns →
+               [ i ] m ∷ ms ≲D n ∷ ns
+
+  record [_]_≲D′_ (i : Size) (ms ns : Colist ℕ ∞) : Set where
+    coinductive
+    field
+      force : {j : Size< i} → [ j ] ms ≲D ns
+
+open [_]_≲D′_ public
+
+-- Interprets [_]_≲D_.
+
+⌊_⌋≲ : ∀ {i ms ns} → [ i ] ms ≲D ns → [ i ] ms ≲ ns
+⌊ ⌈ p ⌉ ⌋≲        = p
+⌊ consˡ-≲D b p ⌋≲ = consˡ-≲ b λ { hyp .force → ⌊ p .force ⌋≲ hyp }
+⌊ cons-≲D b p ⌋≲  = cons-≲  b λ { hyp .force → ⌊ p .force ⌋≲ hyp }
+
+-- Some abbreviations.
+
+consʳ-≲D :
+  ∀ {i ms n ns} →
+  [ i ] ms ≲D force ns →
+  [ i ] ms ≲D n ∷ ns
+consʳ-≲D = ⌈_⌉ ∘ consʳ-≲ ∘ ⌊_⌋≲
+
+cons′-≲D :
+  ∀ {i m ms ns} →
+  [ i ] force ms ≲D′ force ns →
+  [ i ] m ∷ ms ≲D m ∷ ns
+cons′-≲D p = ⌈ cons′-≲ (λ { hyp .force → ⌊ p .force ⌋≲ hyp }) ⌉
+
+-- Using cons-≲≳/cons′-≲≳ in recursive proofs can be awkward. [_]_≲≳D_
+-- is intended to make it a little easier.
+
+mutual
+
+  infix 4 [_]_≲≳D_ [_]_≲≳D′_
+
+  data [_]_≲≳D_ (i : Size) : Colist ℕ ∞ → Colist ℕ ∞ → Set where
+    ⌈_⌉       : ∀ {ms ns} →
+                [ i ] ms ≲≳ ns →
+                [ i ] ms ≲≳D ns
+    consʳ-≲≳D : ∀ {ms n ns} →
+                Bounded n ms →
+                [ i ] ms ≲≳D force ns →
+                [ i ] ms ≲≳D n ∷ ns
+    consˡ-≲≳D : ∀ {m ms ns} →
+                Bounded m ns →
+                [ i ] force ms ≲≳D ns →
+                [ i ] m ∷ ms ≲≳D ns
+    cons-≲≳D  : ∀ {m ms n ns} →
+                Bounded m (n ∷ ns) →
+                Bounded n (m ∷ ms) →
+                [ i ] force ms ≲≳D′ force ns →
+                [ i ] m ∷ ms ≲≳D n ∷ ns
+
+  record [_]_≲≳D′_ (i : Size) (ms ns : Colist ℕ ∞) : Set where
+    coinductive
+    field
+      force : {j : Size< i} → [ j ] ms ≲≳D ns
+
+open [_]_≲≳D′_ public
+
+-- Interprets [_]_≲≳D_.
+
+⌊_⌋≲≳ : ∀ {i ms ns} → [ i ] ms ≲≳D ns → [ i ] ms ≲≳ ns
+⌊ ⌈ p ⌉ ⌋≲≳            = p
+⌊ consʳ-≲≳D b p ⌋≲≳    = consʳ-≲≳ b ⌊ p ⌋≲≳
+⌊ consˡ-≲≳D b p ⌋≲≳    = consˡ-≲≳ b ⌊ p ⌋≲≳
+⌊ cons-≲≳D b₁ b₂ p ⌋≲≳ =
+  cons-≲≳ b₁ b₂ ( (λ { hyp .force {j} → proj₁ ⌊ p .force {j} ⌋≲≳ hyp  })
+                , (λ { hyp .force     → proj₂ ⌊ p .force     ⌋≲≳ hyp  })
+                )
+
+-- An abbreviation.
+
+cons′-≲≳D :
+  ∀ {i m ms ns} →
+  [ i ] force ms ≲≳D′ force ns →
+  [ i ] m ∷ ms ≲≳D m ∷ ns
+cons′-≲≳D = cons-≲≳D (inj₁ (here Nat.≤-refl)) (inj₁ (here Nat.≤-refl))

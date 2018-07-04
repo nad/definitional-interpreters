@@ -229,28 +229,17 @@ private
     C.[ i ] x ∷′ y ∷′ z ∷ xs ∼ x ∷′ y ∷′ z ∷ ys
   cong₃ p = E.refl ∷ λ { .force → E.refl ∷ λ { .force → E.refl ∷ p }}
 
--- The colist Ω-sizes n is an "upper bound" of nats-from n.
+-- The colist Ω-sizes n has the same upper bounds as nats-from n.
 
-nats-from≲Ω-sizes : ∀ {i} n → [ i ] nats-from n ≲ Ω-sizes n
-nats-from≲Ω-sizes n =
-  nats-from n                             ∼⟨ ∷∼∷′ ⟩≲
-  n ∷′ nats-from (suc n)                  ≲⟨ (cons′-≲ λ { hyp .force → nats-from≲Ω-sizes (suc n) hyp }) ⟩
-  n ∷′ Ω-sizes (suc n)                    ≲⟨ (cons′-≲ λ { hyp .force → consʳ-≲ (_ □≲) hyp }) ⟩
-  n ∷′ 1 + n ∷′ Ω-sizes (suc n)           ≲⟨ (cons′-≲ λ { hyp .force → cons′-≲ (λ { hyp .force → consʳ-≲ (_ □≲) hyp }) hyp }) ⟩
-  n ∷′ 1 + n ∷′ 2 + n ∷′ Ω-sizes (suc n)  ∼⟨ (cong₃ λ { .force → C.reflexive-∼ _ }) ⟩≲
-  Ω-sizes n                               □≲
-
--- The colist Ω-sizes n is a "lower bound" of nats-from n.
-
-Ω-sizes≲nats-from : ∀ {i} n → [ i ] Ω-sizes n ≲ nats-from n
-Ω-sizes≲nats-from n =
-  Ω-sizes n                               ∼⟨ (cong₃ λ { .force → C.reflexive-∼ _ }) ⟩≲
-  n ∷′ 1 + n ∷′ 2 + n ∷′ Ω-sizes (suc n)  ≲⟨ (cons′-≲                        λ { hyp .force →
-                                              consˡ-≲ (here ≤-refl)         (λ { hyp .force →
-                                              consˡ-≲ (there (here ≤-refl)) (λ { hyp .force →
-                                              Ω-sizes≲nats-from (suc n)      hyp }) hyp }) hyp }) ⟩
-  n ∷′ nats-from (suc n)                  ∼⟨ C.symmetric-∼ ∷∼∷′ ⟩≲
-  nats-from n                             □≲
+Ω-sizes≲≳nats-from : ∀ {i} n → [ i ] Ω-sizes n ≲≳ nats-from n
+Ω-sizes≲≳nats-from n =
+  Ω-sizes n                               ∼⟨ (cong₃ λ { .force → C.reflexive-∼ _ }) ⟩≲≳
+  n ∷′ 1 + n ∷′ 2 + n ∷′ Ω-sizes (suc n)  ≲≳⟨ ⌊ cons′-≲≳D (λ { .force → ⌈
+                                                consˡ-≲≳ (inj₁ (here ≤-refl)) (
+                                                consˡ-≲≳ (inj₁ (there (here ≤-refl))) (
+                                                Ω-sizes≲≳nats-from (suc n))) ⌉ }) ⌋≲≳ ⟩∼
+  n ∷′ nats-from (suc n)                  C.∼⟨ C.symmetric-∼ ∷∼∷′ ⟩
+  nats-from n                             C.∎
 
 -- The least upper bound of Ω-sizes 0 is infinity.
 
@@ -258,7 +247,7 @@ lub-Ω-sizes-0-infinity :
   Least-upper-bound (Ω-sizes 0) infinity
 lub-Ω-sizes-0-infinity =                    $⟨ lub-nats-infinity ⟩
   Least-upper-bound nats          infinity  ↝⟨ Least-upper-bound-∼ nats∼nats-from-0 (Conat.reflexive-∼ _) ⟩
-  Least-upper-bound (nats-from 0) infinity  ↝⟨ Least-upper-bound-≲≳ (nats-from≲Ω-sizes 0) (Ω-sizes≲nats-from 0) ⟩□
+  Least-upper-bound (nats-from 0) infinity  ↝⟨ Least-upper-bound-≲≳ (symmetric-≲≳ (Ω-sizes≲≳nats-from 0)) ⟩□
   Least-upper-bound (Ω-sizes 0)   infinity  □
 
 -- When Ω is interpreted (starting with an empty stack) the stack

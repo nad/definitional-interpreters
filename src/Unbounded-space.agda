@@ -393,7 +393,7 @@ mutual
 
   optimise-correct-≲ {h} (deallocate ∷ p) =
     ⟦ optimise (deallocate ∷ p) ⟧ h       ∼⟨ ∷∼∷′ ⟩≲
-    h ∷′ ⟦ optimise (force p) ⟧ (pred h)  ≲⟨ (cons′-≲ λ { hyp .force → optimise-correct-≲ (force p) hyp }) ⟩
+    h ∷′ ⟦ optimise (force p) ⟧ (pred h)  ≲⟨ ⌊ cons′-≲D (λ { .force → ⌈ optimise-correct-≲ (force p) ⌉ }) ⌋≲ ⟩
     h ∷′ ⟦ force p ⟧ (pred h)             ∼⟨ Colist.symmetric-∼ ∷∼∷′ ⟩≲
     ⟦ deallocate ∷ p ⟧ h                  □≲
 
@@ -429,7 +429,7 @@ mutual
       optimise-correct₂ (allocate   ∷ p″) _   = default-correct a∷≡
       optimise-correct₂ (deallocate ∷ p″) d∷≡ =
         ⟦ Optimise.optimise₂ p (deallocate ∷ p″) ⟧ h  ∼⟨ ∷∼∷′ ⟩≲
-        h ∷′ ⟦ optimise (force p″) ⟧ (1 + h)          ≲⟨ (cons′-≲ λ { hyp .force → consʳ-≲ (consʳ-≲ (optimise-correct-≲ (force p″))) hyp }) ⟩
+        h ∷′ ⟦ optimise (force p″) ⟧ (1 + h)          ≲⟨ ⌊ cons′-≲D (λ { .force → ⌈ consʳ-≲ (consʳ-≲ (optimise-correct-≲ (force p″))) ⌉ }) ⌋≲ ⟩
         h ∷′ 1 + h ∷′ 2 + h ∷′ ⟦ force p″ ⟧ (1 + h)   ∼⟨ (refl ∷ λ { .force → refl ∷ λ { .force → Colist.symmetric-∼ ∷∼∷′ } }) ⟩≲
         h ∷′ 1 + h ∷′ ⟦ deallocate ∷ p″ ⟧ (2 + h)     ≡⟨ by d∷≡ ⟩≲
         h ∷′ 1 + h ∷′ ⟦ force p′ ⟧ (2 + h)            ∼⟨ (refl ∷ λ { .force → Colist.symmetric-∼ ∷∼∷′ }) ⟩≲
