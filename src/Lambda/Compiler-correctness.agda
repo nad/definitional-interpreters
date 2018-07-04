@@ -71,30 +71,23 @@ Cont-OK i ⟨ c , s , ρ ⟩ k =
               run (k v)
 
 -- If the In-tail-context parameter indicates that we are in a tail
--- context and the stack is non-empty, then the stack must be related
--- to the continuation in a certain way.
+-- context, then the stack must have a certain shape, and it must be
+-- related to the continuation in a certain way.
 
 data Stack-OK (i : Size) (k : T.Value → Delay-crash C.Value ∞) :
               In-tail-context → Stack → Set where
-  unrestricted  : ∀ {s} → Stack-OK i k false s
-  restricted-[] : Stack-OK i k true []
-  restricted-∷  : ∀ {s n c} {ρ : C.Env n} →
-                  Cont-OK i ⟨ c , s , ρ ⟩ k →
-                  Stack-OK i k true (ret c ρ ∷ s)
+  unrestricted : ∀ {s} → Stack-OK i k false s
+  restricted   : ∀ {s n c} {ρ : C.Env n} →
+                 Cont-OK i ⟨ c , s , ρ ⟩ k →
+                 Stack-OK i k true (ret c ρ ∷ s)
 
--- The empty stack is always OK.
-
-[]-ok : ∀ {p i k} → Stack-OK i k p []
-[]-ok {true}  = restricted-[]
-[]-ok {false} = unrestricted
-
--- Non-empty stacks satisfying a certain property are always OK.
+-- A lemma that can be used to show that certain stacks are OK.
 
 ret-ok :
   ∀ {p i s n c} {ρ : C.Env n} {k} →
   Cont-OK i ⟨ c , s , ρ ⟩ k →
   Stack-OK i k p (ret c ρ ∷ s)
-ret-ok {true}  c-ok = restricted-∷ c-ok
+ret-ok {true}  c-ok = restricted c-ok
 ret-ok {false} _    = unrestricted
 
 ------------------------------------------------------------------------
@@ -173,30 +166,7 @@ mutual
 
     run (⟦ call f t ⟧ ρ >>= k)                                      ∎
 
-  ⟦⟧-correct (call f t) ρ {c} {[]} {k} restricted-[] c-ok =
-    run (exec ⟨ comp true (call f t) c , [] , comp-env ρ ⟩)          ∼⟨⟩
-
-    run (exec ⟨ comp false t (tcl f ∷ c) , [] , comp-env ρ ⟩)        ≈⟨ (⟦⟧-correct t _ unrestricted λ v →
-
-      run (exec ⟨ tcl f ∷ c , val (comp-val v) ∷ [] , comp-env ρ ⟩)        ≈⟨ (later λ { .force →
-
-        run (exec ⟨ comp-name f
-                  , ret c (comp-env ρ) ∷ []
-                  , comp-val v ∷ []
-                  ⟩)                                                             ≈⟨ ret-lemma (def f) [] c-ok ⟩∼
-
-        run (⟦ def f ⟧ (v ∷ []) >>= k)                                           ∎ }) ⟩∼
-
-      run (T.ƛ (def f) [] ∙ v >>= k)                                       ∎) ⟩∼
-
-    run (⟦ t ⟧ ρ >>= λ v → T.ƛ (def f) [] ∙ v >>= k)                 ∼⟨ associativity (⟦ t ⟧ ρ) _ _ ⟩
-
-    run ((⟦ t ⟧ ρ >>= λ v → T.ƛ (def f) [] ∙ v) >>= k)               ∼⟨⟩
-
-    run (⟦ call f t ⟧ ρ >>= k)                                       ∎
-
-  ⟦⟧-correct (call f t) ρ {c} {ret c′ ρ′ ∷ s} {k}
-             (restricted-∷ c-ok) _ =
+  ⟦⟧-correct (call f t) ρ {c} {ret c′ ρ′ ∷ s} {k} (restricted c-ok) _ =
     run (exec ⟨ comp true (call f t) c , ret c′ ρ′ ∷ s , comp-env ρ ⟩)    ∼⟨⟩
 
     run (exec ⟨ comp false t (tcl f ∷ c) , ret c′ ρ′ ∷ s , comp-env ρ ⟩)  ≈⟨ (⟦⟧-correct t _ unrestricted λ v →
@@ -358,10 +328,10 @@ mutual
 -- syntactic.
 
 correct :
-  ∀ {tc} (t : Tm 0) →
-  run (exec ⟨ comp tc t [] , [] , [] ⟩) ≈
+  (t : Tm 0) →
+  run (exec ⟨ comp₀ t , [] , [] ⟩) ≈
   run (⟦ t ⟧ [] >>= λ v → return (comp-val v))
-correct {tc} t =
-  run (exec ⟨ comp tc t [] , [] , [] ⟩)           ∼⟨⟩
-  run (exec ⟨ comp tc t [] , [] , comp-env [] ⟩)  ≈⟨ ⟦⟧-correct t [] []-ok (λ v → laterˡ (return (just (comp-val v)) ∎)) ⟩
-  run (⟦ t ⟧ [] >>= λ v → return (comp-val v))    ∎
+correct t =
+  run (exec ⟨ comp false t [] , [] , [] ⟩)           ∼⟨⟩
+  run (exec ⟨ comp false t [] , [] , comp-env [] ⟩)  ≈⟨ ⟦⟧-correct t [] unrestricted (λ v → laterˡ (return (just (comp-val v)) ∎)) ⟩
+  run (⟦ t ⟧ [] >>= λ v → return (comp-val v))       ∎

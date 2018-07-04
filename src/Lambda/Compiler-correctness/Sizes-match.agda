@@ -86,7 +86,7 @@ data Stack-OK (i : Size)
               (k : T.Value → Delay-crash-colist (ℕ → ℕ) C.Value ∞) :
               In-tail-context → Stack → Set where
   unrestricted : ∀ {s} → Stack-OK i k false s
-  restricted-∷ :
+  restricted   :
     ∀ {s n c} {ρ : C.Env n} →
     (∀ v → [ i ] 2 + length s ∷′
                  VM.stack-sizes ⟨ c , val (comp-val v) ∷ s , ρ ⟩ ∼
@@ -100,7 +100,7 @@ ret-ok :
   Cont-OK i ⟨ c , s , ρ ⟩ k →
   Stack-OK i (tell pred ∘ k) p (ret c ρ ∷ s)
 ret-ok {false}                    _    = unrestricted
-ret-ok {true} {c = c} {s} {ρ} {k} c-ok = restricted-∷ λ v →
+ret-ok {true} {c = c} {s} {ρ} {k} c-ok = restricted λ v →
   2 + length s ∷′ VM.stack-sizes ⟨ c , val (comp-val v) ∷ s , ρ ⟩  ∼⟨ (refl ∷ λ { .force → c-ok v }) ⟩
   2 + length s ∷′ numbers (k v) (1 + length s)                     ∼⟨ symmetric-∼ ∷∼∷′ ⟩
   numbers (tell pred (k v)) (2 + length s)                         ∎
@@ -202,7 +202,7 @@ mutual
     numbers (⟦ call f t ⟧ ρ false >>= k) (length s)                     ∎
 
   ⟦⟧-correct (call f t) ρ {true} {c} {ret c′ ρ′ ∷ s} {k}
-              s-ok@(restricted-∷ c-ok) _ =
+              s-ok@(restricted c-ok) _ =
     VM.stack-sizes ⟨ comp false t (tcl f ∷ c)
                    , ret c′ ρ′ ∷ s
                    , comp-env ρ
@@ -410,26 +410,25 @@ mutual
     numbers (⟦if⟧ (T.con false) t₂ t₃ ρ tc >>= k) (1 + length s)  ∎
 
 -- The virtual machine and the interpreter produce bisimilar lists of
--- stack sizes (if "comp false" is used to compile closed terms).
+-- stack sizes.
 
 stack-sizes-match :
   (t : Tm 0) →
-  [ ∞ ] VM.stack-sizes ⟨ comp false t [] , [] , [] ⟩ ∼ I.stack-sizes t
+  [ ∞ ] VM.stack-sizes ⟨ comp₀ t , [] , [] ⟩ ∼ I.stack-sizes t
 stack-sizes-match t =
   VM.stack-sizes ⟨ comp false t [] , [] , [] ⟩  ∼⟨ ⟦⟧-correct t [] unrestricted (λ _ → refl ∷ λ { .force → reflexive-∼ _ }) ⟩
   numbers (comp-val ⟨$⟩ ⟦ t ⟧ [] false) 0       ∼⟨ scanl-cong (DCC.colist-⟨$⟩ _) ⟩
   numbers (⟦ t ⟧ [] false) 0                    ∼⟨⟩
   I.stack-sizes t                               ∎
 
--- The maximum stack sizes match (if "comp false" is used to compile
--- closed terms).
+-- The maximum stack sizes match.
 
 maximum-stack-sizes-match :
   ∀ (t : Tm 0) {i v} →
   Least-upper-bound (I.stack-sizes t) i →
-  Least-upper-bound (VM.stack-sizes ⟨ comp false t [] , [] , [] ⟩) v →
+  Least-upper-bound (VM.stack-sizes ⟨ comp₀ t , [] , [] ⟩) v →
   Conat.[ ∞ ] i ∼ v
 maximum-stack-sizes-match t {i} {v} i-lub =
-  Least-upper-bound (VM.stack-sizes ⟨ comp false t [] , [] , [] ⟩) v  ↝⟨ Least-upper-bound-∼ (stack-sizes-match t) (Conat.reflexive-∼ _) ⟩
-  Least-upper-bound (I.stack-sizes t) v                               ↝⟨ lub-unique i-lub ⟩□
-  Conat.[ ∞ ] i ∼ v                                                   □
+  Least-upper-bound (VM.stack-sizes ⟨ comp₀ t , [] , [] ⟩) v  ↝⟨ Least-upper-bound-∼ (stack-sizes-match t) (Conat.reflexive-∼ _) ⟩
+  Least-upper-bound (I.stack-sizes t) v                       ↝⟨ lub-unique i-lub ⟩□
+  Conat.[ ∞ ] i ∼ v                                           □

@@ -55,6 +55,17 @@ comp tc    (if t₁ t₂ t₃) c =
 comp-name : Name → Code 1
 comp-name f = comp true (def f) (ret ∷ [])
 
+-- Top-level compiler.
+--
+-- Note that the top-level expression is not assumed to be in a tail
+-- context. Tail calls do not push a return frame on the stack. The
+-- idea is to reuse an existing return frame, and the virtual machine
+-- starts with an empty stack (which does not contain any return
+-- frames).
+
+comp₀ : Tm 0 → Code 0
+comp₀ t = comp false t []
+
 -- Environments and values can also be compiled.
 
 mutual

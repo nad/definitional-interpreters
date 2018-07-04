@@ -56,8 +56,6 @@ Stack = List StackElement
 data State : Set where
   ⟨_,_,_⟩ : ∀ {n} (c : Code n) (s : Stack) (ρ : Env n) → State
 
-pattern ⟨_∣_,_,_⟩ n c s ρ = ⟨_,_,_⟩ {n} c s ρ
-
 -- The length of the stack.
 
 stack-size : State → ℕ
