@@ -470,6 +470,13 @@ cons′-≲≳ :
   [ i ] m ∷ ms ≲≳ m ∷ ns
 cons′-≲≳ = Σ-map cons′-≲ cons′-≲
 
+cons″-≲≳ :
+  ∀ {i m ms ns} →
+  [ i ] force ms ≲≳ force ns →
+  [ i ] m ∷ ms ≲≳ m ∷ ns
+cons″-≲≳ = cons′-≲≳ ∘ Σ-map (λ { ms≲ns hyp .force → ms≲ns hyp })
+                            (λ { ns≲ms hyp .force → ns≲ms hyp })
+
 -- "Equational" reasoning combinators.
 
 infix  -1 _□≲≳
@@ -655,3 +662,10 @@ cons′-≲≳D :
   [ i ] force ms ≲≳D′ force ns →
   [ i ] m ∷ ms ≲≳D m ∷ ns
 cons′-≲≳D = cons-≲≳D (inj₁ (here Nat.≤-refl)) (inj₁ (here Nat.≤-refl))
+
+-- A workaround for what might be an Agda bug.
+
+cast-≲≳ :
+  ∀ {i} {j : Size< i} {ms ns} →
+  [ i ] ms ≲≳ ns → [ j ] ms ≲≳ ns
+cast-≲≳ {i} p = ⌊ [_]_≲≳D_.⌈_⌉ {i = i} p ⌋≲≳

@@ -70,26 +70,26 @@ go-sizes = 0 ∷′ 1 ∷′ loop-sizes
 
 stack-sizes-go∼go-sizes : ∀ {i} → C.[ i ] A.stack-sizes go ∼ go-sizes
 stack-sizes-go∼go-sizes =
-  A.numbers (A.⟦ go ⟧ [] false) 0                               C.∼⟨ ∷∼∷′ ⟩
-  0 ∷′ A.numbers (A.[ id , just pred ] ƛ loop [] ∙ con true) 1  C.∼⟨ (refl ∷ λ { .force → ∷∼∷′ }) ⟩
-  0 ∷′ 1 ∷′ A.numbers (A.⟦ loop ⟧ ρ true >>= k) 1               C.∼⟨ (refl ∷ λ { .force → refl ∷ λ { .force → numbers-loop∼loop-sizes }}) ⟩
-  0 ∷′ 1 ∷′ loop-sizes                                          C.∼⟨⟩
-  go-sizes                                                      C.∎
+  A.numbers (A.⟦ go ⟧ [] false) 0                                   C.∼⟨ ∷∼∷′ ⟩
+  0 ∷′ A.numbers (A.[ id , pred ] ƛ loop [] ∙ con true) 1           C.∼⟨ (refl ∷ λ { .force → ∷∼∷′ }) ⟩
+  0 ∷′ 1 ∷′ A.numbers (A.⟦ loop ⟧ ρ true >>= tell pred ∘ return) 1  C.∼⟨ (refl ∷ λ { .force → refl ∷ λ { .force → numbers-loop∼loop-sizes _ }}) ⟩
+  0 ∷′ 1 ∷′ loop-sizes                                              C.∼⟨⟩
+  go-sizes                                                          C.∎
   where
-  ρ = con true ∷ []
-  k = DCC.Delay-crash-colist.tell pred ∘ return
+  ρ    = con true ∷ []
+  tell = DCC.Delay-crash-colist.tell
 
   numbers-loop∼loop-sizes :
-    ∀ {i} → C.[ i ] A.numbers (A.⟦ loop ⟧ ρ true >>= k) 1 ∼ loop-sizes
-  numbers-loop∼loop-sizes =
-    A.numbers (A.⟦ loop ⟧ ρ true >>= k) 1                               C.∼⟨ ∷∼∷′ ⟩
-    1 ∷′ A.numbers (A.[ pred , nothing ] ƛ loop [] ∙ con true >>= k) 2  C.∼⟨ (refl ∷ λ { .force → ∷∼∷′ }) ⟩
-    1 ∷′ 2 ∷′ A.numbers (A.⟦ loop ⟧ ρ true >>= return >>= k) 1          C.∼⟨ (refl ∷ λ { .force → refl ∷ λ { .force → A.numbers-cong (
-                                                                              DCC.right-identity (A.⟦ loop ⟧ ρ _) DCC.>>=-cong λ _ →
-                                                                              DCC.reflexive _) }}) ⟩
-    1 ∷′ 2 ∷′ A.numbers (A.⟦ loop ⟧ ρ true >>= k) 1                     C.∼⟨ (refl ∷ λ { .force → refl ∷ λ { .force → numbers-loop∼loop-sizes }}) ⟩
-    1 ∷′ 2 ∷′ loop-sizes                                                C.∼⟨ (refl ∷ λ { .force → C.symmetric-∼ ∷∼∷′ }) ⟩
-    loop-sizes                                                          C.∎
+    ∀ {i} k → C.[ i ] A.numbers (A.⟦ loop ⟧ ρ true >>= k) 1 ∼ loop-sizes
+  numbers-loop∼loop-sizes k =
+    A.numbers (A.⟦ loop ⟧ ρ true >>= k) 1                                 C.∼⟨ ∷∼∷′ ⟩
+    1 ∷′ A.numbers (A.[ pred , id ] ƛ loop [] ∙ con true >>= k) 2         C.∼⟨ (refl ∷ λ { .force → ∷∼∷′ }) ⟩
+    1 ∷′ 2 ∷′ A.numbers (A.⟦ loop ⟧ ρ true >>= tell id ∘ return >>= k) 1  C.∼⟨ (refl ∷ λ { .force → refl ∷ λ { .force → A.numbers-cong (
+                                                                                DCC.symmetric (DCC.associativity (A.⟦ loop ⟧ ρ true) _ _)) }}) ⟩
+    1 ∷′ 2 ∷′ A.numbers (A.⟦ loop ⟧ ρ true >>= tell id ∘ k) 1             C.∼⟨ (refl ∷ λ { .force → refl ∷ λ { .force →
+                                                                                numbers-loop∼loop-sizes _ }}) ⟩
+    1 ∷′ 2 ∷′ loop-sizes                                                  C.∼⟨ (refl ∷ λ { .force → C.symmetric-∼ ∷∼∷′ }) ⟩
+    loop-sizes                                                            C.∎
 
 -- The least upper bound of go-sizes is 2.
 

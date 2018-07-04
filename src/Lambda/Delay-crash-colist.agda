@@ -56,16 +56,6 @@ mutual
 
 open Delay-crash-colist′ public
 
--- A conditional variant of tell.
-
-maybe-tell :
-  ∀ {A B i} →
-  Maybe A →
-  Delay-crash-colist A B i →
-  Delay-crash-colist A B i
-maybe-tell nothing  = id
-maybe-tell (just x) = tell x
-
 ------------------------------------------------------------------------
 -- Extracting or deleting the colist
 
