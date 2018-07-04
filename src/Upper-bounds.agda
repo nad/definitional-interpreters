@@ -46,11 +46,11 @@ transitive-⊑≤ p q = □-map (flip transitive-≤ q) p
 -- Another form of transitivity.
 
 transitive-◇≤⊑ :
-  ∀ {m ns o i} → ◇ i (m ≤_) ns → [ ∞ ] ns ⊑ o → [ ∞ ] ⌜ m ⌝ ≤ o
+  ∀ {m ns o i} → ◇ i (m ≤_) ns → [ i ] ns ⊑ o → [ i ] ⌜ m ⌝ ≤ o
 transitive-◇≤⊑ {m} {ns} {o} {i} = curry (
-  ◇ i (m ≤_) ns × [ ∞ ] ns ⊑ o       ↝⟨ Σ-map id swap ∘ uncurry □◇-witness ∘ swap ⟩
-  (∃ λ n → m ≤ n × [ ∞ ] ⌜ n ⌝ ≤ o)  ↝⟨ (λ { (_ , m≤n , n≤o) → transitive-≤ (⌜⌝-mono m≤n) n≤o }) ⟩□
-  [ ∞ ] ⌜ m ⌝ ≤ o                    □)
+  ◇ i (m ≤_) ns × [ i ] ns ⊑ o       ↝⟨ Σ-map id swap ∘ uncurry □◇-witness ∘ swap ⟩
+  (∃ λ n → m ≤ n × [ i ] ⌜ n ⌝ ≤ o)  ↝⟨ (λ { (_ , m≤n , n≤o) → transitive-≤ (⌜⌝-mono m≤n) n≤o }) ⟩□
+  [ i ] ⌜ m ⌝ ≤ o                    □)
 
 -- If m is an upper bound of ms, and no natural number is an upper
 -- bound, then m is bisimilar to infinity.
