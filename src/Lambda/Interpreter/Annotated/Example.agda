@@ -13,7 +13,6 @@ open import Equality.Propositional as E using (refl)
 open import Prelude
 
 open import Function-universe E.equality-with-J hiding (id; _∘_)
-open import Maybe E.equality-with-J
 open import Monad E.equality-with-J
 open import Nat E.equality-with-J
 open import Vec.Data E.equality-with-J
@@ -54,7 +53,7 @@ go = call tt (con true)
 
 -- The semantics of go is the non-terminating computation never.
 
-go-loops : ∀ {i} → D.[ i ] run (I.⟦ go ⟧ []) ∼ never
+go-loops : ∀ {i} → D.[ i ] I.⟦ go ⟧ [] ∼ never
 go-loops = later λ { .force → go-loops }
 
 -- Colists used to analyse the stack space usage of go.

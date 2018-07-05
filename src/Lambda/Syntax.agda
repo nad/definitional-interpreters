@@ -10,7 +10,6 @@ module Lambda.Syntax (Name : Set) where
 open import Equality.Propositional
 open import Prelude
 
-open import Maybe equality-with-J
 open import Vec.Data equality-with-J
 
 ------------------------------------------------------------------------

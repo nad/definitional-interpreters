@@ -16,13 +16,11 @@ module Lambda.Interpreter
 
 import Equality.Propositional as E
 
-open import Maybe E.equality-with-J
 open import Monad E.equality-with-J
 open import Vec.Data E.equality-with-J
 
 open import Delay-monad
 open import Delay-monad.Bisimilarity
-open import Delay-monad.Monad
 
 open import Lambda.Delay-crash
 
@@ -48,33 +46,33 @@ mutual
                          ⟦if⟧ v₁ t₂ t₃ ρ
 
   _∙_ : ∀ {i} → Value → Value → Delay-crash Value i
-  ƛ t₁ ρ ∙ v₂ = laterDC (⟦ t₁ ⟧′ (v₂ ∷ ρ))
-  con _  ∙ _  = fail
+  ƛ t₁ ρ ∙ v₂ = later (⟦ t₁ ⟧′ (v₂ ∷ ρ))
+  con _  ∙ _  = crash
 
   ⟦if⟧ : ∀ {i n} →
          Value → Tm n → Tm n → Env n → Delay-crash Value i
-  ⟦if⟧ (ƛ _ _)     _  _  _ = fail
+  ⟦if⟧ (ƛ _ _)     _  _  _ = crash
   ⟦if⟧ (con true)  t₂ t₃ ρ = ⟦ t₂ ⟧ ρ
   ⟦if⟧ (con false) t₂ t₃ ρ = ⟦ t₃ ⟧ ρ
 
   ⟦_⟧′ : ∀ {i n} → Tm n → Env n → Delay-crash′ Value i
-  force (run (⟦ t ⟧′ ρ)) = run (⟦ t ⟧ ρ)
+  force (⟦ t ⟧′ ρ) = ⟦ t ⟧ ρ
 
 ------------------------------------------------------------------------
 -- An example
 
 -- The semantics of Ω is the non-terminating computation never.
 
-Ω-loops : ∀ {i} → [ i ] run (⟦ Ω ⟧ []) ∼ never
+Ω-loops : ∀ {i} → [ i ] ⟦ Ω ⟧ [] ∼ never
 Ω-loops =
-  run (⟦ Ω ⟧ [])                                  ∼⟨⟩
-  run (⟦ ω · ω ⟧ [])                              ∼⟨⟩
-  run (ƛ ω-body [] ∙ ƛ ω-body [])                 ∼⟨⟩
-  run (laterDC (⟦ ω-body ⟧′ (ƛ ω-body [] ∷ [])))  ∼⟨ later (λ { .force →
+  ⟦ Ω ⟧ []                                ∼⟨⟩
+  ⟦ ω · ω ⟧ []                            ∼⟨⟩
+  ƛ ω-body [] ∙ ƛ ω-body []               ∼⟨⟩
+  later (⟦ ω-body ⟧′ (ƛ ω-body [] ∷ []))  ∼⟨ later (λ { .force →
 
-      run (⟦ ω-body ⟧ (ƛ ω-body [] ∷ []))              ∼⟨⟩
-      run (ƛ ω-body [] ∙ ƛ ω-body [])                  ∼⟨⟩
-      run (⟦ Ω ⟧ [])                                   ∼⟨ Ω-loops ⟩∼
-      never                                            ∎ }) ⟩∼
+      ⟦ ω-body ⟧ (ƛ ω-body [] ∷ [])            ∼⟨⟩
+      ƛ ω-body [] ∙ ƛ ω-body []                ∼⟨⟩
+      ⟦ Ω ⟧ []                                 ∼⟨ Ω-loops ⟩∼
+      never                                    ∎ }) ⟩∼
 
-  never                                           ∎
+  never                                   ∎

@@ -7,10 +7,12 @@
 module Lambda.Delay-crash where
 
 import Equality.Propositional as E
+open import Logical-equivalence using (_⇔_)
 open import Prelude
 
-open import Maybe E.equality-with-J
-open import Monad E.equality-with-J using (return; _>>=_)
+open import Maybe E.equality-with-J as Maybe hiding (raw-monad)
+open import Monad E.equality-with-J as M
+  using (Raw-monad; return; _>>=_)
 
 open import Delay-monad
 open import Delay-monad.Bisimilarity
@@ -22,15 +24,28 @@ import Delay-monad.Monad as DM
 -- The monad.
 
 Delay-crash : Set → Size → Set
-Delay-crash A i = MaybeT (λ X → Delay X i) A
+Delay-crash A i = Delay (Maybe A) i
 
 Delay-crash′ : Set → Size → Set
-Delay-crash′ A i = MaybeT (λ X → Delay′ X i) A
+Delay-crash′ A i = Delay′ (Maybe A) i
 
--- A lifted variant of later.
+-- A crashing computation.
 
-laterDC : ∀ {i A} → Delay-crash′ A i → Delay-crash A i
-run (laterDC x) = later (run x)
+pattern crash = now nothing
+
+-- A raw-monad instance. (This definition is turned into an actual
+-- instance at the end of this module, to avoid problems with instance
+-- resolution.)
+
+private
+
+  raw-monad′ : ∀ {i} → Raw-monad (λ A → Delay-crash A i)
+  raw-monad′ {i} =
+    _⇔_.to (M.⇔→raw⇔raw {F = MaybeT (λ A → Delay A i)}
+              (λ _ → record { to = run; from = wrap }))
+      it
+
+  module DC {i} = Raw-monad (raw-monad′ {i = i})
 
 ------------------------------------------------------------------------
 -- Some properties
@@ -42,42 +57,52 @@ infixl 5 _>>=-cong_
 _>>=-cong_ :
   ∀ {i} {A B : Set}
     {x y : Delay-crash A ∞} {f g : A → Delay-crash B ∞} →
-  [ i ] run x ∼ run y →
-  (∀ z → [ i ] run (f z) ∼ run (g z)) →
-  [ i ] run (x >>= f) ∼ run (y >>= g)
+  [ i ] x ∼ y →
+  (∀ z → [ i ] f z ∼ g z) →
+  [ i ] x DC.>>= f ∼ y DC.>>= g
 p >>=-cong q = p DM.>>=-cong [ (λ _ → run fail ∎) , q ]
 
 -- The monad laws.
 
 left-identity :
   ∀ {A B : Set} x (f : A → Delay-crash B ∞) →
-  [ ∞ ] run (return x >>= f) ∼ run (f x)
+  [ ∞ ] DC.return x DC.>>= f ∼ f x
 left-identity x f =
-  run (f x)  ∎
+  f x  ∎
 
 right-identity :
   ∀ {A : Set} (x : Delay-crash A ∞) →
-  [ ∞ ] run (x >>= return) ∼ run x
+  [ ∞ ] x DC.>>= DC.return ∼ x
 right-identity x =
-  run (x >>= return)                                ∼⟨⟩
-  run x >>= maybe (return ∘ just) (return nothing)  ∼⟨ (run x ∎) DM.>>=-cong [ (λ _ → run fail ∎) , (λ x → run (return x) ∎) ] ⟩
-  run x >>= return                                  ∼⟨ DM.right-identity′ _ ⟩
-  run x                                             ∎
+  x DC.>>= DC.return                            ∼⟨⟩
+  x >>= maybe (return ∘ just) (return nothing)  ∼⟨ (x ∎) DM.>>=-cong [ (λ _ → run fail ∎) , (λ x → run (return x) ∎) ] ⟩
+  x >>= return                                  ∼⟨ DM.right-identity′ _ ⟩
+  x                                             ∎
 
 associativity :
   {A B C : Set}
   (x : Delay-crash A ∞)
   (f : A → Delay-crash B ∞) (g : B → Delay-crash C ∞) →
-  run (x >>= (λ x → f x >>= g)) ∼ run (x >>= f >>= g)
+  x DC.>>= (λ x → f x DC.>>= g) ∼ x DC.>>= f DC.>>= g
 associativity x f g =
-  run (x >>= λ x → f x >>= g)                               ∼⟨⟩
+  x DC.>>= (λ x → f x DC.>>= g)                      ∼⟨⟩
 
-  run x >>= maybe (λ x → run (f x >>= g)) (return nothing)  ∼⟨ (run x ∎) DM.>>=-cong [ (λ _ → run fail ∎) , (λ x → run (f x >>= g) ∎) ] ⟩
+  x >>= maybe (λ x → f x DC.>>= g) (return nothing)  ∼⟨ (x ∎) DM.>>=-cong [ (λ _ → run fail ∎) , (λ x → f x DC.>>= g ∎) ] ⟩
 
-  run x >>= (λ x → maybe (run ∘ f) (return nothing) x >>=
-                   maybe (run ∘ g) (return nothing))        ∼⟨ DM.associativity′ (run x) _ _ ⟩
+  x >>= (λ x → maybe f (return nothing) x >>=
+                   maybe g (return nothing))         ∼⟨ DM.associativity′ x _ _ ⟩
 
-  run x >>= maybe (run ∘ f) (return nothing)
-        >>= maybe (run ∘ g) (return nothing)                ∼⟨⟩
+  x >>= maybe f (return nothing)
+        >>= maybe g (return nothing)                 ∼⟨⟩
 
-  run (x >>= f >>= g)                                       ∎
+  x DC.>>= f DC.>>= g                                ∎
+
+------------------------------------------------------------------------
+-- The instance declaration
+
+-- A raw-monad instance.
+
+instance
+
+  raw-monad : ∀ {i} → Raw-monad (λ A → Delay-crash A i)
+  raw-monad = raw-monad′

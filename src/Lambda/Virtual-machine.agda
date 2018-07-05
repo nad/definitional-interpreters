@@ -20,7 +20,7 @@ open import List equality-with-J using (_++_)
 open import Monad equality-with-J
 open import Vec.Data equality-with-J
 
-open import Lambda.Delay-crash
+open import Lambda.Delay-crash using (Delay-crash)
 open import Lambda.Delay-crash-colist
 open import Lambda.Syntax Name
 

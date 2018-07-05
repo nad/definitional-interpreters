@@ -20,19 +20,17 @@ open import Conat using (infinity)
 import Equality.Propositional as E
 
 open import Function-universe E.equality-with-J hiding (id; _∘_)
-open import Maybe E.equality-with-J
 open import Monad E.equality-with-J
 open import Nat E.equality-with-J
 open import Vec.Data E.equality-with-J
 
 open import Delay-monad
 open import Delay-monad.Bisimilarity as D using (later; force)
-import Delay-monad.Monad
 
 open import Upper-bounds
 
 open import Lambda.Compiler def
-open import Lambda.Delay-crash as DC
+open import Lambda.Delay-crash as DC hiding (crash)
 open import Lambda.Delay-crash-colist as DCC
 import Lambda.Interpreter def as I
 
@@ -125,67 +123,66 @@ mutual
 
   ⟦⟧∼⟦⟧ :
     ∀ {i n} (t : Tm n) {ρ : Env n} tc →
-    D.[ i ] run (delay-crash (⟦ t ⟧ ρ tc)) ∼ run (I.⟦ t ⟧ ρ)
+    D.[ i ] delay-crash (⟦ t ⟧ ρ tc) ∼ I.⟦ t ⟧ ρ
   ⟦⟧∼⟦⟧ (var x) _ = D.reflexive _
 
   ⟦⟧∼⟦⟧ (ƛ t) _ = D.reflexive _
 
   ⟦⟧∼⟦⟧ (t₁ · t₂) {ρ} _ =
-    run (delay-crash
-           (⟦ t₁ ⟧ ρ false >>= λ v₁ → ⟦ t₂ ⟧ ρ false >>= λ v₂ →
-            [ pred , pred ] v₁ ∙ v₂))                            D.∼⟨ delay-crash->>= (⟦ t₁ ⟧ _ _) ⟩
+    delay-crash
+      (⟦ t₁ ⟧ ρ false >>= λ v₁ → ⟦ t₂ ⟧ ρ false >>= λ v₂ →
+       [ pred , pred ] v₁ ∙ v₂)                              D.∼⟨ delay-crash->>= (⟦ t₁ ⟧ _ _) ⟩
 
-    run (delay-crash (⟦ t₁ ⟧ ρ false) >>= λ v₁ →
-         delay-crash (⟦ t₂ ⟧ ρ false >>= λ v₂ →
-                      [ pred , pred ] v₁ ∙ v₂))                  D.∼⟨ ((run (delay-crash (⟦ t₁ ⟧ _ _)) D.∎) DC.>>=-cong λ _ →
-                                                                       delay-crash->>= (⟦ t₂ ⟧ _ _)) ⟩
-    run (delay-crash (⟦ t₁ ⟧ ρ false) >>= λ v₁ →
-         delay-crash (⟦ t₂ ⟧ ρ false) >>= λ v₂ →
-         delay-crash ([ pred , pred ] v₁ ∙ v₂))                  D.∼⟨ (⟦⟧∼⟦⟧ t₁ _ DC.>>=-cong λ v₁ → ⟦⟧∼⟦⟧ t₂ _ DC.>>=-cong λ _ → ∙∼∙ pred v₁) ⟩∼
+    (delay-crash (⟦ t₁ ⟧ ρ false) >>= λ v₁ →
+     delay-crash (⟦ t₂ ⟧ ρ false >>= λ v₂ →
+                  [ pred , pred ] v₁ ∙ v₂))                  D.∼⟨ ((delay-crash (⟦ t₁ ⟧ _ _) D.∎) DC.>>=-cong λ _ →
+                                                                   delay-crash->>= (⟦ t₂ ⟧ _ _)) ⟩
+    (delay-crash (⟦ t₁ ⟧ ρ false) >>= λ v₁ →
+     delay-crash (⟦ t₂ ⟧ ρ false) >>= λ v₂ →
+     delay-crash ([ pred , pred ] v₁ ∙ v₂))                  D.∼⟨ (⟦⟧∼⟦⟧ t₁ _ DC.>>=-cong λ v₁ → ⟦⟧∼⟦⟧ t₂ _ DC.>>=-cong λ _ → ∙∼∙ pred v₁) ⟩∼
 
-    run (I.⟦ t₁ ⟧ ρ >>= λ v₁ → I.⟦ t₂ ⟧ ρ >>= λ v₂ → v₁ I.∙ v₂)  D.∎
+    (I.⟦ t₁ ⟧ ρ >>= λ v₁ → I.⟦ t₂ ⟧ ρ >>= λ v₂ → v₁ I.∙ v₂)  D.∎
 
   ⟦⟧∼⟦⟧ (call f t) {ρ} tc =
-    run (delay-crash (⟦ t ⟧ ρ false >>= λ v →
-                      [ _ , _ ] ƛ (def f) [] ∙ v))      D.∼⟨ delay-crash->>= (⟦ t ⟧ _ _) ⟩
+    delay-crash (⟦ t ⟧ ρ false >>= λ v →
+                 [ _ , _ ] ƛ (def f) [] ∙ v)        D.∼⟨ delay-crash->>= (⟦ t ⟧ _ _) ⟩
 
-    run (delay-crash (⟦ t ⟧ ρ false) >>= λ v →
-         delay-crash ([ δ₁ tc , _ ] ƛ (def f) [] ∙ v))  D.∼⟨ (⟦⟧∼⟦⟧ t _ DC.>>=-cong λ _ → ∙∼∙ (δ₁ tc) (ƛ (def f) [])) ⟩∼
+    (delay-crash (⟦ t ⟧ ρ false) >>= λ v →
+     delay-crash ([ δ₁ tc , _ ] ƛ (def f) [] ∙ v))  D.∼⟨ (⟦⟧∼⟦⟧ t _ DC.>>=-cong λ _ → ∙∼∙ (δ₁ tc) (ƛ (def f) [])) ⟩∼
 
-    run (I.⟦ t ⟧ ρ >>= λ v → ƛ (def f) [] I.∙ v)        D.∎
+    (I.⟦ t ⟧ ρ >>= λ v → ƛ (def f) [] I.∙ v)        D.∎
 
   ⟦⟧∼⟦⟧ (con b) _ = D.reflexive _
 
   ⟦⟧∼⟦⟧ (if t₁ t₂ t₃) {ρ} tc =
-    run (delay-crash (⟦ t₁ ⟧ ρ false >>= λ v₁ → ⟦if⟧ v₁ t₂ t₃ ρ tc))  D.∼⟨ delay-crash->>= (⟦ t₁ ⟧ _ _) ⟩
+    (delay-crash (⟦ t₁ ⟧ ρ false >>= λ v₁ → ⟦if⟧ v₁ t₂ t₃ ρ tc))  D.∼⟨ delay-crash->>= (⟦ t₁ ⟧ _ _) ⟩
 
-    run (delay-crash (⟦ t₁ ⟧ ρ false) >>= λ v₁ →
-         delay-crash (⟦if⟧ v₁ t₂ t₃ ρ tc))                            D.∼⟨ (⟦⟧∼⟦⟧ t₁ _ DC.>>=-cong λ v₁ → ⟦if⟧∼⟦if⟧ v₁ t₂ t₃ _) ⟩∼
+    (delay-crash (⟦ t₁ ⟧ ρ false) >>= λ v₁ →
+     delay-crash (⟦if⟧ v₁ t₂ t₃ ρ tc))                            D.∼⟨ (⟦⟧∼⟦⟧ t₁ _ DC.>>=-cong λ v₁ → ⟦if⟧∼⟦if⟧ v₁ t₂ t₃ _) ⟩∼
 
-    run (I.⟦ t₁ ⟧ ρ >>= λ v₁ → I.⟦if⟧ v₁ t₂ t₃ ρ)                     D.∎
+    (I.⟦ t₁ ⟧ ρ >>= λ v₁ → I.⟦if⟧ v₁ t₂ t₃ ρ)                     D.∎
 
   ∙∼∙ :
     ∀ {i} f₁ {f₂} (v₁ {v₂} : Value) →
-    D.[ i ] run (delay-crash ([ f₁ , f₂ ] v₁ ∙ v₂)) ∼ run (v₁ I.∙ v₂)
+    D.[ i ] delay-crash ([ f₁ , f₂ ] v₁ ∙ v₂) ∼ v₁ I.∙ v₂
   ∙∼∙ f₁ {f₂} (ƛ t₁ ρ) {v₂} = later λ { .force →
-    run (delay-crash (⟦ t₁ ⟧ (v₂ ∷ ρ) true >>=
-                      Delay-crash-colist.tell f₂ ∘ return))  D.∼⟨ delay-crash->>= (⟦ t₁ ⟧ _ _) ⟩
+    delay-crash (⟦ t₁ ⟧ (v₂ ∷ ρ) true >>=
+                 Delay-crash-colist.tell f₂ ∘ return)  D.∼⟨ delay-crash->>= (⟦ t₁ ⟧ _ _) ⟩
 
-    run (delay-crash (⟦ t₁ ⟧ (v₂ ∷ ρ) true) >>=
-         delay-crash ∘ Delay-crash-colist.tell f₂ ∘ return)  D.∼⟨ ((run (delay-crash (⟦ t₁ ⟧ _ _)) D.∎) DC.>>=-cong λ _ → D.reflexive _) ⟩
+    delay-crash (⟦ t₁ ⟧ (v₂ ∷ ρ) true) >>=
+    delay-crash ∘ Delay-crash-colist.tell f₂ ∘ return  D.∼⟨ ((delay-crash (⟦ t₁ ⟧ _ _) D.∎) DC.>>=-cong λ _ → D.reflexive _) ⟩
 
-    run (delay-crash (⟦ t₁ ⟧ (v₂ ∷ ρ) true) >>= return)      D.∼⟨ DC.right-identity _ ⟩
+    delay-crash (⟦ t₁ ⟧ (v₂ ∷ ρ) true) >>= return      D.∼⟨ DC.right-identity _ ⟩
 
-    run (delay-crash (⟦ t₁ ⟧ (v₂ ∷ ρ) true))                 D.∼⟨ ⟦⟧∼⟦⟧ t₁ _ ⟩∼
+    delay-crash (⟦ t₁ ⟧ (v₂ ∷ ρ) true)                 D.∼⟨ ⟦⟧∼⟦⟧ t₁ _ ⟩∼
 
-    run (I.⟦ t₁ ⟧ (v₂ ∷ ρ))                                  D.∎ }
+    I.⟦ t₁ ⟧ (v₂ ∷ ρ)                                  D.∎ }
 
   ∙∼∙ _ (con _) = D.reflexive _
 
   ⟦if⟧∼⟦if⟧ :
     ∀ {i n} v₁ (t₂ t₃ : Tm n) {ρ} tc →
-    D.[ i ] run (delay-crash (⟦if⟧ v₁ t₂ t₃ ρ tc)) ∼
-            run (I.⟦if⟧ v₁ t₂ t₃ ρ)
+    D.[ i ] delay-crash (⟦if⟧ v₁ t₂ t₃ ρ tc) ∼ I.⟦if⟧ v₁ t₂ t₃ ρ
   ⟦if⟧∼⟦if⟧ (ƛ _ _)     _  _  _ = D.reflexive _
   ⟦if⟧∼⟦if⟧ (con true)  t₂ t₃ _ = ⟦⟧∼⟦⟧ t₂ _
   ⟦if⟧∼⟦if⟧ (con false) t₂ t₃ _ = ⟦⟧∼⟦⟧ t₃ _
@@ -205,11 +202,11 @@ numbers-cong = scanl-cong ∘ colist-cong
 
 -- The semantics of Ω is the non-terminating computation never.
 
-Ω-loops : ∀ {i} → D.[ i ] run (delay-crash (⟦ Ω ⟧ [] false)) ∼ never
+Ω-loops : ∀ {i} → D.[ i ] delay-crash (⟦ Ω ⟧ [] false) ∼ never
 Ω-loops =
-  run (delay-crash (⟦ Ω ⟧ [] false))  D.∼⟨ ⟦⟧∼⟦⟧ Ω false ⟩
-  run (I.⟦ Ω ⟧ [])                    D.∼⟨ I.Ω-loops ⟩
-  never                               D.∎
+  delay-crash (⟦ Ω ⟧ [] false)  D.∼⟨ ⟦⟧∼⟦⟧ Ω false ⟩
+  I.⟦ Ω ⟧ []                    D.∼⟨ I.Ω-loops ⟩
+  never                         D.∎
 
 -- A colist used in an analysis of the stack space usage of Ω.
 

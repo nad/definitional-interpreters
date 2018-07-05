@@ -11,13 +11,11 @@ open import Colist as C using (Colist; []; _∷_; force)
 open import Equality.Propositional as E using (_≡_; refl)
 open import Prelude
 
-open import Maybe E.equality-with-J using (maybe; run)
 open import Monad E.equality-with-J
   using (Raw-monad; return; _>>=_; _⟨$⟩_)
 
 open import Delay-monad using (now; later; force)
 open import Delay-monad.Bisimilarity as D using (now; later; force)
-import Delay-monad.Monad
 
 open import Lambda.Delay-crash using (Delay-crash; Delay-crash′)
 
@@ -73,14 +71,14 @@ mutual
 
   delay-crash :
     ∀ {A B i} → Delay-crash-colist A B i → Delay-crash B i
-  delay-crash (now x)     .run = now (just x)
-  delay-crash crash       .run = now nothing
-  delay-crash (later x m) .run = later (delay-crash′ m .run)
-  delay-crash (tell x m)  .run = delay-crash m .run
+  delay-crash (now x)     = now (just x)
+  delay-crash crash       = now nothing
+  delay-crash (later x m) = later (delay-crash′ m)
+  delay-crash (tell x m)  = delay-crash m
 
   delay-crash′ :
     ∀ {A B i} → Delay-crash-colist′ A B i → Delay-crash′ B i
-  delay-crash′ m .run .force = delay-crash (m .force) .run
+  delay-crash′ m .force = delay-crash (m .force)
 
 ------------------------------------------------------------------------
 -- Delay-crash-colist is a raw monad
@@ -237,7 +235,7 @@ colist-cong (tell p)  = refl ∷ λ { .force → colist-cong p }
 
 delay-crash-cong :
   ∀ {i} {A B : Set} {x y : Delay-crash-colist A B ∞} →
-  [ i ] x ∼ y → D.[ i ] run (delay-crash x) ∼ run (delay-crash y)
+  [ i ] x ∼ y → D.[ i ] delay-crash x ∼ delay-crash y
 delay-crash-cong now       = now
 delay-crash-cong crash     = now
 delay-crash-cong (later p) = later λ { .force →
@@ -252,8 +250,8 @@ delay-crash-cong (tell p)  = delay-crash-cong p
 delay-crash->>= :
   ∀ {i A B C} (x : Delay-crash-colist A B ∞)
     {f : B → Delay-crash-colist A C ∞} →
-  D.[ i ] run (delay-crash (x >>= f)) ∼
-          run (delay-crash x >>= delay-crash ∘ f)
+  D.[ i ] delay-crash (x >>= f) ∼
+          delay-crash x >>= delay-crash ∘ f
 delay-crash->>= (now x)     = D.reflexive _
 delay-crash->>= crash       = D.reflexive _
 delay-crash->>= (later x m) = later λ { .force →

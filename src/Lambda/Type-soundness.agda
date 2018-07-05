@@ -25,7 +25,6 @@ open import Vec.Data equality-with-J
 
 open import Delay-monad.Always
 open import Delay-monad.Bisimilarity
-open import Delay-monad.Monad
 
 open import Lambda.Delay-crash
 open import Lambda.Interpreter def
@@ -64,7 +63,7 @@ _∷-wf_ : ∀ {n} {Γ : Ctxt n} {ρ σ v} →
 -- If we can prove □ ∞ (WF-MV σ) (run x), then x does not "go wrong".
 
 does-not-go-wrong : ∀ {σ} {x : Delay-crash Value ∞} →
-                    □ ∞ (WF-MV σ) (run x) → ¬ run x ≈ run fail
+                    □ ∞ (WF-MV σ) x → ¬ x ≈ crash
 does-not-go-wrong (now {x = nothing} ())
 does-not-go-wrong (now {x = just x} x-wf) ()
 does-not-go-wrong (later x-wf)            (laterˡ x↯) =
@@ -74,9 +73,9 @@ does-not-go-wrong (later x-wf)            (laterˡ x↯) =
 
 _>>=-wf_ :
   ∀ {i σ τ} {x : Delay-crash Value ∞} {f : Value → Delay-crash Value ∞} →
-  □ i (WF-MV σ) (run x) →
-  (∀ {v} → WF-Value σ v → □ i (WF-MV τ) (run (f v))) →
-  □ i (WF-MV τ) (run (x >>= f))
+  □ i (WF-MV σ) x →
+  (∀ {v} → WF-Value σ v → □ i (WF-MV τ) (f v)) →
+  □ i (WF-MV τ) (x >>= f)
 x-wf >>=-wf f-wf =
   □->>= x-wf λ { {nothing} ()
                ; {just v}  v-wf → f-wf v-wf
@@ -91,7 +90,7 @@ module _ (def∈ : (f : Name) →
 
     ⟦⟧-wf : ∀ {i n Γ} (t : Tm n) {σ} → Σ , Γ ⊢ t ∈ σ →
             ∀ {ρ} → WF-Env Γ ρ →
-            □ i (WF-MV σ) (run (⟦ t ⟧ ρ))
+            □ i (WF-MV σ) (⟦ t ⟧ ρ)
     ⟦⟧-wf (var x)   var         ρ-wf = now (ρ-wf x)
     ⟦⟧-wf (ƛ t)     (ƛ t∈)      ρ-wf = now (ƛ t∈ ρ-wf)
     ⟦⟧-wf (t₁ · t₂) (t₁∈ · t₂∈) ρ-wf =
@@ -110,7 +109,7 @@ module _ (def∈ : (f : Name) →
 
     ∙-wf : ∀ {i σ τ f v} →
            WF-Value (σ ⇾′ τ) f → WF-Value (force σ) v →
-           □ i (WF-MV (force τ)) (run (f ∙ v))
+           □ i (WF-MV (force τ)) (f ∙ v)
     ∙-wf (ƛ t₁∈ ρ₁-wf) v₂-wf =
       later λ { .force → ⟦⟧-wf _ t₁∈ (v₂-wf ∷-wf ρ₁-wf) }
 
@@ -119,13 +118,13 @@ module _ (def∈ : (f : Name) →
               Σ , Γ ⊢ t₂ ∈ σ →
               Σ , Γ ⊢ t₃ ∈ σ →
               ∀ {ρ} → WF-Env Γ ρ →
-              □ i (WF-MV σ) (run (⟦if⟧ v t₂ t₃ ρ))
+              □ i (WF-MV σ) (⟦if⟧ v t₂ t₃ ρ)
     ⟦if⟧-wf (con true)  t₂∈ t₃∈ ρ-wf = ⟦⟧-wf _ t₂∈ ρ-wf
     ⟦if⟧-wf (con false) t₂∈ t₃∈ ρ-wf = ⟦⟧-wf _ t₃∈ ρ-wf
 
   type-soundness : ∀ {t : Tm 0} {σ} →
-                   Σ , [] ⊢ t ∈ σ → ¬ run (⟦ t ⟧ []) ≈ run fail
+                   Σ , [] ⊢ t ∈ σ → ¬ ⟦ t ⟧ [] ≈ crash
   type-soundness {t = t} {σ} =
-    Σ , [] ⊢ t ∈ σ                  ↝⟨ (λ t∈ → ⟦⟧-wf _ t∈ []-wf) ⟩
-    □ ∞ (WF-MV σ) (run (⟦ t ⟧ []))  ↝⟨ does-not-go-wrong ⟩□
-    ¬ run (⟦ t ⟧ []) ≈ run fail     □
+    Σ , [] ⊢ t ∈ σ            ↝⟨ (λ t∈ → ⟦⟧-wf _ t∈ []-wf) ⟩
+    □ ∞ (WF-MV σ) (⟦ t ⟧ [])  ↝⟨ does-not-go-wrong ⟩□
+    ¬ ⟦ t ⟧ [] ≈ crash        □
