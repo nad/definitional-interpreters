@@ -93,8 +93,7 @@ stack-sizes-go∼go-sizes =
 
 -- The least upper bound of go-sizes is 2.
 
-lub-go-sizes-2 :
-  Least-upper-bound go-sizes ⌜ 2 ⌝
+lub-go-sizes-2 : Least-upper-bound go-sizes ⌜ 2 ⌝
 lub-go-sizes-2 =
   lub-∷ʳ zero (lub-∷ʳ 1≤2 lub-loop-sizes-2)
   where
