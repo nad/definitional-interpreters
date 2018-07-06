@@ -275,6 +275,31 @@ wlpo⇔lub = record
 ------------------------------------------------------------------------
 -- Some examples
 
+-- When this semantics is used all three programs are non-terminating,
+-- in the sense that their traces are infinitely long.
+
+constant-space-loops :
+  ∀ {i n} → Conat.[ i ] length (⟦ constant-space ⟧ n) ∼ infinity
+constant-space-loops =
+  suc λ { .force →
+  suc λ { .force →
+  constant-space-loops }}
+
+constant-space₂-loops :
+  ∀ {i n} → Conat.[ i ] length (⟦ constant-space₂ ⟧ n) ∼ infinity
+constant-space₂-loops =
+  suc λ { .force →
+  suc λ { .force →
+  suc λ { .force →
+  suc λ { .force →
+  constant-space₂-loops }}}}
+
+unbounded-space-loops :
+  ∀ {i n} → Conat.[ i ] length (⟦ unbounded-space ⟧ n) ∼ infinity
+unbounded-space-loops =
+  suc λ { .force →
+  unbounded-space-loops }
+
 -- Zero is not an upper bound of the semantics of constant-space when
 -- it is started with an empty heap.
 
