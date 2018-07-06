@@ -20,10 +20,10 @@ open import Vec.Data equality-with-J
 infixl 9 _·_
 
 data Tm (n : ℕ) : Set where
-  var  : (x : Fin n) → Tm n
+  var  : Fin n → Tm n
   ƛ    : Tm (suc n) → Tm n
   _·_  : Tm n → Tm n → Tm n
-  call : (f : Name) → Tm n → Tm n
+  call : Name → Tm n → Tm n
   con  : Bool → Tm n
   if   : Tm n → Tm n → Tm n → Tm n
 
@@ -46,7 +46,7 @@ module Closure (Tm : ℕ → Set) where
     -- not contain any free variables.
 
     data Value : Set where
-      ƛ   : ∀ {n} (t : Tm (suc n)) (ρ : Env n) → Value
+      ƛ   : ∀ {n} → Tm (suc n) → Env n → Value
       con : Bool → Value
 
 ------------------------------------------------------------------------

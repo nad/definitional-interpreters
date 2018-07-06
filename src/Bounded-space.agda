@@ -32,14 +32,15 @@
 module Bounded-space where
 
 open import Colist
-open import Delay-monad
-open import Delay-monad.Bisimilarity as B
-  hiding (reflexive; symmetric)
 open import Equality.Propositional
 open import Prelude
 open import Tactic.By
 
 open import Nat equality-with-J
+
+open import Delay-monad
+open import Delay-monad.Bisimilarity as B
+  hiding (reflexive; symmetric)
 
 open import Only-allocation
 
@@ -58,76 +59,79 @@ open Heap public
 
 -- An empty heap.
 
-empty : ∀ {limit} → Heap limit
+empty : ∀ {l} → Heap l
 empty = record { size = zero; bounded = zero≤ _ }
 
 -- A full heap.
 
-full : ∀ limit → Heap limit
-full limit = record { size = limit; bounded = ≤-refl }
+full : ∀ l → Heap l
+full l = record { size = l; bounded = ≤-refl }
 
 -- Reduces the heap's size by one. If the heap is empty, then it is
 -- returned unchanged.
 
-shrink : ∀ {limit} → Heap limit → Heap limit
-shrink {limit} h = record h
-  { size    = pred (size h)
-  ; bounded = pred (size h)  ≤⟨ pred≤ _ ⟩
-              size h         ≤⟨ bounded h ⟩∎
-              limit          ∎≤
+shrink : ∀ {l} → Heap l → Heap l
+shrink {l} h = record
+  { size    = pred (h .size)
+  ; bounded = pred (h .size)  ≤⟨ pred≤ _ ⟩
+              h .size         ≤⟨ h .bounded ⟩∎
+              l               ∎≤
   }
 
 -- Increases the heap's size by one. If the heap already has the
 -- maximum size, then nothing is returned.
 
-grow : ∀ {limit} → Heap limit → Maybe (Heap limit)
-grow {limit} h = case limit ≤⊎> size h of λ where
-  (inj₁ _)   → nothing
-  (inj₂ h<l) → just (record h { size    = suc (size h)
+grow : ∀ {l} → Heap l → Maybe (Heap l)
+grow {l} h with l ≤⊎> h .size
+... | inj₁ _   = nothing
+... | inj₂ h<l = just (record { size    = suc (h .size)
                               ; bounded = h<l
                               })
 
 -- Lemmas related to grow.
 
 grow-full :
-  ∀ {limit} (h : Heap limit) → size h ≡ limit → grow h ≡ nothing
-grow-full {limit} h h≡l with limit ≤⊎> size h
+  ∀ {l} (h : Heap l) → h .size ≡ l → grow h ≡ nothing
+grow-full {l} h h≡l with l ≤⊎> h .size
 ... | inj₁ _   = refl
 ... | inj₂ h<l =
   ⊥-elim (+≮ 0 (
-    1 + size h  ≤⟨ h<l ⟩
-    limit       ≡⟨ sym h≡l ⟩≤
-    size h      ∎≤))
+    1 + h .size  ≤⟨ h<l ⟩
+    l            ≡⟨ sym h≡l ⟩≤
+    h .size      ∎≤))
 
 grow-not-full :
-  ∀ {limit} (h : Heap limit) →
-  size h < limit → ∃ λ h′ → grow h ≡ just h′ × size h′ ≡ 1 + size h
-grow-not-full {limit} h h<l with limit ≤⊎> size h
+  ∀ {l} (h : Heap l) →
+  h .size < l → ∃ λ h′ → grow h ≡ just h′ × h′ .size ≡ 1 + h .size
+grow-not-full {l} h h<l with l ≤⊎> h .size
 ... | inj₂ _   = _ , refl , refl
 ... | inj₁ l≤h =
   ⊥-elim (+≮ 0 (
-    1 + size h  ≤⟨ h<l ⟩
-    limit       ≤⟨ l≤h ⟩∎
-    size h      ∎≤))
+    1 + h .size  ≤⟨ h<l ⟩
+    l            ≤⟨ l≤h ⟩∎
+    h .size      ∎≤))
 
 ------------------------------------------------------------------------
 -- Definitional interpreter
 
 -- One step of computation.
 
-step : ∀ {limit} → Stmt → Heap limit → Maybe (Heap limit)
+step : ∀ {l} → Stmt → Heap l → Maybe (Heap l)
 step deallocate heap = just (shrink heap)
 step allocate   heap = grow heap
 
+-- A crashing computation.
+
+crash : ∀ {i l} → Delay (Maybe (Heap l)) i
+crash = now nothing
+
 -- A definitional interpreter.
 
-⟦_⟧ : ∀ {i limit} →
-      Program ∞ → Heap limit → Delay (Maybe (Heap limit)) i
+⟦_⟧ : ∀ {i l} → Program i → Heap l → Delay (Maybe (Heap l)) i
 ⟦ []    ⟧ heap = now (just heap)
-⟦ s ∷ p ⟧ heap =
-  case step s heap of λ where
-    nothing     → now nothing
-    (just heap) → later λ { .force → ⟦ force p ⟧ heap }
+⟦ s ∷ p ⟧ heap with step s heap
+... | nothing       = crash
+... | just new-heap = later λ { .force → ⟦ p .force ⟧ new-heap }
 
 ------------------------------------------------------------------------
 -- A program equivalence
@@ -203,17 +207,12 @@ transitive {p = p} {q} {r} (c₁ , p₁) (c₂ , p₂) =
 ------------------------------------------------------------------------
 -- Some examples
 
--- A crashing computation.
-
-crash : ∀ {l} → Delay (Maybe (Heap l)) ∞
-crash = now nothing
-
 -- The program constant-space crashes when the heap is full.
 
 constant-space-crash :
-  ∀ {limit} (h : Heap limit) →
-  size h ≡ limit →
-  ⟦ constant-space ⟧ h ≈ crash
+  ∀ {i l} (h : Heap l) →
+  h .size ≡ l →
+  [ i ] ⟦ constant-space ⟧ h ≈ crash
 constant-space-crash h h≡l
   rewrite grow-full h h≡l =
   now
@@ -221,43 +220,43 @@ constant-space-crash h h≡l
 -- However, for smaller heaps the program loops.
 
 constant-space-loop :
-  ∀ {i limit} (h : Heap limit) →
-  size h < limit →
+  ∀ {i l} (h : Heap l) →
+  h .size < l →
   [ i ] ⟦ constant-space ⟧ h ≈ never
-constant-space-loop {limit = limit} h <limit
-  with grow h | grow-not-full h <limit
+constant-space-loop {l = l} h <l
+  with grow h | grow-not-full h <l
 ... | .(just h′) | h′ , refl , refl =
   later λ { .force →
   later λ { .force →
-  constant-space-loop _ <limit }}
+  constant-space-loop _ <l }}
 
 -- The program constant-space₂ loops when there are at least two empty
 -- slots in the heap.
 
 constant-space₂-loop :
-  ∀ {i limit} (h : Heap limit) →
-  2 + size h ≤ limit →
+  ∀ {i l} (h : Heap l) →
+  2 + h .size ≤ l →
   [ i ] ⟦ constant-space₂ ⟧ h ≈ never
-constant-space₂-loop {i} {limit} h 2+h≤limit
-  with grow h | grow-not-full h (<→≤ 2+h≤limit)
+constant-space₂-loop {i} {l} h 2+h≤l
+  with grow h | grow-not-full h (<→≤ 2+h≤l)
 ... | .(just h′) | h′ , refl , refl = later λ { .force → lemma }
   where
   lemma : [ i ] ⟦ force (tail constant-space₂) ⟧ h′ ≈ never
-  lemma with grow h′ | grow-not-full h′ 2+h≤limit
+  lemma with grow h′ | grow-not-full h′ 2+h≤l
   lemma | .(just h″) | h″ , refl , refl =
     later λ { .force →
     later λ { .force →
     later λ { .force →
-    constant-space₂-loop _ 2+h≤limit }}}
+    constant-space₂-loop _ 2+h≤l }}}
 
 -- The program unbounded-space crashes for all heaps.
 
 unbounded-space-crash :
-  ∀ {limit} (h : Heap limit) → ⟦ unbounded-space ⟧ h ≈ crash
-unbounded-space-crash {limit} h = helper h (≤→≤↑ (bounded h))
+  ∀ {i l} (h : Heap l) → [ i ] ⟦ unbounded-space ⟧ h ≈ crash
+unbounded-space-crash {l = l} h = helper h (≤→≤↑ (h .bounded))
   where
   helper :
-    ∀ {i} (h′ : Heap limit) → size h′ ≤↑ limit →
+    ∀ {i} (h′ : Heap l) → size h′ ≤↑ l →
     [ i ] ⟦ unbounded-space ⟧ h′ ≈ crash
   helper h′ (≤↑-refl h′≡l)
     rewrite grow-full h′ h′≡l =

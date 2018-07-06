@@ -142,24 +142,24 @@ lub-[] = [] , λ _ _ → zero
 lub-∷ˡ :
   ∀ {m ms n} →
   [ ∞ ] n ≤ ⌜ m ⌝ →
-  LUB (force ms) n →
+  LUB (ms .force) n →
   LUB (m ∷ ms) ⌜ m ⌝
 lub-∷ˡ {m} {ms} {n} n≤m = Σ-map
-  ([ ∞ ] force ms ⊑ n      ↝⟨ (λ hyp → reflexive-≤ _ ∷ λ { .force → □-map (flip transitive-≤ n≤m) hyp }) ⟩□
-   [ ∞ ] m ∷ ms   ⊑ ⌜ m ⌝  □)
-  ((∀ n′ → [ ∞ ] force ms ⊑ n′ → [ ∞ ] n     ≤ n′)  ↝⟨ (λ _ _ → □-head) ⟩□
-   (∀ n′ → [ ∞ ] m ∷ ms   ⊑ n′ → [ ∞ ] ⌜ m ⌝ ≤ n′)  □)
+  ([ ∞ ] ms .force ⊑ n      ↝⟨ (λ hyp → reflexive-≤ _ ∷ λ { .force → □-map (flip transitive-≤ n≤m) hyp }) ⟩□
+   [ ∞ ] m ∷ ms    ⊑ ⌜ m ⌝  □)
+  ((∀ n′ → [ ∞ ] ms .force ⊑ n′ → [ ∞ ] n     ≤ n′)  ↝⟨ (λ _ _ → □-head) ⟩□
+   (∀ n′ → [ ∞ ] m ∷ ms    ⊑ n′ → [ ∞ ] ⌜ m ⌝ ≤ n′)  □)
 
 lub-∷ʳ :
   ∀ {m ms n} →
   [ ∞ ] ⌜ m ⌝ ≤ n →
-  LUB (force ms) n →
+  LUB (ms .force) n →
   LUB (m ∷ ms) n
 lub-∷ʳ {m} {ms} {n} m≤n = Σ-map
-  ([ ∞ ] force ms ⊑ n  ↝⟨ (λ hyp → m≤n ∷ λ { .force → hyp }) ⟩□
-   [ ∞ ] m ∷ ms   ⊑ n  □)
-  ((∀ n′ → [ ∞ ] force ms ⊑ n′ → [ ∞ ] n ≤ n′)  ↝⟨ (λ hyp n′ → hyp n′ ∘ □-tail) ⟩□
-   (∀ n′ → [ ∞ ] m ∷ ms   ⊑ n′ → [ ∞ ] n ≤ n′)  □)
+  ([ ∞ ] ms .force ⊑ n  ↝⟨ (λ hyp → m≤n ∷ λ { .force → hyp }) ⟩□
+   [ ∞ ] m ∷ ms    ⊑ n  □)
+  ((∀ n′ → [ ∞ ] ms .force ⊑ n′ → [ ∞ ] n ≤ n′)  ↝⟨ (λ hyp n′ → hyp n′ ∘ □-tail) ⟩□
+   (∀ n′ → [ ∞ ] m ∷ ms    ⊑ n′ → [ ∞ ] n ≤ n′)  □)
 
 -- If m ∷ ms has a least upper bound, then cycle m ms has the same
 -- least upper bound.
@@ -205,21 +205,16 @@ wlpo→lub wlpo = λ ms → lub ms , □ˢ∞→□∞ (upper-bound ms) , least 
 
   >0 : Colist ℕ ∞ → ℕ → Bool
   >0 []           _       = false
-  >0 (m     ∷ ms) (suc n) = >0 (force ms) n
+  >0 (m     ∷ ms) (suc n) = >0 (ms .force) n
   >0 (zero  ∷ ms) zero    = false
   >0 (suc m ∷ ms) zero    = true
 
   -- The number lub ms is the least upper bound of ms.
 
-  mutual
-
-    lub : ∀ {i} → Colist ℕ ∞ → Conat i
-    lub = λ ms → case wlpo (>0 ms) of λ where
-      (inj₁ _) → zero
-      (inj₂ _) → suc (lub′ (map pred ms))
-
-    lub′ : ∀ {i} → Colist ℕ ∞ → Conat′ i
-    force (lub′ ms) = lub ms
+  lub : ∀ {i} → Colist ℕ ∞ → Conat i
+  lub ms with wlpo (>0 ms)
+  ... | inj₁ _ = zero
+  ... | inj₂ _ = suc λ { .force → lub (map pred ms) }
 
   -- Zero is an upper bound of ms iff >0 ms is universally false.
 
@@ -230,49 +225,49 @@ wlpo→lub wlpo = λ ms → lub ms , □ˢ∞→□∞ (upper-bound ms) , least 
     to _            []         _       = refl
     to (zero  ∷ ms) _          zero    = refl
     to (suc _ ∷ _)  (() ∷ _)   _
-    to (m     ∷ ms) (_ ∷ ms⊑0) (suc n) = to (force ms) (force ms⊑0) n
+    to (m     ∷ ms) (_ ∷ ms⊑0) (suc n) = to (ms .force) (ms⊑0 .force) n
 
     from : ∀ {i} ms → (∀ n → >0 ms n ≡ false) → [ i ] ms ⊑ zero
     from []           _      = []
     from (suc m ∷ ms) ≡false = ⊥-elim (Bool.true≢false (≡false zero))
     from (zero  ∷ ms) ≡false =
-      zero ∷ λ { .force → from (force ms) (≡false ∘ suc) }
+      zero ∷ λ { .force → from (ms .force) (≡false ∘ suc) }
 
-  -- If force n is an upper bound of map pred ms, then suc n is an
+  -- If n .force is an upper bound of map pred ms, then suc n is an
   -- upper bound of ms. Note that the lemma is size-preserving and
   -- takes □ˢ′ to □ˢ.
 
   pred-lemma₁ :
     ∀ {i n} ms →
-    □ˢ′ i (λ i m → [ i ] ⌜ m ⌝ ≤ force n) (map pred ms) →
+    □ˢ′ i (λ i m → [ i ] ⌜ m ⌝ ≤ n .force) (map pred ms) →
     □ˢ i (λ i m → [ i ] ⌜ m ⌝ ≤ suc n) ms
   pred-lemma₁ []       hyp = []
   pred-lemma₁ (m ∷ ms) hyp =
     helper m hyp
       ∷ λ { .force →
-    pred-lemma₁ (force ms) λ { .force → □ˢ-tail (force hyp) }}
+    pred-lemma₁ (ms .force) λ { .force → □ˢ-tail (hyp .force) }}
     where
     helper :
       ∀ {i n} m →
-      □ˢ′ i (λ i m → [ i ] ⌜ m ⌝ ≤ force n) (map pred (m ∷ ms)) →
+      □ˢ′ i (λ i m → [ i ] ⌜ m ⌝ ≤ n .force) (map pred (m ∷ ms)) →
       [ i ] ⌜ m ⌝ ≤ suc n
     helper zero    hyp = zero
-    helper (suc m) hyp = suc λ { .force → □ˢ-head (force hyp) }
+    helper (suc m) hyp = suc λ { .force → □ˢ-head (hyp .force) }
 
-  -- If suc n is an upper bound of ms, then force n is an upper bound
+  -- If suc n is an upper bound of ms, then n .force is an upper bound
   -- of map pred ms.
 
   pred-lemma₂ :
     ∀ {n ms i} →
     [ i ] ms ⊑ suc n →
-    [ i ] map pred ms ⊑ force n
+    [ i ] map pred ms ⊑ n .force
   pred-lemma₂     []                         = []
   pred-lemma₂ {n} (_∷_ {x = m} m≤1+n ms⊑1+n) =
     (⌜ pred m ⌝        ∼⟨ ⌜⌝-pred m ⟩≤
      Conat.pred ⌜ m ⌝  ≤⟨ pred-mono m≤1+n ⟩∎
-     force n           ∎≤)
+     n .force          ∎≤)
       ∷ λ { .force →
-    pred-lemma₂ (force ms⊑1+n) }
+    pred-lemma₂ (ms⊑1+n .force) }
 
   -- The number lub ms is an upper bound of ms.
 
@@ -300,7 +295,7 @@ wlpo→lub wlpo = λ ms → lub ms , □ˢ∞→□∞ (upper-bound ms) , least 
 
   least ms (suc ub) ms⊑1+ub | inj₂ _ =
     suc λ { .force →
-      least (map pred ms) (force ub) (pred-lemma₂ ms⊑1+ub) }
+      least (map pred ms) (ub .force) (pred-lemma₂ ms⊑1+ub) }
 
   least ms zero ms⊑0 | inj₂ ¬≡false =
                              $⟨ ms⊑0 ⟩
@@ -348,32 +343,32 @@ bounded-lemma (inj₂ refl)  = const zero
 
 consʳ-≲ :
   ∀ {ms ns n i} →
-  [ i ] ms ≲ force ns →
+  [ i ] ms ≲ ns .force →
   [ i ] ms ≲ n ∷ ns
 consʳ-≲ = _∘ □-tail
 
 consˡ-≲ :
   ∀ {i m ms ns} →
   Bounded m ns →
-  [ i ] force ms ≲′ ns →
+  [ i ] ms .force ≲′ ns →
   [ i ] m ∷ ms ≲ ns
 consˡ-≲ ◇m≤ns ms≲′ns ns⊑n =
   bounded-lemma ◇m≤ns ns⊑n ∷ λ { .force →
-  force (ms≲′ns ns⊑n) }
+  ms≲′ns ns⊑n .force }
 
 cons-≲ :
   ∀ {i m ms n ns} →
   Bounded m (n ∷ ns) →
-  [ i ] force ms ≲′ force ns →
+  [ i ] ms .force ≲′ ns .force →
   [ i ] m ∷ ms ≲ n ∷ ns
 cons-≲ {i} {m} {ms} {n} {ns} ◇m≤n∷ns =
-  [ i ] force ms ≲′ force ns  ↝⟨ (λ { ms≲′ns hyp .force → consʳ-≲ (λ hyp → ms≲′ns hyp .force) hyp }) ⟩
-  [ i ] force ms ≲′ n ∷ ns    ↝⟨ consˡ-≲ ◇m≤n∷ns ⟩□
-  [ i ] m ∷ ms ≲ n ∷ ns       □
+  [ i ] ms .force ≲′ ns .force  ↝⟨ (λ { ms≲′ns hyp .force → consʳ-≲ (λ hyp → ms≲′ns hyp .force) hyp }) ⟩
+  [ i ] ms .force ≲′ n ∷ ns     ↝⟨ consˡ-≲ ◇m≤n∷ns ⟩□
+  [ i ] m ∷ ms ≲ n ∷ ns         □
 
 cons′-≲ :
   ∀ {i m ms ns} →
-  [ i ] force ms ≲′ force ns →
+  [ i ] ms .force ≲′ ns .force →
   [ i ] m ∷ ms ≲ m ∷ ns
 cons′-≲ = cons-≲ (inj₁ (here Nat.≤-refl))
 
@@ -526,7 +521,7 @@ symmetric-≲≳ = swap
 consʳ-≲≳ :
   ∀ {i ms n ns} →
   Bounded n ms →
-  [ i ] ms ≲≳ force ns →
+  [ i ] ms ≲≳ ns .force →
   [ i ] ms ≲≳ n ∷ ns
 consʳ-≲≳ ◇n≤ms = Σ-map
   consʳ-≲
@@ -535,7 +530,7 @@ consʳ-≲≳ ◇n≤ms = Σ-map
 consˡ-≲≳ :
   ∀ {i m ms ns} →
   Bounded m ns →
-  [ i ] force ms ≲≳ ns →
+  [ i ] ms .force ≲≳ ns →
   [ i ] m ∷ ms ≲≳ ns
 consˡ-≲≳ ◇m≤ns = symmetric-≲≳ ∘ consʳ-≲≳ ◇m≤ns ∘ symmetric-≲≳
 
@@ -543,19 +538,19 @@ cons-≲≳ :
   ∀ {i m ms n ns} →
   Bounded m (n ∷ ns) →
   Bounded n (m ∷ ms) →
-  [ i ] force ms ≲≳′ force ns →
+  [ i ] ms .force ≲≳′ ns .force →
   [ i ] m ∷ ms ≲≳ n ∷ ns
 cons-≲≳ ◇m≤n∷ns ◇n≤m∷ms = Σ-map (cons-≲ ◇m≤n∷ns) (cons-≲ ◇n≤m∷ms)
 
 cons′-≲≳ :
   ∀ {i m ms ns} →
-  [ i ] force ms ≲≳′ force ns →
+  [ i ] ms .force ≲≳′ ns .force →
   [ i ] m ∷ ms ≲≳ m ∷ ns
 cons′-≲≳ = Σ-map cons′-≲ cons′-≲
 
 cons″-≲≳ :
   ∀ {i m ms ns} →
-  [ i ] force ms ≲≳ force ns →
+  [ i ] ms .force ≲≳ ns .force →
   [ i ] m ∷ ms ≲≳ m ∷ ns
 cons″-≲≳ = cons′-≲≳ ∘ Σ-map (λ { ms≲ns hyp .force → ms≲ns hyp })
                             (λ { ns≲ms hyp .force → ns≲ms hyp })
@@ -674,11 +669,11 @@ mutual
                [ i ] ms ≲D ns
     consˡ-≲D : ∀ {m ms ns} →
                Bounded m ns →
-               [ i ] force ms ≲D′ ns →
+               [ i ] ms .force ≲D′ ns →
                [ i ] m ∷ ms ≲D ns
     cons-≲D  : ∀ {m ms n ns} →
                Bounded m (n ∷ ns) →
-               [ i ] force ms ≲D′ force ns →
+               [ i ] ms .force ≲D′ ns .force →
                [ i ] m ∷ ms ≲D n ∷ ns
 
   record [_]_≲D′_ (i : Size) (ms ns : Colist ℕ ∞) : Set where
@@ -699,13 +694,13 @@ open [_]_≲D′_ public
 
 consʳ-≲D :
   ∀ {i ms n ns} →
-  [ i ] ms ≲D force ns →
+  [ i ] ms ≲D ns .force →
   [ i ] ms ≲D n ∷ ns
 consʳ-≲D = ⌈_⌉ ∘ consʳ-≲ ∘ ⌊_⌋≲
 
 cons′-≲D :
   ∀ {i m ms ns} →
-  [ i ] force ms ≲D′ force ns →
+  [ i ] ms .force ≲D′ ns .force →
   [ i ] m ∷ ms ≲D m ∷ ns
 cons′-≲D p = ⌈ cons′-≲ (λ { hyp .force → ⌊ p .force ⌋≲ hyp }) ⌉
 
@@ -722,16 +717,16 @@ mutual
                 [ i ] ms ≲≳D ns
     consʳ-≲≳D : ∀ {ms n ns} →
                 Bounded n ms →
-                [ i ] ms ≲≳D force ns →
+                [ i ] ms ≲≳D ns .force →
                 [ i ] ms ≲≳D n ∷ ns
     consˡ-≲≳D : ∀ {m ms ns} →
                 Bounded m ns →
-                [ i ] force ms ≲≳D ns →
+                [ i ] ms .force ≲≳D ns →
                 [ i ] m ∷ ms ≲≳D ns
     cons-≲≳D  : ∀ {m ms n ns} →
                 Bounded m (n ∷ ns) →
                 Bounded n (m ∷ ms) →
-                [ i ] force ms ≲≳D′ force ns →
+                [ i ] ms .force ≲≳D′ ns .force →
                 [ i ] m ∷ ms ≲≳D n ∷ ns
 
   record [_]_≲≳D′_ (i : Size) (ms ns : Colist ℕ ∞) : Set where
@@ -756,7 +751,7 @@ open [_]_≲≳D′_ public
 
 cons′-≲≳D :
   ∀ {i m ms ns} →
-  [ i ] force ms ≲≳D′ force ns →
+  [ i ] ms .force ≲≳D′ ns .force →
   [ i ] m ∷ ms ≲≳D m ∷ ns
 cons′-≲≳D = cons-≲≳D (inj₁ (here Nat.≤-refl)) (inj₁ (here Nat.≤-refl))
 

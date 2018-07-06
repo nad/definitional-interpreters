@@ -44,17 +44,17 @@ open Closure Code
 
 -- Stacks.
 
-data StackElement : Set where
-  val : (v : Value) → StackElement
-  ret : ∀ {n} (c : Code n) (ρ : Env n) → StackElement
+data Stack-element : Set where
+  val : Value → Stack-element
+  ret : ∀ {n} → Code n → Env n → Stack-element
 
 Stack : Set
-Stack = List StackElement
+Stack = List Stack-element
 
 -- States.
 
 data State : Set where
-  ⟨_,_,_⟩ : ∀ {n} (c : Code n) (s : Stack) (ρ : Env n) → State
+  ⟨_,_,_⟩ : ∀ {n} → Code n → Stack → Env n → State
 
 -- The length of the stack.
 
@@ -67,6 +67,6 @@ stack-size ⟨ _ , s , _ ⟩ = length s
 -- The result of running the VM one step.
 
 data Result : Set where
-  continue : (s : State) → Result
-  done     : (v : Value) → Result
+  continue : State → Result
+  done     : Value → Result
   crash    : Result
