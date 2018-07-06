@@ -339,6 +339,11 @@ bounded-lemma :
 bounded-lemma (inj₁ ◇m≤ns) = transitive-◇≤⊑ ◇m≤ns
 bounded-lemma (inj₂ refl)  = const zero
 
+-- The empty colist is bounded by any other.
+
+[]≲ : ∀ {ns i} → [ i ] [] ≲ ns
+[]≲ = λ _ → []
+
 -- Some derived cons-like operations.
 
 consʳ-≲ :
