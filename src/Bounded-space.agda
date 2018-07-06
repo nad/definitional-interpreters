@@ -136,62 +136,69 @@ step allocate   heap = grow heap
 -- sufficient amount of memory, behave identically (up to weak
 -- bisimilarity).
 
-infix 4 _≘_
+infix 4 [_]_≃_ [_]_≃′_
 
-_≘_ : Program ∞ → Program ∞ → Set
-p ≘ q =
-  ∃ λ bound →
-  ∀ limit (h : Heap limit) →
-  bound + size h ≤ limit →
-  ⟦ p ⟧ h ≈ ⟦ q ⟧ h
+[_]_≃_ : Size → Program ∞ → Program ∞ → Set
+[ i ] p ≃ q =
+  ∃ λ c →
+  ∀ l (h : Heap l) →
+  c + h .size ≤ l →
+  [ i ] ⟦ p ⟧ h ≈ ⟦ q ⟧ h
+
+[_]_≃′_ : Size → Program ∞ → Program ∞ → Set
+[ i ] p ≃′ q =
+  ∃ λ c →
+  ∀ l (h : Heap l) →
+  c + h .size ≤ l →
+  [ i ] ⟦ p ⟧ h ≈′ ⟦ q ⟧ h
 
 -- The relation is an equivalence relation.
 
-reflexive : ∀ {p} → p ≘ p
+reflexive : ∀ {i p} → [ i ] p ≃ p
 reflexive = 0 , λ _ _ _ → B.reflexive _
 
-symmetric : ∀ {p q} → p ≘ q → q ≘ p
-symmetric = Σ-map id λ hyp l h b → B.symmetric (hyp l h b)
+symmetric : ∀ {i p q} → [ i ] p ≃ q → [ i ] q ≃ p
+symmetric = Σ-map id λ hyp l h c → B.symmetric (hyp l h c)
 
-transitive : ∀ {p q r} → p ≘ q → q ≘ r → p ≘ r
-transitive {p} {q} {r} (b₁ , p₁) (b₂ , p₂) =
-  max b₁ b₂ , λ l h b →
-    ⟦ p ⟧ h  ≈⟨ p₁ l h (lemma₁ l h b) ⟩
-    ⟦ q ⟧ h  ≈⟨ p₂ l h (lemma₂ l h b) ⟩∎
+transitive : ∀ {i p q r} → [ ∞ ] p ≃ q → [ ∞ ] q ≃ r → [ i ] p ≃ r
+transitive {p = p} {q} {r} (c₁ , p₁) (c₂ , p₂) =
+  max c₁ c₂ , λ l h c →
+    ⟦ p ⟧ h  ≈⟨ p₁ l h (lemma₁ l h c) ⟩
+    ⟦ q ⟧ h  ≈⟨ p₂ l h (lemma₂ l h c) ⟩∎
     ⟦ r ⟧ h  ∎
   where
-  lemma₁ = λ l h b →
-    b₁ + size h         ≤⟨ ˡ≤max b₁ _ +-mono ≤-refl ⟩
-    max b₁ b₂ + size h  ≤⟨ b ⟩∎
+  lemma₁ = λ l h c →
+    c₁ + h .size         ≤⟨ ˡ≤max c₁ _ +-mono ≤-refl ⟩
+    max c₁ c₂ + h .size  ≤⟨ c ⟩∎
     l                   ∎≤
 
-  lemma₂ = λ l h b →
-    b₂ + size h         ≤⟨ ʳ≤max b₁ _ +-mono ≤-refl ⟩
-    max b₁ b₂ + size h  ≤⟨ b ⟩∎
+  lemma₂ = λ l h c →
+    c₂ + h .size         ≤⟨ ʳ≤max c₁ _ +-mono ≤-refl ⟩
+    max c₁ c₂ + h .size  ≤⟨ c ⟩∎
     l                   ∎≤
 
 -- The relation is compatible with respect to the program formers.
 
-[]-cong : [] ≘ []
+[]-cong : ∀ {i} → [ i ] [] ≃ []
 []-cong = 0 , λ _ _ _ → B.reflexive _
 
-∷-cong : ∀ {s p q} → force p ≘ force q → s ∷ p ≘ s ∷ q
-∷-cong {deallocate} (b , p≈q) =
-  b , λ l h b≤ → later λ { .force → p≈q l (shrink h) (
-        b + size (shrink h)  ≤⟨ ≤-refl {n = b} +-mono pred≤ _ ⟩
-        b + size h           ≤⟨ b≤ ⟩
-        l                    ∎≤) }
-∷-cong {allocate} {p} {q} (b , p≈q) = 1 + b , lemma
+∷-cong : ∀ {s p q i} → [ i ] p .force ≃′ q .force → [ i ] s ∷ p ≃ s ∷ q
+∷-cong {deallocate} (c , p≈q) =
+  c , λ l h c≤ → later λ { .force → p≈q l (shrink h) (
+        c + shrink h .size  ≤⟨ ≤-refl {n = c} +-mono pred≤ _ ⟩
+        c + h .size         ≤⟨ c≤ ⟩
+        l                   ∎≤) .force }
+∷-cong {allocate} {p} {q} {i} (c , p≈q) = 1 + c , lemma
   where
-  lemma : ∀ l (h : Heap l) → 1 + b + size h ≤ l →
-          ⟦ allocate ∷ p ⟧ h ≈ ⟦ allocate ∷ q ⟧ h
-  lemma l h 1+b≤ with l ≤⊎> size h
+  lemma : ∀ l (h : Heap l) → 1 + c + h .size ≤ l →
+          [ i ] ⟦ allocate ∷ p ⟧ h ≈ ⟦ allocate ∷ q ⟧ h
+  lemma l h 1+c≤ with l ≤⊎> h .size
   ... | inj₁ _   = now
   ... | inj₂ h<l = later λ { .force → p≈q l _ (
-                     b + (1 + size h)  ≡⟨ +-assoc b ⟩≤
-                     b + 1 + size h    ≡⟨ by (+-comm b) ⟩≤
-                     1 + b + size h    ≤⟨ 1+b≤ ⟩∎
-                     l                 ∎≤) }
+                     c + (1 + h .size)  ≡⟨ +-assoc c ⟩≤
+                     c + 1 + h .size    ≡⟨ by (+-comm c) ⟩≤
+                     1 + c + h .size    ≤⟨ 1+c≤ ⟩∎
+                     l                  ∎≤) .force }
 
 ------------------------------------------------------------------------
 -- Some examples
@@ -260,26 +267,27 @@ unbounded-space-crash {limit} h = helper h (≤→≤↑ (bounded h))
   ... | .(just h″) | h″ , refl , refl =
     laterˡ (helper h″ 1+h′≤l)
 
--- The programs constant-space and constant-space₂ are ≘-equivalent.
+-- The programs constant-space and constant-space₂ are ≃-equivalent.
 
-constant-space≘constant-space₂ : constant-space ≘ constant-space₂
-constant-space≘constant-space₂ =
+constant-space≃constant-space₂ : [ ∞ ] constant-space ≃ constant-space₂
+constant-space≃constant-space₂ =
   2 , λ l h 2+h≤l →
     ⟦ constant-space ⟧ h   ≈⟨ constant-space-loop _ (<→≤ 2+h≤l) ⟩
     never                  ≈⟨ B.symmetric (constant-space₂-loop _ 2+h≤l) ⟩∎
     ⟦ constant-space₂ ⟧ h  ∎
 
 -- The programs constant-space and unbounded-space are not
--- ≘-equivalent.
+-- ≃-equivalent.
 
-¬constant-space≘unbounded-space : ¬ constant-space ≘ unbounded-space
-¬constant-space≘unbounded-space (b , c≈u) = now≉never (
+¬constant-space≃unbounded-space :
+  ¬ [ ∞ ] constant-space ≃ unbounded-space
+¬constant-space≃unbounded-space (c , c≈u) = now≉never (
   crash                  ≈⟨ B.symmetric (unbounded-space-crash h) ⟩
   ⟦ unbounded-space ⟧ h  ≈⟨ B.symmetric (c≈u _ h (≤-refl +-mono zero≤ _)) ⟩
   ⟦ constant-space ⟧ h   ≈⟨ constant-space-loop h (m≤n+m _ _) ⟩∎
   never                  ∎)
   where
-  h : Heap (b + 1)
+  h : Heap (c + 1)
   h = record
     { size    = 0
     ; bounded = zero≤ _
