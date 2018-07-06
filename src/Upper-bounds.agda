@@ -437,6 +437,35 @@ _□≲ {i} ns {n} =
   [ ∞ ] ns ⊑ n  ↝⟨ id ⟩□
   [ i ] ns ⊑ n  □
 
+-- The transitivity proof can not be made size-preserving in the other
+-- argument.
+
+¬-transitivity-size-preservingʳ :
+  ¬ (∀ {i ms ns os} → [ ∞ ] ms ≲ ns → [ i ] ns ≲ os → [ i ] ms ≲ os)
+¬-transitivity-size-preservingʳ trans = contradiction
+  where
+  ones : ∀ {i} → Colist′ ℕ i
+  ones .force = repeat 1
+
+  bad : ∀ {i} → [ i ] 0 ∷ ones ≲ repeat 0
+  bad {n = n} hyp = zero ∷ λ { .force {j} →  $⟨ (λ {_} → consʳ-≲ (repeat 1 □≲)) ⟩
+    [ ∞ ] repeat 1 ≲ 0 ∷ ones                ↝⟨ flip trans bad ⟩
+    [ j ] repeat 1 ≲ repeat 0                ↝⟨ (λ f → f hyp) ⟩□
+    [ j ] repeat 1 ⊑ n                       □ }
+
+  contradiction =              $⟨ (λ {_} → bad) ⟩
+    [ ∞ ] 0 ∷ ones ≲ repeat 0  ↝⟨ _$ replicate⊑ _ ⟩
+    [ ∞ ] 0 ∷ ones ⊑ zero      ↝⟨ □-head ∘ □-tail ⟩
+    [ ∞ ] ⌜ 1 ⌝ ≤ ⌜ 0 ⌝        ↝⟨ ≮0 ⟩□
+    ⊥                          □
+
+-- The transitivity proof can not be made size-preserving in both
+-- arguments.
+
+¬-transitivity-size-preserving :
+  ¬ (∀ {i ms ns os} → [ i ] ms ≲ ns → [ i ] ns ≲ os → [ i ] ms ≲ os)
+¬-transitivity-size-preserving = ¬-transitivity-size-preservingʳ
+
 -- If the least upper bound of ms is m and the least upper bound of ns
 -- is n, then [ ∞ ] ms ≲ ns holds if and only if [ ∞ ] m ≤ n holds.
 
