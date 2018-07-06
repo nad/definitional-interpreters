@@ -372,6 +372,30 @@ cons′-≲ :
   [ i ] m ∷ ms ≲ m ∷ ns
 cons′-≲ = cons-≲ (inj₁ (here Nat.≤-refl))
 
+-- If the combinator consʳ-≲ had taken the primed variant of the
+-- relation as an argument instead of the unprimed variant, then any
+-- colist would have been bounded by any infinite colist.
+
+consʳ-≲′→≲-infinite :
+  (∀ {ms ns n i} → [ i ] ms ≲′ ns .force → [ i ] ms ≲ n ∷ ns) →
+  (∀ {ms ns i} → Conat.[ ∞ ] length ns ∼ infinity → [ i ] ms ≲ ns)
+consʳ-≲′→≲-infinite consʳ-≲′ {ns = []}    ()
+consʳ-≲′→≲-infinite consʳ-≲′ {ns = _ ∷ _} (suc p) =
+  consʳ-≲′ λ { hyp .force →
+    consʳ-≲′→≲-infinite consʳ-≲′ (p .force) hyp }
+
+-- Thus one cannot make this argument's type primed.
+
+¬-consʳ-≲′ :
+  ¬ (∀ {ms ns n i} → [ i ] ms ≲′ ns .force → [ i ] ms ≲ n ∷ ns)
+¬-consʳ-≲′ =
+  (∀ {ms ns n i} → [ i ] ms ≲′ ns .force → [ i ] ms ≲ n ∷ ns)       ↝⟨ consʳ-≲′→≲-infinite ⟩
+  (∀ {ms ns i} → Conat.[ ∞ ] length ns ∼ infinity → [ i ] ms ≲ ns)  ↝⟨ (λ hyp → hyp (length-replicate _)) ⟩
+  [ ∞ ] repeat 1 ≲ repeat 0                                         ↝⟨ _$ replicate⊑ _ ⟩
+  [ ∞ ] repeat 1 ⊑ zero                                             ↝⟨ □-head ⟩
+  [ ∞ ] ⌜ 1 ⌝ ≤ ⌜ 0 ⌝                                               ↝⟨ ≮0 ⟩□
+  ⊥                                                                 □
+
 -- "Equational" reasoning combinators.
 
 infix  -1 _□≲
