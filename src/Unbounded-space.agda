@@ -435,6 +435,17 @@ mutual
         h ∷′ 1 + h ∷′ ⟦ force p′ ⟧ (2 + h)            ∼⟨ (refl ∷ λ { .force → Colist.symmetric-∼ ∷∼∷′ }) ⟩≲
         h ∷′ ⟦ allocate ∷ p′ ⟧ (1 + h)                □≲
 
+-- The semantics of optimise constant-space₂ matches that of
+-- constant-space.
+
+optimise-constant-space₂∼constant-space :
+  ∀ {i n} →
+  Colist.[ i ] ⟦ optimise constant-space₂ ⟧ n ∼ ⟦ constant-space ⟧ n
+optimise-constant-space₂∼constant-space =
+  refl ∷ λ { .force →
+  refl ∷ λ { .force →
+  optimise-constant-space₂∼constant-space }}
+
 -- Sometimes the optimised program's maximum heap usage is less than
 -- that of the original program.
 
@@ -445,13 +456,7 @@ optimise-improves :
 optimise-improves =
     constant-space₂
   , max-constant-space₂-2
-  , max-respects-∼ lemma (_ ∎∼) max-constant-space-1
-  where
-
-  lemma :
-    ∀ {i} →
-    Colist.[ i ] ⟦ constant-space ⟧ 0 ∼ ⟦ optimise constant-space₂ ⟧ 0
-  lemma =
-    refl ∷ λ { .force →
-    refl ∷ λ { .force →
-    lemma }}
+  , max-respects-∼
+      (Colist.symmetric-∼ optimise-constant-space₂∼constant-space)
+      (_ ∎∼)
+      max-constant-space-1
