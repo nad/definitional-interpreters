@@ -15,7 +15,7 @@ module Lambda.Compiler-correctness.Sizes-match
   (def : Name → Tm 1)
   where
 
-open import Colist hiding (_++_)
+open import Colist hiding (_++_; length)
 import Conat
 open import Equality.Propositional as E using (refl)
 open import Tactic.By using (by)

@@ -81,7 +81,7 @@ shrink {limit} h = record h
 -- maximum size, then nothing is returned.
 
 grow : ∀ {limit} → Heap limit → Maybe (Heap limit)
-grow {limit} h = case ≤⊎> limit (size h) of λ where
+grow {limit} h = case limit ≤⊎> size h of λ where
   (inj₁ _)   → nothing
   (inj₂ h<l) → just (record h { size    = suc (size h)
                               ; bounded = h<l
@@ -91,7 +91,7 @@ grow {limit} h = case ≤⊎> limit (size h) of λ where
 
 grow-full :
   ∀ {limit} (h : Heap limit) → size h ≡ limit → grow h ≡ nothing
-grow-full {limit} h h≡l with ≤⊎> limit (size h)
+grow-full {limit} h h≡l with limit ≤⊎> size h
 ... | inj₁ _   = refl
 ... | inj₂ h<l =
   ⊥-elim (+≮ 0 (
@@ -102,7 +102,7 @@ grow-full {limit} h h≡l with ≤⊎> limit (size h)
 grow-not-full :
   ∀ {limit} (h : Heap limit) →
   size h < limit → ∃ λ h′ → grow h ≡ just h′ × size h′ ≡ 1 + size h
-grow-not-full {limit} h h<l with ≤⊎> limit (size h)
+grow-not-full {limit} h h<l with limit ≤⊎> size h
 ... | inj₂ _   = _ , refl , refl
 ... | inj₁ l≤h =
   ⊥-elim (+≮ 0 (
@@ -185,7 +185,7 @@ transitive {p} {q} {r} (b₁ , p₁) (b₂ , p₂) =
   where
   lemma : ∀ l (h : Heap l) → 1 + b + size h ≤ l →
           ⟦ allocate ∷ p ⟧ h ≈ ⟦ allocate ∷ q ⟧ h
-  lemma l h 1+b≤ with ≤⊎> l (size h)
+  lemma l h 1+b≤ with l ≤⊎> size h
   ... | inj₁ _   = now
   ... | inj₂ h<l = later λ { .force → p≈q l _ (
                      b + (1 + size h)  ≡⟨ +-assoc b ⟩≤
