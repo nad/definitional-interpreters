@@ -71,7 +71,7 @@ mutual
 -- when the initial heap is empty.
 
 Maximum-heap-usage : Program ∞ → Conat ∞ → Set
-Maximum-heap-usage p n = Least-upper-bound (⟦ p ⟧ 0) n
+Maximum-heap-usage p n = LUB (⟦ p ⟧ 0) n
 
 -- The smallest extra heap size that is required to run the given
 -- program, for arbitrary initial heaps.
@@ -266,7 +266,7 @@ wlpo⇔max = record
 -- formulation of "least upper bounds of colists of natural numbers
 -- can always be determined".
 
-wlpo⇔lub : WLPO ⇔ (∀ ms → ∃ λ n → Least-upper-bound ms n)
+wlpo⇔lub : WLPO ⇔ (∀ ms → ∃ λ n → LUB ms n)
 wlpo⇔lub = record
   { to   = wlpo→lub
   ; from = λ find-lub → max→wlpo (λ p → find-lub (⟦ p ⟧ 0))

@@ -92,7 +92,7 @@ stack-sizes-go∼go-sizes =
 
 -- The least upper bound of go-sizes is 2.
 
-lub-go-sizes-2 : Least-upper-bound go-sizes ⌜ 2 ⌝
+lub-go-sizes-2 : LUB go-sizes ⌜ 2 ⌝
 lub-go-sizes-2 =
   lub-∷ʳ zero (lub-∷ʳ 1≤2 lub-loop-sizes-2)
   where
@@ -105,19 +105,17 @@ lub-go-sizes-2 =
   cycle-1-2∷[]∼loop-sizes =
     refl ∷ λ { .force → refl ∷ λ { .force → cycle-1-2∷[]∼loop-sizes }}
 
-  lub-loop-sizes-2 : Least-upper-bound loop-sizes ⌜ 2 ⌝
-  lub-loop-sizes-2 =                        $⟨ lub-∷ʳ 1≤2 (lub-∷ˡ zero lub-[]) ⟩
-    Least-upper-bound (1 ∷ 2∷[]) ⌜ 2 ⌝      ↝⟨ lub-cycle ⟩
-    Least-upper-bound (cycle 1 2∷[]) ⌜ 2 ⌝  ↝⟨ Least-upper-bound-∼ cycle-1-2∷[]∼loop-sizes (Conat.reflexive-∼ _) ⟩□
-    Least-upper-bound loop-sizes ⌜ 2 ⌝      □
+  lub-loop-sizes-2 : LUB loop-sizes ⌜ 2 ⌝
+  lub-loop-sizes-2 =          $⟨ lub-∷ʳ 1≤2 (lub-∷ˡ zero lub-[]) ⟩
+    LUB (1 ∷ 2∷[]) ⌜ 2 ⌝      ↝⟨ lub-cycle ⟩
+    LUB (cycle 1 2∷[]) ⌜ 2 ⌝  ↝⟨ LUB-∼ cycle-1-2∷[]∼loop-sizes (Conat.reflexive-∼ _) ⟩□
+    LUB loop-sizes ⌜ 2 ⌝      □
 
 -- The maximum stack size encountered when running go (starting with
 -- an empty stack) is 2.
 
-go-bounded-stack :
-  Least-upper-bound (A.stack-sizes go) ⌜ 2 ⌝
+go-bounded-stack : LUB (A.stack-sizes go) ⌜ 2 ⌝
 go-bounded-stack =
-  Least-upper-bound-∼
-    (C.symmetric-∼ stack-sizes-go∼go-sizes)
-    (Conat.reflexive-∼ _)
-    lub-go-sizes-2
+  LUB-∼ (C.symmetric-∼ stack-sizes-go∼go-sizes)
+        (Conat.reflexive-∼ _)
+        lub-go-sizes-2

@@ -239,11 +239,11 @@ private
 -- The least upper bound of Ω-sizes 0 is infinity.
 
 lub-Ω-sizes-0-infinity :
-  Least-upper-bound (Ω-sizes 0) infinity
-lub-Ω-sizes-0-infinity =                    $⟨ lub-nats-infinity ⟩
-  Least-upper-bound nats          infinity  ↝⟨ Least-upper-bound-∼ nats∼nats-from-0 (Conat.reflexive-∼ _) ⟩
-  Least-upper-bound (nats-from 0) infinity  ↝⟨ Least-upper-bound-≲≳ (symmetric-≲≳ (Ω-sizes≲≳nats-from 0)) ⟩□
-  Least-upper-bound (Ω-sizes 0)   infinity  □
+  LUB (Ω-sizes 0) infinity
+lub-Ω-sizes-0-infinity =      $⟨ lub-nats-infinity ⟩
+  LUB nats          infinity  ↝⟨ LUB-∼ nats∼nats-from-0 (Conat.reflexive-∼ _) ⟩
+  LUB (nats-from 0) infinity  ↝⟨ LUB-≲≳ (symmetric-≲≳ (Ω-sizes≲≳nats-from 0)) ⟩□
+  LUB (Ω-sizes 0)   infinity  □
 
 -- When Ω is interpreted (starting with an empty stack) the stack
 -- sizes that are encountered match the sizes in the colist Ω-sizes 0.
@@ -286,10 +286,8 @@ stack-sizes-Ω∼Ω-sizes-0 =
 
 -- The computation Ω requires unbounded space.
 
-Ω-requires-unbounded-space :
-  Least-upper-bound (stack-sizes Ω) infinity
+Ω-requires-unbounded-space : LUB (stack-sizes Ω) infinity
 Ω-requires-unbounded-space =
-  Least-upper-bound-∼
-    (C.symmetric-∼ stack-sizes-Ω∼Ω-sizes-0)
-    (Conat.reflexive-∼ _)
-    lub-Ω-sizes-0-infinity
+  LUB-∼ (C.symmetric-∼ stack-sizes-Ω∼Ω-sizes-0)
+        (Conat.reflexive-∼ _)
+        lub-Ω-sizes-0-infinity

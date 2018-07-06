@@ -90,8 +90,8 @@ nats⋢ (suc n) =
 
 -- The least upper bound of a colist of natural numbers.
 
-Least-upper-bound : Colist ℕ ∞ → Conat ∞ → Set
-Least-upper-bound ns n =
+LUB : Colist ℕ ∞ → Conat ∞ → Set
+LUB ns n =
   [ ∞ ] ns ⊑ n
     ×
   (∀ n′ → [ ∞ ] ns ⊑ n′ → [ ∞ ] n ≤ n′)
@@ -100,18 +100,17 @@ Least-upper-bound ns n =
 
 lub-unique :
   ∀ {ns n₁ n₂ i} →
-  Least-upper-bound ns n₁ → Least-upper-bound ns n₂ →
-  Conat.[ i ] n₁ ∼ n₂
+  LUB ns n₁ → LUB ns n₂ → Conat.[ i ] n₁ ∼ n₂
 lub-unique (lub₁₁ , lub₁₂) (lub₂₁ , lub₂₂) =
   antisymmetric-≤ (lub₁₂ _ lub₂₁) (lub₂₂ _ lub₁₁)
 
--- Least-upper-bound respects bisimilarity.
+-- LUB respects bisimilarity.
 
-Least-upper-bound-∼ :
+LUB-∼ :
   ∀ {ms ns m n} →
   Colist.[ ∞ ] ms ∼ ns → Conat.[ ∞ ] m ∼ n →
-  Least-upper-bound ms m → Least-upper-bound ns n
-Least-upper-bound-∼ {ms} {ns} {m} {n} p q = Σ-map
+  LUB ms m → LUB ns n
+LUB-∼ {ms} {ns} {m} {n} p q = Σ-map
   ([ ∞ ] ms ⊑ m  ↝⟨ □-∼ p ⟩
    [ ∞ ] ns ⊑ m  ↝⟨ □-map (flip transitive-≤ (∼→≤ q)) ⟩□
    [ ∞ ] ns ⊑ n  □)
@@ -123,7 +122,7 @@ Least-upper-bound-∼ {ms} {ns} {m} {n} p q = Σ-map
 
 -- The least upper bound of the empty colist is 0.
 
-lub-[] : Least-upper-bound [] ⌜ 0 ⌝
+lub-[] : LUB [] ⌜ 0 ⌝
 lub-[] = [] , λ _ _ → zero
 
 -- Some lemmas that can be used to establish the least upper bound of
@@ -132,8 +131,8 @@ lub-[] = [] , λ _ _ → zero
 lub-∷ˡ :
   ∀ {m ms n} →
   [ ∞ ] n ≤ ⌜ m ⌝ →
-  Least-upper-bound (force ms) n →
-  Least-upper-bound (m ∷ ms) ⌜ m ⌝
+  LUB (force ms) n →
+  LUB (m ∷ ms) ⌜ m ⌝
 lub-∷ˡ {m} {ms} {n} n≤m = Σ-map
   ([ ∞ ] force ms ⊑ n      ↝⟨ (λ hyp → reflexive-≤ _ ∷ λ { .force → □-map (flip transitive-≤ n≤m) hyp }) ⟩□
    [ ∞ ] m ∷ ms   ⊑ ⌜ m ⌝  □)
@@ -143,8 +142,8 @@ lub-∷ˡ {m} {ms} {n} n≤m = Σ-map
 lub-∷ʳ :
   ∀ {m ms n} →
   [ ∞ ] ⌜ m ⌝ ≤ n →
-  Least-upper-bound (force ms) n →
-  Least-upper-bound (m ∷ ms) n
+  LUB (force ms) n →
+  LUB (m ∷ ms) n
 lub-∷ʳ {m} {ms} {n} m≤n = Σ-map
   ([ ∞ ] force ms ⊑ n  ↝⟨ (λ hyp → m≤n ∷ λ { .force → hyp }) ⟩□
    [ ∞ ] m ∷ ms   ⊑ n  □)
@@ -156,8 +155,8 @@ lub-∷ʳ {m} {ms} {n} m≤n = Σ-map
 
 lub-cycle :
   ∀ {m ms n} →
-  Least-upper-bound (m ∷ ms) n →
-  Least-upper-bound (cycle m ms) n
+  LUB (m ∷ ms) n →
+  LUB (cycle m ms) n
 lub-cycle {m} {ms} {n} = Σ-map
   ([ ∞ ] m ∷ ms     ⊑ n  ↝⟨ _⇔_.from □-cycle⇔ ⟩□
    [ ∞ ] cycle m ms ⊑ n  □)
@@ -166,7 +165,7 @@ lub-cycle {m} {ms} {n} = Σ-map
 
 -- The least upper bound of nats is infinity.
 
-lub-nats-infinity : Least-upper-bound nats Conat.infinity
+lub-nats-infinity : LUB nats Conat.infinity
 lub-nats-infinity =
     (nats ⊑infinity)
   , λ n →
@@ -187,7 +186,7 @@ lub-nats-infinity =
 -- idea for the following, less complicated proof, and Ulf Norell
 -- suggested that one could get away with WLPO instead of LPO.
 
-wlpo→lub : WLPO → (∀ ms → ∃ λ n → Least-upper-bound ms n)
+wlpo→lub : WLPO → (∀ ms → ∃ λ n → LUB ms n)
 wlpo→lub wlpo = λ ms → lub ms , □ˢ∞→□∞ (upper-bound ms) , least ms
   where
   -- The boolean >0 ms n is true if the n-th number (counting from
@@ -403,8 +402,7 @@ _□≲ {i} ns {n} =
 
 ≲⇔least-upper-bounds-≤ :
   ∀ {m n ms ns} →
-  Least-upper-bound ms m →
-  Least-upper-bound ns n →
+  LUB ms m → LUB ns n →
   [ ∞ ] ms ≲ ns ⇔ [ ∞ ] m ≤ n
 ≲⇔least-upper-bounds-≤ {⨆ms} {⨆ns} {ms} {ns} ⨆ms-lub ⨆ns-lub = record
   { to   = λ ms≲ns →          $⟨ proj₁ ⨆ns-lub ⟩
@@ -524,8 +522,7 @@ ns □≲≳ = (ns □≲) , (ns □≲)
 
 ≲≳⇔least-upper-bounds-∼ :
   ∀ {m n ms ns} →
-  Least-upper-bound ms m →
-  Least-upper-bound ns n →
+  LUB ms m → LUB ns n →
   [ ∞ ] ms ≲≳ ns ⇔ Conat.[ ∞ ] m ∼ n
 ≲≳⇔least-upper-bounds-∼ {⨆ms} {⨆ns} {ms} {ns} ⨆ms-lub ⨆ns-lub =
   [ ∞ ] ms ≲≳ ns                     ↝⟨ ≲⇔least-upper-bounds-≤ ⨆ms-lub ⨆ns-lub
@@ -536,13 +533,13 @@ ns □≲≳ = (ns □≲) , (ns □≲)
                                                } ⟩□
   Conat.[ ∞ ] ⨆ms ∼ ⨆ns              □
 
--- The predicate flip Least-upper-bound n respects [ ∞ ]_≲≳_.
+-- The predicate flip LUB n respects [ ∞ ]_≲≳_.
 
-Least-upper-bound-≲≳ :
+LUB-≲≳ :
   ∀ {ms ns} →
   [ ∞ ] ms ≲≳ ns →
-  ∀ {n} → Least-upper-bound ms n → Least-upper-bound ns n
-Least-upper-bound-≲≳ {ms} {ns} (ms≲ns , ns≲ms) {n} = Σ-map
+  ∀ {n} → LUB ms n → LUB ns n
+LUB-≲≳ {ms} {ns} (ms≲ns , ns≲ms) {n} = Σ-map
   ([ ∞ ] ms ⊑ n  ↝⟨ ns≲ms ⟩□
    [ ∞ ] ns ⊑ n  □)
   ((∀ n′ → [ ∞ ] ms ⊑ n′ → [ ∞ ] n ≤ n′)  ↝⟨ (λ hyp n′ → hyp n′ ∘ ms≲ns) ⟩□
@@ -551,13 +548,13 @@ Least-upper-bound-≲≳ {ms} {ns} (ms≲ns , ns≲ms) {n} = Σ-map
 -- If [ ∞ ] ms ≲≳ ns holds, then ms and ns have the same least upper
 -- bounds.
 
-Least-upper-bound-cong :
+LUB-cong :
   ∀ {ms ns} →
   [ ∞ ] ms ≲≳ ns →
-  ∀ {n} → Least-upper-bound ms n ⇔ Least-upper-bound ns n
-Least-upper-bound-cong ms≲≳ns = record
-  { to   = Least-upper-bound-≲≳               ms≲≳ns
-  ; from = Least-upper-bound-≲≳ (symmetric-≲≳ ms≲≳ns)
+  ∀ {n} → LUB ms n ⇔ LUB ns n
+LUB-cong ms≲≳ns = record
+  { to   = LUB-≲≳               ms≲≳ns
+  ; from = LUB-≲≳ (symmetric-≲≳ ms≲≳ns)
   }
 
 ------------------------------------------------------------------------

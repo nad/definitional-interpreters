@@ -447,10 +447,10 @@ stack-sizes-related t =
 
 maximum-stack-sizes-match :
   ∀ (t : Tm 0) {i v} →
-  Least-upper-bound (I.stack-sizes t) i →
-  Least-upper-bound (VM.stack-sizes ⟨ comp₀ t , [] , [] ⟩) v →
+  LUB (I.stack-sizes t) i →
+  LUB (VM.stack-sizes ⟨ comp₀ t , [] , [] ⟩) v →
   Conat.[ ∞ ] i ∼ v
 maximum-stack-sizes-match t {i} {v} i-lub =
-  Least-upper-bound (VM.stack-sizes ⟨ comp₀ t , [] , [] ⟩) v  ↝⟨ Least-upper-bound-≲≳ (stack-sizes-related t) ⟩
-  Least-upper-bound (I.stack-sizes t) v                       ↝⟨ lub-unique i-lub ⟩□
-  Conat.[ ∞ ] i ∼ v                                           □
+  LUB (VM.stack-sizes ⟨ comp₀ t , [] , [] ⟩) v  ↝⟨ LUB-≲≳ (stack-sizes-related t) ⟩
+  LUB (I.stack-sizes t) v                       ↝⟨ lub-unique i-lub ⟩□
+  Conat.[ ∞ ] i ∼ v                             □
