@@ -85,6 +85,17 @@ nats⋢ (suc n) =
   [ ∞ ] nats ⊑ ⌜ n ⌝              ↝⟨ nats⋢ n ⟩□
   ⊥                               □
 
+-- The number ⌜ n ⌝ is an upper bound of replicate m n.
+
+replicate⊑ : ∀ {i} m {n} → [ i ] replicate m n ⊑ ⌜ n ⌝
+replicate⊑ {i} zero    {n} = []
+replicate⊑ {i} (suc m) {n} =                                      $⟨ (λ { _ refl → reflexive-≤ _ }) ⟩
+  (∀ o → o ≡ n → [ ∞ ] ⌜ o ⌝ ≤ ⌜ n ⌝)                             ↝⟨ (λ hyp _ → hyp _ ∘ _⇔_.to ◇-replicate-suc⇔) ⟩
+  (∀ o → ◇ i (o ≡_) (replicate (suc m) n) → [ ∞ ] ⌜ o ⌝ ≤ ⌜ n ⌝)  ↔⟨⟩
+  (∀ o → [ i ] o ∈ replicate (suc m) n → [ ∞ ] ⌜ o ⌝ ≤ ⌜ n ⌝)     ↝⟨ _⇔_.from □⇔∈→ ⟩
+  □ i (λ o → [ ∞ ] ⌜ o ⌝ ≤ ⌜ n ⌝) (replicate (suc m) n)           ↝⟨ id ⟩□
+  [ i ] replicate (suc m) n ⊑ ⌜ n ⌝                               □
+
 ------------------------------------------------------------------------
 -- Least upper bounds
 
