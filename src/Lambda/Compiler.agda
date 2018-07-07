@@ -42,7 +42,7 @@ In-tail-context = Bool
 
 comp : ∀ {n} → In-tail-context → Tm n → Code n → Code n
 comp _     (var x)       c = var x ∷ c
-comp _     (ƛ t)         c = clo (comp true t (ret ∷ [])) ∷ c
+comp _     (lam t)       c = clo (comp true t (ret ∷ [])) ∷ c
 comp _     (t₁ · t₂)     c = comp false t₁ (comp false t₂ (app ∷ c))
 comp true  (call f t)    c = comp false t (tcl f ∷ c)
 comp false (call f t)    c = comp false t (cal f ∷ c)
@@ -75,8 +75,8 @@ mutual
   comp-env (v ∷ ρ) = comp-val v ∷ comp-env ρ
 
   comp-val : T.Value → C.Value
-  comp-val (T.ƛ t ρ) = C.ƛ (comp true t (ret ∷ [])) (comp-env ρ)
-  comp-val (T.con b) = C.con b
+  comp-val (T.lam t ρ) = C.lam (comp true t (ret ∷ [])) (comp-env ρ)
+  comp-val (T.con b)   = C.con b
 
 -- Indexing commutes with compilation.
 
@@ -92,7 +92,7 @@ comp-++ :
   ∀ {n} tc (t : Tm n) {c₁ c₂ : Code n} →
   comp tc t c₁ ++ c₂ ≡ comp tc t (c₁ ++ c₂)
 comp-++ _     (var x)             = refl
-comp-++ _     (ƛ t)               = refl
+comp-++ _     (lam t)             = refl
 comp-++ true  (call f t)          = comp-++ _ t
 comp-++ false (call f t)          = comp-++ _ t
 comp-++ _     (con b)             = refl

@@ -110,11 +110,11 @@ mutual
     k (index x ρ)                                                  ∼⟨⟩
     ⟦ var x ⟧ ρ >>= k                                              ∎
 
-  ⟦⟧-correct (ƛ t) ρ {c} {s} {k} _ c-ok =
+  ⟦⟧-correct (lam t) ρ {c} {s} {k} _ c-ok =
     exec ⟨ clo (comp true t (ret ∷ [])) ∷ c , s , comp-env ρ ⟩  ≳⟨⟩
-    exec ⟨ c , val (comp-val (T.ƛ t ρ)) ∷ s , comp-env ρ ⟩      ≈⟨ c-ok (T.ƛ t ρ) ⟩∼
-    k (T.ƛ t ρ)                                                 ∼⟨⟩
-    ⟦ ƛ t ⟧ ρ >>= k                                             ∎
+    exec ⟨ c , val (comp-val (T.lam t ρ)) ∷ s , comp-env ρ ⟩    ≈⟨ c-ok (T.lam t ρ) ⟩∼
+    k (T.lam t ρ)                                               ∼⟨⟩
+    ⟦ lam t ⟧ ρ >>= k                                           ∎
 
   ⟦⟧-correct (t₁ · t₂) ρ {c} {s} {k} _ c-ok =
     exec ⟨ comp false t₁ (comp false t₂ (app ∷ c))
@@ -154,11 +154,11 @@ mutual
 
        (⟦ def f ⟧ (v ∷ []) >>= k)                                         ∎ }) ⟩∼
 
-      (T.ƛ (def f) [] ∙ v >>= k)                                    ∎) ⟩∼
+      (T.lam (def f) [] ∙ v >>= k)                                  ∎) ⟩∼
 
-    (⟦ t ⟧ ρ >>= λ v → T.ƛ (def f) [] ∙ v >>= k)              ∼⟨ associativity (⟦ t ⟧ ρ) _ _ ⟩
+    (⟦ t ⟧ ρ >>= λ v → T.lam (def f) [] ∙ v >>= k)            ∼⟨ associativity (⟦ t ⟧ ρ) _ _ ⟩
 
-    (⟦ t ⟧ ρ >>= λ v → T.ƛ (def f) [] ∙ v) >>= k              ∼⟨⟩
+    (⟦ t ⟧ ρ >>= λ v → T.lam (def f) [] ∙ v) >>= k            ∼⟨⟩
 
     ⟦ call f t ⟧ ρ >>= k                                      ∎
 
@@ -179,11 +179,11 @@ mutual
 
        ⟦ def f ⟧ (v ∷ []) >>= k                                                 ∎ }) ⟩∼
 
-     T.ƛ (def f) [] ∙ v >>= k                                             ∎) ⟩∼
+     T.lam (def f) [] ∙ v >>= k                                           ∎) ⟩∼
 
-    (⟦ t ⟧ ρ >>= λ v → T.ƛ (def f) [] ∙ v >>= k)                    ∼⟨ associativity (⟦ t ⟧ ρ) _ _ ⟩
+    (⟦ t ⟧ ρ >>= λ v → T.lam (def f) [] ∙ v >>= k)                  ∼⟨ associativity (⟦ t ⟧ ρ) _ _ ⟩
 
-    (⟦ t ⟧ ρ >>= λ v → T.ƛ (def f) [] ∙ v) >>= k                    ∼⟨⟩
+    (⟦ t ⟧ ρ >>= λ v → T.lam (def f) [] ∙ v) >>= k                  ∼⟨⟩
 
     ⟦ call f t ⟧ ρ >>= k                                            ∎
 
@@ -246,20 +246,20 @@ mutual
                ⟩ ≈
           v₁ ∙ v₂ >>= k
 
-  ∙-correct (T.ƛ t₁ ρ₁) v₂ {ρ} {c} {s} {k} c-ok =
+  ∙-correct (T.lam t₁ ρ₁) v₂ {ρ} {c} {s} {k} c-ok =
     exec ⟨ app ∷ c
-         , val (comp-val v₂) ∷ val (comp-val (T.ƛ t₁ ρ₁)) ∷ s
+         , val (comp-val v₂) ∷ val (comp-val (T.lam t₁ ρ₁)) ∷ s
          , ρ
-         ⟩                                                     ≈⟨ later (λ { .force →
+         ⟩                                                       ≈⟨ later (λ { .force →
 
       exec ⟨ comp true t₁ (ret ∷ [])
            , ret c ρ ∷ s
            , comp-val v₂ ∷ comp-env ρ₁
-           ⟩                                                        ≈⟨ ret-lemma t₁ _ c-ok ⟩∼
+           ⟩                                                          ≈⟨ ret-lemma t₁ _ c-ok ⟩∼
 
-      ⟦ t₁ ⟧ (v₂ ∷ ρ₁) >>= k                                        ∎ }) ⟩∎
+      ⟦ t₁ ⟧ (v₂ ∷ ρ₁) >>= k                                          ∎ }) ⟩∎
 
-    T.ƛ t₁ ρ₁ ∙ v₂ >>= k                                       ∎
+    T.lam t₁ ρ₁ ∙ v₂ >>= k                                       ∎
 
   ∙-correct (T.con b) v₂ {ρ} {c} {s} {k} _ =
     exec ⟨ app ∷ c
@@ -282,15 +282,15 @@ mutual
                ⟩ ≈
           ⟦if⟧ v₁ t₂ t₃ ρ >>= k
 
-  ⟦if⟧-correct (T.ƛ t₁ ρ₁) t₂ t₃ {ρ} {c} {s} {k} {tc} _ _ =
+  ⟦if⟧-correct (T.lam t₁ ρ₁) t₂ t₃ {ρ} {c} {s} {k} {tc} _ _ =
     exec ⟨ bra (comp tc t₂ []) (comp tc t₃ []) ∷ c
-         , val (comp-val (T.ƛ t₁ ρ₁)) ∷ s
+         , val (comp-val (T.lam t₁ ρ₁)) ∷ s
          , comp-env ρ
          ⟩                                          ≳⟨⟩
 
     crash                                           ∼⟨⟩
 
-    ⟦if⟧ (T.ƛ t₁ ρ₁) t₂ t₃ ρ >>= k                  ∎
+    ⟦if⟧ (T.lam t₁ ρ₁) t₂ t₃ ρ >>= k                ∎
 
   ⟦if⟧-correct (T.con true) t₂ t₃ {ρ} {c} {s} {k} {tc} s-ok c-ok =
     exec ⟨ bra (comp tc t₂ []) (comp tc t₃ []) ∷ c

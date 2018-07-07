@@ -63,12 +63,12 @@ mutual
     Tm n → Env n → In-tail-context →
     Delay-crash-colist (ℕ → ℕ) Value i
   ⟦ var x ⟧       ρ _  = tell suc (return (index x ρ))
-  ⟦ ƛ t ⟧         ρ _  = tell suc (return (ƛ t ρ))
+  ⟦ lam t ⟧       ρ _  = tell suc (return (lam t ρ))
   ⟦ t₁ · t₂ ⟧     ρ _  = do v₁ ← ⟦ t₁ ⟧ ρ false
                             v₂ ← ⟦ t₂ ⟧ ρ false
                             [ pred , pred ] v₁ ∙ v₂
   ⟦ call f t ⟧    ρ tc = do v ← ⟦ t ⟧ ρ false
-                            [ δ₁ tc , δ₂ tc ] ƛ (def f) [] ∙ v
+                            [ δ₁ tc , δ₂ tc ] lam (def f) [] ∙ v
   ⟦ con b ⟧       ρ _  = tell suc (return (con b))
   ⟦ if t₁ t₂ t₃ ⟧ ρ tc = do v₁ ← ⟦ t₁ ⟧ ρ false
                             ⟦if⟧ v₁ t₂ t₃ ρ tc
@@ -77,16 +77,16 @@ mutual
     ∀ {i} →
     (ℕ → ℕ) → (ℕ → ℕ) →
     Value → Value → Delay-crash-colist (ℕ → ℕ) Value i
-  [ f₁ , f₂ ] ƛ t₁ ρ ∙ v₂ = later f₁ λ { .force → do
-                              v ← ⟦ t₁ ⟧ (v₂ ∷ ρ) true
-                              tell f₂ (return v) }
-  [ _  , _  ] con _  ∙ _  = crash
+  [ f₁ , f₂ ] lam t₁ ρ ∙ v₂ = later f₁ λ { .force → do
+                                v ← ⟦ t₁ ⟧ (v₂ ∷ ρ) true
+                                tell f₂ (return v) }
+  [ _  , _  ] con _    ∙ _  = crash
 
   ⟦if⟧ :
     ∀ {i n} →
     Value → Tm n → Tm n → Env n → In-tail-context →
     Delay-crash-colist (ℕ → ℕ) Value i
-  ⟦if⟧ (ƛ _ _)     _  _  _ _  = crash
+  ⟦if⟧ (lam _ _)   _  _  _ _  = crash
   ⟦if⟧ (con true)  t₂ t₃ ρ tc = tell pred (⟦ t₂ ⟧ ρ tc)
   ⟦if⟧ (con false) t₂ t₃ ρ tc = tell pred (⟦ t₃ ⟧ ρ tc)
 
@@ -126,7 +126,7 @@ mutual
     D.[ i ] delay-crash (⟦ t ⟧ ρ tc) ∼ I.⟦ t ⟧ ρ
   ⟦⟧∼⟦⟧ (var x) _ = D.reflexive _
 
-  ⟦⟧∼⟦⟧ (ƛ t) _ = D.reflexive _
+  ⟦⟧∼⟦⟧ (lam t) _ = D.reflexive _
 
   ⟦⟧∼⟦⟧ (t₁ · t₂) {ρ} _ =
     delay-crash
@@ -145,12 +145,12 @@ mutual
 
   ⟦⟧∼⟦⟧ (call f t) {ρ} tc =
     delay-crash (⟦ t ⟧ ρ false >>= λ v →
-                 [ _ , _ ] ƛ (def f) [] ∙ v)        D.∼⟨ delay-crash->>= (⟦ t ⟧ _ _) ⟩
+                 [ _ , _ ] lam (def f) [] ∙ v)        D.∼⟨ delay-crash->>= (⟦ t ⟧ _ _) ⟩
 
     (delay-crash (⟦ t ⟧ ρ false) >>= λ v →
-     delay-crash ([ δ₁ tc , _ ] ƛ (def f) [] ∙ v))  D.∼⟨ (⟦⟧∼⟦⟧ t _ DC.>>=-cong λ _ → ∙∼∙ (δ₁ tc) (ƛ (def f) [])) ⟩∼
+     delay-crash ([ δ₁ tc , _ ] lam (def f) [] ∙ v))  D.∼⟨ (⟦⟧∼⟦⟧ t _ DC.>>=-cong λ _ → ∙∼∙ (δ₁ tc) (lam (def f) [])) ⟩∼
 
-    (I.⟦ t ⟧ ρ >>= λ v → ƛ (def f) [] I.∙ v)        D.∎
+    (I.⟦ t ⟧ ρ >>= λ v → lam (def f) [] I.∙ v)        D.∎
 
   ⟦⟧∼⟦⟧ (con b) _ = D.reflexive _
 
@@ -165,7 +165,7 @@ mutual
   ∙∼∙ :
     ∀ {i} f₁ {f₂} (v₁ {v₂} : Value) →
     D.[ i ] delay-crash ([ f₁ , f₂ ] v₁ ∙ v₂) ∼ v₁ I.∙ v₂
-  ∙∼∙ f₁ {f₂} (ƛ t₁ ρ) {v₂} = later λ { .force →
+  ∙∼∙ f₁ {f₂} (lam t₁ ρ) {v₂} = later λ { .force →
     delay-crash (⟦ t₁ ⟧ (v₂ ∷ ρ) true >>=
                  Delay-crash-colist.tell f₂ ∘ return)  D.∼⟨ delay-crash->>= (⟦ t₁ ⟧ _ _) ⟩
 
@@ -183,7 +183,7 @@ mutual
   ⟦if⟧∼⟦if⟧ :
     ∀ {i n} v₁ (t₂ t₃ : Tm n) {ρ} tc →
     D.[ i ] delay-crash (⟦if⟧ v₁ t₂ t₃ ρ tc) ∼ I.⟦if⟧ v₁ t₂ t₃ ρ
-  ⟦if⟧∼⟦if⟧ (ƛ _ _)     _  _  _ = D.reflexive _
+  ⟦if⟧∼⟦if⟧ (lam _ _)   _  _  _ = D.reflexive _
   ⟦if⟧∼⟦if⟧ (con true)  t₂ t₃ _ = ⟦⟧∼⟦⟧ t₂ _
   ⟦if⟧∼⟦if⟧ (con false) t₂ t₃ _ = ⟦⟧∼⟦⟧ t₃ _
 
@@ -255,7 +255,7 @@ stack-sizes-Ω∼Ω-sizes-0 =
 
   numbers (⟦ Ω ⟧ [] false) 0                                        C.∼⟨ (E.refl ∷ λ { .force → E.refl ∷ λ { .force → E.refl ∷ λ { .force →
                                                                           C.reflexive-∼ _ }}}) ⟩
-  0 ∷′ 1 ∷′ 2 ∷′ numbers (⟦ ω-body ⟧ (ƛ ω-body [] ∷ []) true >>=
+  0 ∷′ 1 ∷′ 2 ∷′ numbers (⟦ ω-body ⟧ (lam ω-body [] ∷ []) true >>=
                           Delay-crash-colist.tell pred ∘ return) 1  C.∼⟨ (cong₃ λ { .force → lemma 1 }) ⟩
 
   0 ∷′ 1 ∷′ 2 ∷′ Ω-sizes 1                                          C.∼⟨ (cong₃ λ { .force → C.reflexive-∼ _ }) ⟩
@@ -264,25 +264,25 @@ stack-sizes-Ω∼Ω-sizes-0 =
   where
   lemma :
     ∀ {i} n {k : Value → Delay-crash-colist (ℕ → ℕ) Value ∞} →
-    C.[ i ] numbers (⟦ ω-body ⟧ (ƛ ω-body [] ∷ []) true >>= k) n ∼
+    C.[ i ] numbers (⟦ ω-body ⟧ (lam ω-body [] ∷ []) true >>= k) n ∼
             Ω-sizes n
   lemma n {k} =
-    numbers (⟦ ω-body ⟧ (ƛ ω-body [] ∷ []) true >>= k) n              C.∼⟨⟩
+    numbers (⟦ ω-body ⟧ (lam ω-body [] ∷ []) true >>= k) n                C.∼⟨⟩
 
     numbers (tell suc (tell suc
-               ([ pred , pred ] ƛ ω-body [] ∙ ƛ ω-body []) >>= k)) n  C.∼⟨ (E.refl ∷ λ { .force → E.refl ∷ λ { .force → E.refl ∷ λ { .force →
-                                                                            C.reflexive-∼ _ }}}) ⟩
+               ([ pred , pred ] lam ω-body [] ∙ lam ω-body []) >>= k)) n  C.∼⟨ (E.refl ∷ λ { .force → E.refl ∷ λ { .force → E.refl ∷ λ { .force →
+                                                                                C.reflexive-∼ _ }}}) ⟩
     n ∷′ 1 + n ∷′ 2 + n ∷′
-    numbers (⟦ ω-body ⟧ (ƛ ω-body [] ∷ []) true >>=
-             Delay-crash-colist.tell pred ∘ return >>= k) (1 + n)     C.∼⟨ (cong₃ λ { .force → C.symmetric-∼ $ numbers-cong $
-                                                                            DCC.associativity (⟦ ω-body ⟧ (ƛ _ _ ∷ []) true) _ _ }) ⟩
+    numbers (⟦ ω-body ⟧ (lam ω-body [] ∷ []) true >>=
+             Delay-crash-colist.tell pred ∘ return >>= k) (1 + n)         C.∼⟨ (cong₃ λ { .force → C.symmetric-∼ $ numbers-cong $
+                                                                                DCC.associativity (⟦ ω-body ⟧ (lam _ _ ∷ []) true) _ _ }) ⟩
     n ∷′ 1 + n ∷′ 2 + n ∷′
-    numbers (⟦ ω-body ⟧ (ƛ ω-body [] ∷ []) true >>= λ v →
-             Delay-crash-colist.tell pred (return v) >>= k) (1 + n)   C.∼⟨ (cong₃ λ { .force → lemma (1 + n) }) ⟩
+    numbers (⟦ ω-body ⟧ (lam ω-body [] ∷ []) true >>= λ v →
+             Delay-crash-colist.tell pred (return v) >>= k) (1 + n)       C.∼⟨ (cong₃ λ { .force → lemma (1 + n) }) ⟩
 
-    n ∷′ 1 + n ∷′ 2 + n ∷′ Ω-sizes (1 + n)                            C.∼⟨ (cong₃ λ { .force → C.reflexive-∼ _ }) ⟩
+    n ∷′ 1 + n ∷′ 2 + n ∷′ Ω-sizes (1 + n)                                C.∼⟨ (cong₃ λ { .force → C.reflexive-∼ _ }) ⟩
 
-    Ω-sizes n                                                         C.∎
+    Ω-sizes n                                                             C.∎
 
 -- The computation Ω requires unbounded space.
 

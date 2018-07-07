@@ -21,7 +21,7 @@ infixl 9 _·_
 
 data Tm (n : ℕ) : Set where
   var  : Fin n → Tm n
-  ƛ    : Tm (suc n) → Tm n
+  lam  : Tm (suc n) → Tm n
   _·_  : Tm n → Tm n → Tm n
   call : Name → Tm n → Tm n
   con  : Bool → Tm n
@@ -46,7 +46,7 @@ module Closure (Tm : ℕ → Set) where
     -- not contain any free variables.
 
     data Value : Set where
-      ƛ   : ∀ {n} → Tm (suc n) → Env n → Value
+      lam : ∀ {n} → Tm (suc n) → Env n → Value
       con : Bool → Value
 
 ------------------------------------------------------------------------
@@ -86,9 +86,9 @@ infix 4 _,_⊢_∈_
 data _,_⊢_∈_ (Σ : Name → Ty ∞ × Ty ∞) {n} (Γ : Ctxt n) :
              Tm n → Ty ∞ → Set where
   var  : ∀ {x} → Σ , Γ ⊢ var x ∈ index x Γ
-  ƛ    : ∀ {t σ τ} →
+  lam  : ∀ {t σ τ} →
          Σ , force σ ∷ Γ ⊢ t ∈ force τ →
-         Σ , Γ ⊢ ƛ t ∈ σ ⇾′ τ
+         Σ , Γ ⊢ lam t ∈ σ ⇾′ τ
   _·_  : ∀ {t₁ t₂ σ τ} →
          Σ , Γ ⊢ t₁ ∈ σ ⇾′ τ →
          Σ , Γ ⊢ t₂ ∈ force σ →
@@ -112,7 +112,7 @@ data _,_⊢_∈_ (Σ : Name → Ty ∞ × Ty ∞) {n} (Γ : Ctxt n) :
 ω-body = var fzero · var fzero
 
 ω : Tm 0
-ω = ƛ ω-body
+ω = lam ω-body
 
 Ω : Tm 0
 Ω = ω · ω
@@ -121,7 +121,7 @@ data _,_⊢_∈_ (Σ : Name → Ty ∞ × Ty ∞) {n} (Γ : Ctxt n) :
 
 Ω-well-typed : ∀ {Σ} (τ : Ty ∞) → Σ , [] ⊢ Ω ∈ τ
 Ω-well-typed τ =
-  _·_ {σ = σ} {τ = λ { .force → τ }} (ƛ (var · var)) (ƛ (var · var))
+  _·_ {σ = σ} {τ = λ { .force → τ }} (lam (var · var)) (lam (var · var))
   where
   σ : ∀ {i} → Ty′ i
   force σ = σ ⇾′ λ { .force → τ }
@@ -129,10 +129,10 @@ data _,_⊢_∈_ (Σ : Name → Ty ∞ × Ty ∞) {n} (Γ : Ctxt n) :
 -- A call-by-value fixpoint combinator.
 
 Z : Tm 0
-Z = ƛ (t · t)
+Z = lam (t · t)
   where
-  t = ƛ (var (fsuc fzero) ·
-         ƛ (var (fsuc fzero) · var (fsuc fzero) · var fzero))
+  t = lam (var (fsuc fzero) ·
+         lam (var (fsuc fzero) · var (fsuc fzero) · var fzero))
 
 -- This combinator is also well-typed.
 
@@ -140,9 +140,9 @@ Z-well-typed :
   ∀ {Σ} {σ τ : Ty ∞} →
   Σ , [] ⊢ Z ∈ ((σ ⇾ τ) ⇾ (σ ⇾ τ)) ⇾ (σ ⇾ τ)
 Z-well-typed {σ = σ} {τ = τ} =
-  ƛ (_·_ {σ = υ} {τ = λ { .force → σ ⇾ τ }}
-         (ƛ (var · ƛ (var · var · var)))
-         (ƛ (var · ƛ (var · var · var))))
+  lam (_·_ {σ = υ} {τ = λ { .force → σ ⇾ τ }}
+           (lam (var · lam (var · var · var)))
+           (lam (var · lam (var · var · var))))
   where
   υ : ∀ {i} → Ty′ i
   force υ = υ ⇾′ λ { .force → σ ⇾ τ }

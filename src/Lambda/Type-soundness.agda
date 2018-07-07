@@ -36,10 +36,10 @@ open import Lambda.Interpreter def
 mutual
 
   data WF-Value : Ty ∞ → Value → Set where
-    ƛ     : ∀ {n Γ σ τ} {t : Tm (1 + n)} {ρ} →
+    lam   : ∀ {n Γ σ τ} {t : Tm (1 + n)} {ρ} →
             Σ , force σ ∷ Γ ⊢ t ∈ force τ →
             WF-Env Γ ρ →
-            WF-Value (σ ⇾′ τ) (ƛ t ρ)
+            WF-Value (σ ⇾′ τ) (lam t ρ)
     con   : ∀ b → WF-Value bool (con b)
 
   WF-Env : ∀ {n} → Ctxt n → Env n → Set
@@ -92,7 +92,7 @@ module _ (def∈ : (f : Name) →
             ∀ {ρ} → WF-Env Γ ρ →
             □ i (WF-MV σ) (⟦ t ⟧ ρ)
     ⟦⟧-wf (var x)   var         ρ-wf = now (ρ-wf x)
-    ⟦⟧-wf (ƛ t)     (ƛ t∈)      ρ-wf = now (ƛ t∈ ρ-wf)
+    ⟦⟧-wf (lam t)   (lam t∈)    ρ-wf = now (lam t∈ ρ-wf)
     ⟦⟧-wf (t₁ · t₂) (t₁∈ · t₂∈) ρ-wf =
       ⟦⟧-wf t₁ t₁∈ ρ-wf >>=-wf λ f-wf →
       ⟦⟧-wf t₂ t₂∈ ρ-wf >>=-wf λ v-wf →
@@ -101,7 +101,7 @@ module _ (def∈ : (f : Name) →
       ⟦⟧-wf t t∈ ρ-wf >>=-wf λ v-wf →
       ∙-wf {σ = λ { .force → proj₁ (Σ f) }}
            {τ = λ { .force → proj₂ (Σ f) }}
-           (ƛ (def∈ f) []-wf) v-wf
+           (lam (def∈ f) []-wf) v-wf
     ⟦⟧-wf (con b)       con              ρ-wf = now (con b)
     ⟦⟧-wf (if t₁ t₂ t₃) (if t₁∈ t₂∈ t₃∈) ρ-wf =
       ⟦⟧-wf t₁ t₁∈ ρ-wf >>=-wf λ v₁-wf →
@@ -110,7 +110,7 @@ module _ (def∈ : (f : Name) →
     ∙-wf : ∀ {i σ τ f v} →
            WF-Value (σ ⇾′ τ) f → WF-Value (force σ) v →
            □ i (WF-MV (force τ)) (f ∙ v)
-    ∙-wf (ƛ t₁∈ ρ₁-wf) v₂-wf =
+    ∙-wf (lam t₁∈ ρ₁-wf) v₂-wf =
       later λ { .force → ⟦⟧-wf _ t₁∈ (v₂-wf ∷-wf ρ₁-wf) }
 
     ⟦if⟧-wf : ∀ {i n Γ σ v} {t₂ t₃ : Tm n} →

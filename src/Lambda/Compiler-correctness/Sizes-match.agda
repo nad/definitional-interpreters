@@ -137,15 +137,15 @@ mutual
 
     numbers (⟦ var x ⟧ ρ tc >>= k) (length s)                             ∎
 
-  ⟦⟧-correct (ƛ t) ρ {tc} {c} {s} {k} _ c-ok =
+  ⟦⟧-correct (lam t) ρ {tc} {c} {s} {k} _ c-ok =
     VM.stack-sizes ⟨ clo (comp true t (ret ∷ [])) ∷ c , s , comp-env ρ ⟩  ∼⟨ ∷∼∷′ ⟩≲≳
 
     (length s ∷′
-     VM.stack-sizes ⟨ c , val (comp-val (T.ƛ t ρ)) ∷ s , comp-env ρ ⟩)    ≲≳⟨ cons″-≲≳ (c-ok (T.ƛ t ρ)) ⟩∼
+     VM.stack-sizes ⟨ c , val (comp-val (T.lam t ρ)) ∷ s , comp-env ρ ⟩)  ≲≳⟨ cons″-≲≳ (c-ok (T.lam t ρ)) ⟩∼
 
-    (length s ∷′ numbers (k (T.ƛ t ρ)) (1 + length s))                    ∼⟨ symmetric-∼ ∷∼∷′ ⟩
+    (length s ∷′ numbers (k (T.lam t ρ)) (1 + length s))                  ∼⟨ symmetric-∼ ∷∼∷′ ⟩
 
-    numbers (⟦ ƛ t ⟧ ρ tc >>= k) (length s)                               ∎
+    numbers (⟦ lam t ⟧ ρ tc >>= k) (length s)                             ∎
 
   ⟦⟧-correct (t₁ · t₂) ρ {tc} {c} {s} {k} _ c-ok =
     VM.stack-sizes ⟨ comp false t₁ (comp false t₂ (app ∷ c))
@@ -192,15 +192,15 @@ mutual
                Delay-crash-colist.tell pred ∘ return >>= k)
               (1 + length s)                                                   ∼⟨ symmetric-∼ ∷∼∷′ ⟩
 
-      numbers ([ id , pred ] T.ƛ (def f) [] ∙ v >>= k)
+      numbers ([ id , pred ] T.lam (def f) [] ∙ v >>= k)
               (1 + length s)                                                   ∎) ⟩∼
 
     numbers (⟦ t ⟧ ρ false >>= λ v →
-             [ id , pred ] T.ƛ (def f) [] ∙ v >>= k)
+             [ id , pred ] T.lam (def f) [] ∙ v >>= k)
             (length s)                                                  ∼⟨ numbers-cong (DCC.associativity (⟦ t ⟧ _ _) _ _) ⟩
 
     numbers ((⟦ t ⟧ ρ false >>=
-              [ id , pred ] T.ƛ (def f) [] ∙_) >>= k)
+              [ id , pred ] T.lam (def f) [] ∙_) >>= k)
             (length s)                                                  ∼⟨⟩
 
     numbers (⟦ call f t ⟧ ρ false >>= k) (length s)                     ∎
@@ -247,15 +247,15 @@ mutual
                Delay-crash-colist.tell id ∘ return >>= k)
               (1 + length s)                                                   ∼⟨ symmetric-∼ ∷∼∷′ ⟩
 
-      numbers ([ pred , id ] T.ƛ (def f) [] ∙ v >>= k)
+      numbers ([ pred , id ] T.lam (def f) [] ∙ v >>= k)
               (2 + length s)                                                   ∎) ⟩∼
 
     numbers (⟦ t ⟧ ρ false >>= λ v →
-             [ pred , id ] T.ƛ (def f) [] ∙ v >>= k)
+             [ pred , id ] T.lam (def f) [] ∙ v >>= k)
             (1 + length s)                                              ∼⟨ numbers-cong (DCC.associativity (⟦ t ⟧ _ _) _ _) ⟩
 
     numbers ((⟦ t ⟧ ρ false >>=
-              [ pred , id ] T.ƛ (def f) [] ∙_) >>= k)
+              [ pred , id ] T.lam (def f) [] ∙_) >>= k)
             (1 + length s)                                              ∼⟨⟩
 
     numbers (⟦ call f t ⟧ ρ true >>= k) (1 + length s)                  ∎
@@ -349,24 +349,25 @@ mutual
                          ⟩ ≲≳
           numbers ([ pred , pred ] v₁ ∙ v₂ >>= k) (2 + length s)
 
-  ∙-correct (T.ƛ t₁ ρ₁) v₂ {ρ} {c} {s} {k} c-ok =
-    VM.stack-sizes ⟨ app ∷ c
-                   , val (comp-val v₂) ∷ val (comp-val (T.ƛ t₁ ρ₁)) ∷ s
-                   , ρ
-                   ⟩                                                     ∼⟨ ∷∼∷′ ⟩≲≳
+  ∙-correct (T.lam t₁ ρ₁) v₂ {ρ} {c} {s} {k} c-ok =
+    VM.stack-sizes
+      ⟨ app ∷ c
+      , val (comp-val v₂) ∷ val (comp-val (T.lam t₁ ρ₁)) ∷ s
+      , ρ
+      ⟩                                                              ∼⟨ ∷∼∷′ ⟩≲≳
 
     2 + length s ∷′
     VM.stack-sizes ⟨ comp true t₁ (ret ∷ [])
                    , ret c ρ ∷ s
                    , comp-val v₂ ∷ comp-env ρ₁
-                   ⟩                                                     ≲≳⟨ ⌊ cons′-≲≳D (λ { .force → ⌈ ret-lemma t₁ _ (castC c-ok) ⌉ }) ⌋≲≳ ⟩∼
+                   ⟩                                                 ≲≳⟨ ⌊ cons′-≲≳D (λ { .force → ⌈ ret-lemma t₁ _ (castC c-ok) ⌉ }) ⌋≲≳ ⟩∼
 
     2 + length s ∷′
     numbers (⟦ t₁ ⟧ (v₂ ∷ ρ₁) true >>=
              Delay-crash-colist.tell pred ∘ return >>= k)
-            (1 + length s)                                               ∼⟨ symmetric-∼ ∷∼∷′ ⟩
+            (1 + length s)                                           ∼⟨ symmetric-∼ ∷∼∷′ ⟩
 
-    numbers ([ pred , pred ] T.ƛ t₁ ρ₁ ∙ v₂ >>= k) (2 + length s)        ∎
+    numbers ([ pred , pred ] T.lam t₁ ρ₁ ∙ v₂ >>= k) (2 + length s)  ∎
 
   ∙-correct (T.con b) v₂ {ρ} {c} {s} {k} _ =
     VM.stack-sizes ⟨ app ∷ c
@@ -389,15 +390,15 @@ mutual
                          ⟩ ≲≳
           numbers (⟦if⟧ v₁ t₂ t₃ ρ tc >>= k) (1 + length s)
 
-  ⟦if⟧-correct (T.ƛ t₁ ρ₁) t₂ t₃ {ρ} {tc} {c} {s} {k} _ _ =
+  ⟦if⟧-correct (T.lam t₁ ρ₁) t₂ t₃ {ρ} {tc} {c} {s} {k} _ _ =
     VM.stack-sizes ⟨ bra (comp tc t₂ []) (comp tc t₃ []) ∷ c
-                   , val (comp-val (T.ƛ t₁ ρ₁)) ∷ s
+                   , val (comp-val (T.lam t₁ ρ₁)) ∷ s
                    , comp-env ρ
-                   ⟩                                            ∼⟨ ∷∼∷′ ⟩≲≳
+                   ⟩                                              ∼⟨ ∷∼∷′ ⟩≲≳
 
-    1 + length s ∷′ []                                          ∼⟨ symmetric-∼ ∷∼∷′ ⟩≲≳
+    1 + length s ∷′ []                                            ∼⟨ symmetric-∼ ∷∼∷′ ⟩≲≳
 
-    numbers (⟦if⟧ (T.ƛ t₁ ρ₁) t₂ t₃ ρ tc >>= k) (1 + length s)  □≲≳
+    numbers (⟦if⟧ (T.lam t₁ ρ₁) t₂ t₃ ρ tc >>= k) (1 + length s)  □≲≳
 
   ⟦if⟧-correct (T.con true) t₂ t₃ {ρ} {tc} {c} {s} {k} s-ok c-ok =
     VM.stack-sizes ⟨ bra (comp tc t₂ []) (comp tc t₃ []) ∷ c

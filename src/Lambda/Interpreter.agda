@@ -35,23 +35,23 @@ mutual
 
   ⟦_⟧ : ∀ {i n} → Tm n → Env n → Delay-crash Value i
   ⟦ var x ⟧       ρ = return (index x ρ)
-  ⟦ ƛ t ⟧         ρ = return (ƛ t ρ)
+  ⟦ lam t ⟧       ρ = return (lam t ρ)
   ⟦ t₁ · t₂ ⟧     ρ = do v₁ ← ⟦ t₁ ⟧ ρ
                          v₂ ← ⟦ t₂ ⟧ ρ
                          v₁ ∙ v₂
   ⟦ call f t ⟧    ρ = do v ← ⟦ t ⟧ ρ
-                         ƛ (def f) [] ∙ v
+                         lam (def f) [] ∙ v
   ⟦ con b ⟧       ρ = return (con b)
   ⟦ if t₁ t₂ t₃ ⟧ ρ = do v₁ ← ⟦ t₁ ⟧ ρ
                          ⟦if⟧ v₁ t₂ t₃ ρ
 
   _∙_ : ∀ {i} → Value → Value → Delay-crash Value i
-  ƛ t₁ ρ ∙ v₂ = later (⟦ t₁ ⟧′ (v₂ ∷ ρ))
-  con _  ∙ _  = crash
+  lam t₁ ρ ∙ v₂ = later (⟦ t₁ ⟧′ (v₂ ∷ ρ))
+  con _    ∙ _  = crash
 
   ⟦if⟧ : ∀ {i n} →
          Value → Tm n → Tm n → Env n → Delay-crash Value i
-  ⟦if⟧ (ƛ _ _)     _  _  _ = crash
+  ⟦if⟧ (lam _ _)   _  _  _ = crash
   ⟦if⟧ (con true)  t₂ t₃ ρ = ⟦ t₂ ⟧ ρ
   ⟦if⟧ (con false) t₂ t₃ ρ = ⟦ t₃ ⟧ ρ
 
@@ -65,14 +65,14 @@ mutual
 
 Ω-loops : ∀ {i} → [ i ] ⟦ Ω ⟧ [] ∼ never
 Ω-loops =
-  ⟦ Ω ⟧ []                                ∼⟨⟩
-  ⟦ ω · ω ⟧ []                            ∼⟨⟩
-  ƛ ω-body [] ∙ ƛ ω-body []               ∼⟨⟩
-  later (⟦ ω-body ⟧′ (ƛ ω-body [] ∷ []))  ∼⟨ later (λ { .force →
+  ⟦ Ω ⟧ []                                  ∼⟨⟩
+  ⟦ ω · ω ⟧ []                              ∼⟨⟩
+  lam ω-body [] ∙ lam ω-body []             ∼⟨⟩
+  later (⟦ ω-body ⟧′ (lam ω-body [] ∷ []))  ∼⟨ later (λ { .force →
 
-      ⟦ ω-body ⟧ (ƛ ω-body [] ∷ [])            ∼⟨⟩
-      ƛ ω-body [] ∙ ƛ ω-body []                ∼⟨⟩
-      ⟦ Ω ⟧ []                                 ∼⟨ Ω-loops ⟩∼
-      never                                    ∎ }) ⟩∼
+      ⟦ ω-body ⟧ (lam ω-body [] ∷ [])            ∼⟨⟩
+      lam ω-body [] ∙ lam ω-body []              ∼⟨⟩
+      ⟦ Ω ⟧ []                                   ∼⟨ Ω-loops ⟩∼
+      never                                      ∎ }) ⟩∼
 
-  never                                   ∎
+  never                                     ∎
