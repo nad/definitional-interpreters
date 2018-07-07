@@ -401,9 +401,15 @@ consʳ-≲′→≲-infinite consʳ-≲′ {ns = _ ∷ _} (suc p) =
   [ ∞ ] ⌜ 1 ⌝ ≤ ⌜ 0 ⌝                                               ↝⟨ ≮0 ⟩□
   ⊥                                                                 □
 
+-- Bisimilarity is contained in the relation.
+
+∼→≲ : ∀ {i ms ns} → Colist.[ i ] ms ∼ ns → [ i ] ms ≲ ns
+∼→≲ []          = []≲
+∼→≲ (refl ∷ ps) = cons′-≲ λ { hyp .force → ∼→≲ (ps .force) hyp }
+
 -- "Equational" reasoning combinators.
 
-infix  -1 _□≲
+infix  -1 _□≲ finally-≲ finally-≲∼
 infixr -2 step-≲ step-≡≲ _≡⟨⟩≲_ step-∼≲
 
 step-≲ : ∀ {i} ms {ns os} →
@@ -431,6 +437,16 @@ step-∼≲ {i} ms {ns} {os} ns≲os ms∼ns {n} =
   [ i ] ms ⊑ n  □
 
 syntax step-∼≲ ms ns≲os ms∼ns = ms ∼⟨ ms∼ns ⟩≲ ns≲os
+
+finally-≲ : ∀ {i} ms ns → [ i ] ms ≲ ns → [ i ] ms ≲ ns
+finally-≲ _ _ = id
+
+syntax finally-≲ ms ns ms≲ns = ms ≲⟨ ms≲ns ⟩□ ns
+
+finally-≲∼ : ∀ {i} ms ns → Colist.[ i ] ms ∼ ns → [ i ] ms ≲ ns
+finally-≲∼ _ _ = ∼→≲
+
+syntax finally-≲∼ ms ns ms∼ns = ms ∼⟨ ms∼ns ⟩□≲ ns
 
 _□≲ : ∀ {i} ns → [ i ] ns ≲ ns
 _□≲ {i} ns {n} =
@@ -544,9 +560,14 @@ cons″-≲≳ :
 cons″-≲≳ = cons′-≲≳ ∘ Σ-map (λ { ms≲ns hyp .force → ms≲ns hyp })
                             (λ { ns≲ms hyp .force → ns≲ms hyp })
 
+-- Bisimilarity is contained in the relation.
+
+∼→≲≳ : ∀ {i ms ns} → Colist.[ i ] ms ∼ ns → [ i ] ms ≲≳ ns
+∼→≲≳ ms∼ns = ∼→≲ ms∼ns , ∼→≲ (Colist.symmetric-∼ ms∼ns)
+
 -- "Equational" reasoning combinators.
 
-infix  -1 _□≲≳
+infix  -1 _□≲≳ finally-≲≳ finally-≲≳∼
 infixr -2 step-≲≳ step-≡≲≳ _≡⟨⟩≲≳_ step-∼≲≳ step-≲≳∼
 
 step-≲≳ : ∀ {i} ms {ns os} →
@@ -581,6 +602,16 @@ step-≲≳∼ _ ns∼os ms≲≳ns =
     (step-∼≲≳ _ (symmetric-≲≳ ms≲≳ns) (Colist.symmetric-∼ ns∼os))
 
 syntax step-≲≳∼ ms ns∼os ms≲≳ns = ms ≲≳⟨ ms≲≳ns ⟩∼ ns∼os
+
+finally-≲≳ : ∀ {i} ms ns → [ i ] ms ≲≳ ns → [ i ] ms ≲≳ ns
+finally-≲≳ _ _ = id
+
+syntax finally-≲≳ ms ns ms≲≳ns = ms ≲≳⟨ ms≲≳ns ⟩□ ns
+
+finally-≲≳∼ : ∀ {i} ms ns → Colist.[ i ] ms ∼ ns → [ i ] ms ≲≳ ns
+finally-≲≳∼ _ _ = ∼→≲≳
+
+syntax finally-≲≳∼ ms ns ms∼ns = ms ∼⟨ ms∼ns ⟩□≲≳ ns
 
 _□≲≳ : ∀ {i} ns → [ i ] ns ≲≳ ns
 ns □≲≳ = (ns □≲) , (ns □≲)
