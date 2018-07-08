@@ -29,15 +29,15 @@ open Closure Code
 -- A single step of the computation.
 
 step : State → Result
-step ⟨ var x     ∷ c ,                           s  , ρ  ⟩ = continue ⟨ c       , val (index x ρ) ∷ s ,     ρ  ⟩
-step ⟨ clo c′    ∷ c ,                           s  , ρ  ⟩ = continue ⟨ c       , val (lam c′ ρ)  ∷ s ,     ρ  ⟩
-step ⟨ app       ∷ c , val v ∷ val (lam c′ ρ′) ∷ s  , ρ  ⟩ = continue ⟨ c′      , ret c ρ         ∷ s , v ∷ ρ′ ⟩
-step ⟨ ret       ∷ c , val v ∷       ret c′ ρ′ ∷ s  , ρ  ⟩ = continue ⟨ c′      , val v           ∷ s ,     ρ′ ⟩
-step ⟨ cal f     ∷ c ,                   val v ∷ s  , ρ  ⟩ = continue ⟨ def f   , ret c ρ         ∷ s , v ∷ [] ⟩
-step ⟨ tcl f     ∷ c ,                   val v ∷ s  , ρ  ⟩ = continue ⟨ def f   ,                   s , v ∷ [] ⟩
-step ⟨ con b     ∷ c ,                           s  , ρ  ⟩ = continue ⟨ c       , val (con b)     ∷ s ,     ρ  ⟩
-step ⟨ bra c₁ c₂ ∷ c ,         val (con true)  ∷ s  , ρ  ⟩ = continue ⟨ c₁ ++ c ,                   s ,     ρ  ⟩
-step ⟨ bra c₁ c₂ ∷ c ,         val (con false) ∷ s  , ρ  ⟩ = continue ⟨ c₂ ++ c ,                   s ,     ρ  ⟩
+step ⟨ var x     ∷ c ,                           s  , ρ  ⟩ = cont ⟨ c       , val (index x ρ) ∷ s ,     ρ  ⟩
+step ⟨ clo c′    ∷ c ,                           s  , ρ  ⟩ = cont ⟨ c       , val (lam c′ ρ)  ∷ s ,     ρ  ⟩
+step ⟨ app       ∷ c , val v ∷ val (lam c′ ρ′) ∷ s  , ρ  ⟩ = cont ⟨ c′      , ret c ρ         ∷ s , v ∷ ρ′ ⟩
+step ⟨ ret       ∷ c , val v ∷       ret c′ ρ′ ∷ s  , ρ  ⟩ = cont ⟨ c′      , val v           ∷ s ,     ρ′ ⟩
+step ⟨ cal f     ∷ c ,                   val v ∷ s  , ρ  ⟩ = cont ⟨ def f   , ret c ρ         ∷ s , v ∷ [] ⟩
+step ⟨ tcl f     ∷ c ,                   val v ∷ s  , ρ  ⟩ = cont ⟨ def f   ,                   s , v ∷ [] ⟩
+step ⟨ con b     ∷ c ,                           s  , ρ  ⟩ = cont ⟨ c       , val (con b)     ∷ s ,     ρ  ⟩
+step ⟨ bra c₁ c₂ ∷ c ,         val (con true)  ∷ s  , ρ  ⟩ = cont ⟨ c₁ ++ c ,                   s ,     ρ  ⟩
+step ⟨ bra c₁ c₂ ∷ c ,         val (con false) ∷ s  , ρ  ⟩ = cont ⟨ c₂ ++ c ,                   s ,     ρ  ⟩
 step ⟨ []            ,                   val v ∷ [] , [] ⟩ = done v
 step _                                                     = crash
 
@@ -50,9 +50,9 @@ mutual
   exec⁺ s = later s λ { .force → exec⁺′ (step s) }
 
   exec⁺′ : ∀ {i} → Result → Delay-crash-colist State Value i
-  exec⁺′ (continue s) = exec⁺ s
-  exec⁺′ (done v)     = return v
-  exec⁺′ crash        = crash
+  exec⁺′ (cont s) = exec⁺ s
+  exec⁺′ (done v) = return v
+  exec⁺′ crash    = crash
 
 -- The semantics without the trace of states.
 
