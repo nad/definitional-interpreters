@@ -220,13 +220,13 @@ private
 
 -- The colist Ω-sizes n has the same upper bounds as nats-from n.
 
-Ω-sizes≲≳nats-from : ∀ {i} n → [ i ] Ω-sizes n ≲≳ nats-from n
-Ω-sizes≲≳nats-from n =
-  Ω-sizes n                               ∼⟨ (cong₃ λ { .force → C.reflexive-∼ _ }) ⟩≲≳
-  n ∷′ 1 + n ∷′ 2 + n ∷′ Ω-sizes (suc n)  ≲≳⟨ ⌊ cons′-≲≳D (λ { .force → ⌈
-                                                consˡ-≲≳ (inj₁ (here ≤-refl)) (
-                                                consˡ-≲≳ (inj₁ (there (here ≤-refl))) (
-                                                Ω-sizes≲≳nats-from (suc n))) ⌉ }) ⌋≲≳ ⟩∼
+Ω-sizes≂nats-from : ∀ {i} n → [ i ] Ω-sizes n ≂ nats-from n
+Ω-sizes≂nats-from n =
+  Ω-sizes n                               ∼⟨ (cong₃ λ { .force → C.reflexive-∼ _ }) ⟩≂
+  n ∷′ 1 + n ∷′ 2 + n ∷′ Ω-sizes (suc n)  ≂⟨ ⌊ cons′-≂D (λ { .force → ⌈
+                                               consˡ-≂ (inj₁ (here ≤-refl)) (
+                                               consˡ-≂ (inj₁ (there (here ≤-refl))) (
+                                               Ω-sizes≂nats-from (suc n))) ⌉ }) ⌋≂ ⟩∼
   n ∷′ nats-from (suc n)                  C.∼⟨ C.symmetric-∼ ∷∼∷′ ⟩
   nats-from n                             C.∎
 
@@ -236,7 +236,7 @@ lub-Ω-sizes-0-infinity :
   LUB (Ω-sizes 0) infinity
 lub-Ω-sizes-0-infinity =      $⟨ lub-nats-infinity ⟩
   LUB nats          infinity  ↝⟨ LUB-∼ nats∼nats-from-0 (Conat.reflexive-∼ _) ⟩
-  LUB (nats-from 0) infinity  ↝⟨ LUB-≲≳ (symmetric-≲≳ (Ω-sizes≲≳nats-from 0)) ⟩□
+  LUB (nats-from 0) infinity  ↝⟨ LUB-≂ (symmetric-≂ (Ω-sizes≂nats-from 0)) ⟩□
   LUB (Ω-sizes 0)   infinity  □
 
 -- When Ω is interpreted (starting with an empty stack) the stack

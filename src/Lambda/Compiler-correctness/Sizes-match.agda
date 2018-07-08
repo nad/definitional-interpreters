@@ -75,7 +75,7 @@ private
 Cont-OK :
   Size → State → (T.Value → Delay-crash-colist (ℕ → ℕ) C.Value ∞) → Set
 Cont-OK i ⟨ c , s , ρ ⟩ k =
-  ∀ v → [ i ] VM.stack-sizes ⟨ c , val (comp-val v) ∷ s , ρ ⟩ ≲≳
+  ∀ v → [ i ] VM.stack-sizes ⟨ c , val (comp-val v) ∷ s , ρ ⟩ ≂
               numbers (k v) (1 + length s)
 
 -- A workaround for what might be an Agda bug.
@@ -83,7 +83,7 @@ Cont-OK i ⟨ c , s , ρ ⟩ k =
 castC :
   ∀ {i} {j : Size< i} {s k} →
   Cont-OK i s k → Cont-OK j s k
-castC {s = ⟨ _ , _ , _ ⟩} c-ok = cast-≲≳ ∘ c-ok
+castC {s = ⟨ _ , _ , _ ⟩} c-ok = cast-≂ ∘ c-ok
 
 -- If the In-tail-context parameter indicates that we are in a tail
 -- context, then the stack must have a certain shape, and it must be
@@ -96,7 +96,7 @@ data Stack-OK (i : Size)
   restricted   :
     ∀ {s n c} {ρ : C.Env n} →
     (∀ v → [ i ] 2 + length s ∷′
-                 VM.stack-sizes ⟨ c , val (comp-val v) ∷ s , ρ ⟩ ≲≳
+                 VM.stack-sizes ⟨ c , val (comp-val v) ∷ s , ρ ⟩ ≂
                  numbers (k v) (2 + length s)) →
     Stack-OK i k true (ret c ρ ∷ s)
 
@@ -121,27 +121,27 @@ mutual
       {k : T.Value → Delay-crash-colist (ℕ → ℕ) C.Value ∞} →
     Stack-OK i k tc s →
     Cont-OK i ⟨ c , s , comp-env ρ ⟩ k →
-    [ i ] VM.stack-sizes ⟨ comp tc t c , s , comp-env ρ ⟩ ≲≳
+    [ i ] VM.stack-sizes ⟨ comp tc t c , s , comp-env ρ ⟩ ≂
           numbers (⟦ t ⟧ ρ tc >>= k) (length s)
 
   ⟦⟧-correct (var x) ρ {tc} {c} {s} {k} _ c-ok =
-    VM.stack-sizes ⟨ var x ∷ c , s , comp-env ρ ⟩                         ∼⟨ ∷∼∷′ ⟩≲≳
+    VM.stack-sizes ⟨ var x ∷ c , s , comp-env ρ ⟩                         ∼⟨ ∷∼∷′ ⟩≂
 
     (length s ∷′
-     VM.stack-sizes ⟨ c , val (index x (comp-env ρ)) ∷ s , comp-env ρ ⟩)  ≡⟨ by (comp-index x ρ) ⟩≲≳
+     VM.stack-sizes ⟨ c , val (index x (comp-env ρ)) ∷ s , comp-env ρ ⟩)  ≡⟨ by (comp-index x ρ) ⟩≂
 
     (length s ∷′
-     VM.stack-sizes ⟨ c , val (comp-val (index x ρ)) ∷ s , comp-env ρ ⟩)  ≲≳⟨ cons″-≲≳ (c-ok (index x ρ)) ⟩∼
+     VM.stack-sizes ⟨ c , val (comp-val (index x ρ)) ∷ s , comp-env ρ ⟩)  ≂⟨ cons″-≂ (c-ok (index x ρ)) ⟩∼
 
     (length s ∷′ numbers (k (index x ρ)) (1 + length s))                  ∼⟨ symmetric-∼ ∷∼∷′ ⟩
 
     numbers (⟦ var x ⟧ ρ tc >>= k) (length s)                             ∎
 
   ⟦⟧-correct (lam t) ρ {tc} {c} {s} {k} _ c-ok =
-    VM.stack-sizes ⟨ clo (comp true t (ret ∷ [])) ∷ c , s , comp-env ρ ⟩  ∼⟨ ∷∼∷′ ⟩≲≳
+    VM.stack-sizes ⟨ clo (comp true t (ret ∷ [])) ∷ c , s , comp-env ρ ⟩  ∼⟨ ∷∼∷′ ⟩≂
 
     (length s ∷′
-     VM.stack-sizes ⟨ c , val (comp-val (T.lam t ρ)) ∷ s , comp-env ρ ⟩)  ≲≳⟨ cons″-≲≳ (c-ok (T.lam t ρ)) ⟩∼
+     VM.stack-sizes ⟨ c , val (comp-val (T.lam t ρ)) ∷ s , comp-env ρ ⟩)  ≂⟨ cons″-≂ (c-ok (T.lam t ρ)) ⟩∼
 
     (length s ∷′ numbers (k (T.lam t ρ)) (1 + length s))                  ∼⟨ symmetric-∼ ∷∼∷′ ⟩
 
@@ -151,23 +151,23 @@ mutual
     VM.stack-sizes ⟨ comp false t₁ (comp false t₂ (app ∷ c))
                    , s
                    , comp-env ρ
-                   ⟩                                                ≲≳⟨ (⟦⟧-correct t₁ _ unrestricted λ v₁ →
+                   ⟩                                                ≂⟨ (⟦⟧-correct t₁ _ unrestricted λ v₁ →
 
       VM.stack-sizes ⟨ comp false t₂ (app ∷ c)
                      , val (comp-val v₁) ∷ s
                      , comp-env ρ
-                     ⟩                                                     ≲≳⟨ (⟦⟧-correct t₂ _ unrestricted λ v₂ →
+                     ⟩                                                    ≂⟨ (⟦⟧-correct t₂ _ unrestricted λ v₂ →
 
         VM.stack-sizes ⟨ app ∷ c
                        , val (comp-val v₂) ∷ val (comp-val v₁) ∷ s
                        , comp-env ρ
-                       ⟩                                                          ≲≳⟨ ∙-correct v₁ v₂ c-ok ⟩∼
+                       ⟩                                                        ≂⟨ ∙-correct v₁ v₂ c-ok ⟩∼
 
-        numbers ([ pred , pred ] v₁ ∙ v₂ >>= k) (2 + length s)                    ∎) ⟩∼
+        numbers ([ pred , pred ] v₁ ∙ v₂ >>= k) (2 + length s)                  ∎) ⟩∼
 
       numbers (do v₂ ← ⟦ t₂ ⟧ ρ false
                   [ pred , pred ] v₁ ∙ v₂ >>= k)
-              (1 + length s)                                               ∎) ⟩∼
+              (1 + length s)                                              ∎) ⟩∼
 
     numbers (do v₁ ← ⟦ t₁ ⟧ ρ false
                 v₂ ← ⟦ t₂ ⟧ ρ false
@@ -177,23 +177,23 @@ mutual
     numbers (⟦ t₁ · t₂ ⟧ ρ tc >>= k) (length s)                     ∎
 
   ⟦⟧-correct (call f t) ρ {false} {c} {s} {k} unrestricted c-ok =
-    VM.stack-sizes ⟨ comp false t (cal f ∷ c) , s , comp-env ρ ⟩        ≲≳⟨ (⟦⟧-correct t _ unrestricted λ v →
+    VM.stack-sizes ⟨ comp false t (cal f ∷ c) , s , comp-env ρ ⟩        ≂⟨ (⟦⟧-correct t _ unrestricted λ v →
 
-      VM.stack-sizes ⟨ cal f ∷ c , val (comp-val v) ∷ s , comp-env ρ ⟩         ∼⟨ ∷∼∷′ ⟩≲≳
+      VM.stack-sizes ⟨ cal f ∷ c , val (comp-val v) ∷ s , comp-env ρ ⟩        ∼⟨ ∷∼∷′ ⟩≂
 
       1 + length s ∷′
       VM.stack-sizes ⟨ comp-name f
                      , ret c (comp-env ρ) ∷ s
                      , comp-val v ∷ []
-                     ⟩                                                         ≲≳⟨ ⌊ cons′-≲≳D (λ { .force →
-                                                                                     ⌈ ret-lemma (def f) [] (castC c-ok) ⌉ }) ⌋≲≳ ⟩∼
+                     ⟩                                                        ≂⟨ ⌊ cons′-≂D (λ { .force →
+                                                                                   ⌈ ret-lemma (def f) [] (castC c-ok) ⌉ }) ⌋≂ ⟩∼
       1 + length s ∷′
       numbers (⟦ def f ⟧ (v ∷ []) true >>=
                Delay-crash-colist.tell pred ∘ return >>= k)
-              (1 + length s)                                                   ∼⟨ symmetric-∼ ∷∼∷′ ⟩
+              (1 + length s)                                                  ∼⟨ symmetric-∼ ∷∼∷′ ⟩
 
       numbers ([ id , pred ] T.lam (def f) [] ∙ v >>= k)
-              (1 + length s)                                                   ∎) ⟩∼
+              (1 + length s)                                                  ∎) ⟩∼
 
     numbers (⟦ t ⟧ ρ false >>= λ v →
              [ id , pred ] T.lam (def f) [] ∙ v >>= k)
@@ -210,45 +210,45 @@ mutual
     VM.stack-sizes ⟨ comp false t (tcl f ∷ c)
                    , ret c′ ρ′ ∷ s
                    , comp-env ρ
-                   ⟩                                                    ≲≳⟨ (⟦⟧-correct t _ unrestricted λ v →
+                   ⟩                                                    ≂⟨ (⟦⟧-correct t _ unrestricted λ v →
 
       VM.stack-sizes ⟨ tcl f ∷ c
                      , val (comp-val v) ∷ ret c′ ρ′ ∷ s
                      , comp-env ρ
-                     ⟩                                                         ∼⟨ ∷∼∷′ ⟩≲≳
+                     ⟩                                                        ∼⟨ ∷∼∷′ ⟩≂
 
       2 + length s ∷′
       VM.stack-sizes ⟨ comp-name f
                      , ret c′ ρ′ ∷ s
                      , comp-val v ∷ []
-                     ⟩                                                         ≡⟨⟩≲≳
+                     ⟩                                                        ≡⟨⟩≂
 
       2 + length s ∷′
       VM.stack-sizes ⟨ comp-name f
                      , ret c′ ρ′ ∷ s
                      , comp-env (v ∷ [])
-                     ⟩                                                         ≲≳⟨ ⌊ cons′-≲≳D (λ { .force →
-                                                                                     ⌈ ⟦⟧-correct (def f) (_ ∷ []) (restricted lemma) (λ v′ →
+                     ⟩                                                        ≂⟨ ⌊ cons′-≂D (λ { .force →
+                                                                                   ⌈ ⟦⟧-correct (def f) (_ ∷ []) (restricted lemma) (λ v′ →
         VM.stack-sizes ⟨ ret ∷ []
                        , val (comp-val v′) ∷ ret c′ ρ′ ∷ s
                        , comp-env (v ∷ [])
-                       ⟩                                                               ∼⟨ ∷∼∷′ ⟩≲≳
+                       ⟩                                                             ∼⟨ ∷∼∷′ ⟩≂
 
         2 + length s ∷′
-        VM.stack-sizes ⟨ c′ , val (comp-val v′) ∷ s , ρ′ ⟩                             ≲≳⟨ lemma v′ ⟩∼
+        VM.stack-sizes ⟨ c′ , val (comp-val v′) ∷ s , ρ′ ⟩                           ≂⟨ lemma v′ ⟩∼
 
-        numbers (tell id (k v′)) (2 + length s)                                        ∎) ⌉ }) ⌋≲≳ ⟩∼
+        numbers (tell id (k v′)) (2 + length s)                                      ∎) ⌉ }) ⌋≂ ⟩∼
 
       2 + length s ∷′
-      numbers (⟦ def f ⟧ (v ∷ []) true >>= tell id ∘ k) (1 + length s)         ∼⟨ (refl ∷ λ { .force →
-                                                                                   numbers-cong (DCC.associativity (⟦ def f ⟧ _ _) _ _) }) ⟩
+      numbers (⟦ def f ⟧ (v ∷ []) true >>= tell id ∘ k) (1 + length s)        ∼⟨ (refl ∷ λ { .force →
+                                                                                  numbers-cong (DCC.associativity (⟦ def f ⟧ _ _) _ _) }) ⟩
       2 + length s ∷′
       numbers (⟦ def f ⟧ (v ∷ []) true >>=
                Delay-crash-colist.tell id ∘ return >>= k)
-              (1 + length s)                                                   ∼⟨ symmetric-∼ ∷∼∷′ ⟩
+              (1 + length s)                                                  ∼⟨ symmetric-∼ ∷∼∷′ ⟩
 
       numbers ([ pred , id ] T.lam (def f) [] ∙ v >>= k)
-              (2 + length s)                                                   ∎) ⟩∼
+              (2 + length s)                                                  ∎) ⟩∼
 
     numbers (⟦ t ⟧ ρ false >>= λ v →
              [ pred , id ] T.lam (def f) [] ∙ v >>= k)
@@ -263,7 +263,7 @@ mutual
     lemma : {j : Size< i} → _
     lemma = λ v′ →
       2 + length s ∷′
-      VM.stack-sizes ⟨ c′ , val (comp-val v′) ∷ s , ρ′ ⟩  ≲≳⟨ consʳ-≲≳ (inj₁ (here ≤-refl)) (cast-≲≳ (c-ok v′)) ⟩∼
+      VM.stack-sizes ⟨ c′ , val (comp-val v′) ∷ s , ρ′ ⟩  ≂⟨ consʳ-≂ (inj₁ (here ≤-refl)) (cast-≂ (c-ok v′)) ⟩∼
 
       2 + length s ∷′
       numbers (k v′) (2 + length s)                       ∼⟨ symmetric-∼ ∷∼∷′ ⟩
@@ -271,10 +271,10 @@ mutual
       numbers (tell id (k v′)) (2 + length s)             ∎
 
   ⟦⟧-correct (con b) ρ {tc} {c} {s} {k} _ c-ok =
-    VM.stack-sizes ⟨ con b ∷ c , s , comp-env ρ ⟩                       ∼⟨ ∷∼∷′ ⟩≲≳
+    VM.stack-sizes ⟨ con b ∷ c , s , comp-env ρ ⟩                       ∼⟨ ∷∼∷′ ⟩≂
 
     (length s ∷′
-     VM.stack-sizes ⟨ c , val (comp-val (T.con b)) ∷ s , comp-env ρ ⟩)  ≲≳⟨ cons″-≲≳ (c-ok (T.con b)) ⟩∼
+     VM.stack-sizes ⟨ c , val (comp-val (T.con b)) ∷ s , comp-env ρ ⟩)  ≂⟨ cons″-≂ (c-ok (T.con b)) ⟩∼
 
     (length s ∷′ numbers (k (T.con b)) (1 + length s))                  ∼⟨ symmetric-∼ ∷∼∷′ ⟩
 
@@ -285,7 +285,7 @@ mutual
                        (bra (comp tc t₂ []) (comp tc t₃ []) ∷ c)
                    , s
                    , comp-env ρ
-                   ⟩                                                ≲≳⟨ (⟦⟧-correct t₁ _ unrestricted λ v₁ → ⟦if⟧-correct v₁ t₂ t₃ s-ok c-ok) ⟩∼
+                   ⟩                                                ≂⟨ (⟦⟧-correct t₁ _ unrestricted λ v₁ → ⟦if⟧-correct v₁ t₂ t₃ s-ok c-ok) ⟩∼
 
     numbers (⟦ t₁ ⟧ ρ false >>= λ v₁ → ⟦if⟧ v₁ t₂ t₃ ρ tc >>= k)
             (length s)                                              ∼⟨ numbers-cong (DCC.associativity (⟦ t₁ ⟧ _ _) _ _) ⟩
@@ -300,7 +300,7 @@ mutual
     [ i ] VM.stack-sizes ⟨ comp true t (ret ∷ [])
                          , ret c ρ′ ∷ s
                          , comp-val v ∷ comp-env ρ
-                         ⟩ ≲≳
+                         ⟩ ≂
           numbers (⟦ t ⟧ (v ∷ ρ) true >>=
                    Delay-crash-colist.tell pred ∘ return >>= k)
                   (1 + length s)
@@ -308,22 +308,22 @@ mutual
     VM.stack-sizes ⟨ comp true t (ret ∷ [])
                    , ret c ρ′ ∷ s
                    , comp-val v ∷ comp-env ρ
-                   ⟩                                               ≡⟨⟩≲≳
+                   ⟩                                               ≡⟨⟩≂
 
     VM.stack-sizes ⟨ comp true t (ret ∷ [])
                    , ret c ρ′ ∷ s
                    , comp-env (v ∷ ρ)
-                   ⟩                                               ≲≳⟨ (⟦⟧-correct t (_ ∷ _) (any-OK (restricted lemma)) λ v′ →
+                   ⟩                                               ≂⟨ (⟦⟧-correct t (_ ∷ _) (any-OK (restricted lemma)) λ v′ →
 
       VM.stack-sizes ⟨ ret ∷ []
                      , val (comp-val v′) ∷ ret c ρ′ ∷ s
                      , comp-env (v ∷ ρ)
-                     ⟩                                                    ∼⟨ ∷∼∷′ ⟩≲≳
+                     ⟩                                                   ∼⟨ ∷∼∷′ ⟩≂
 
       2 + length s ∷′
-      VM.stack-sizes ⟨ c , val (comp-val v′) ∷ s , ρ′ ⟩                   ≲≳⟨ lemma v′ ⟩∼
+      VM.stack-sizes ⟨ c , val (comp-val v′) ∷ s , ρ′ ⟩                  ≂⟨ lemma v′ ⟩∼
 
-      numbers (tell pred (k v′)) (2 + length s)                           ∎) ⟩∼
+      numbers (tell pred (k v′)) (2 + length s)                          ∎) ⟩∼
 
     numbers (⟦ t ⟧ (v ∷ ρ) true >>= tell pred ∘ k) (1 + length s)  ∼⟨ numbers-cong (DCC.associativity (⟦ t ⟧ _ _) _ _) ⟩
 
@@ -333,7 +333,7 @@ mutual
     where
     lemma = λ v′ →
       2 + length s ∷′
-      VM.stack-sizes ⟨ c , val (comp-val v′) ∷ s , ρ′ ⟩  ≲≳⟨ cons″-≲≳ (c-ok v′) ⟩∼
+      VM.stack-sizes ⟨ c , val (comp-val v′) ∷ s , ρ′ ⟩  ≂⟨ cons″-≂ (c-ok v′) ⟩∼
 
       2 + length s ∷′ numbers (k v′) (1 + length s)      ∼⟨ symmetric-∼ ∷∼∷′ ⟩
 
@@ -346,7 +346,7 @@ mutual
     [ i ] VM.stack-sizes ⟨ app ∷ c
                          , val (comp-val v₂) ∷ val (comp-val v₁) ∷ s
                          , ρ
-                         ⟩ ≲≳
+                         ⟩ ≂
           numbers ([ pred , pred ] v₁ ∙ v₂ >>= k) (2 + length s)
 
   ∙-correct (T.lam t₁ ρ₁) v₂ {ρ} {c} {s} {k} c-ok =
@@ -354,13 +354,13 @@ mutual
       ⟨ app ∷ c
       , val (comp-val v₂) ∷ val (comp-val (T.lam t₁ ρ₁)) ∷ s
       , ρ
-      ⟩                                                              ∼⟨ ∷∼∷′ ⟩≲≳
+      ⟩                                                              ∼⟨ ∷∼∷′ ⟩≂
 
     2 + length s ∷′
     VM.stack-sizes ⟨ comp true t₁ (ret ∷ [])
                    , ret c ρ ∷ s
                    , comp-val v₂ ∷ comp-env ρ₁
-                   ⟩                                                 ≲≳⟨ ⌊ cons′-≲≳D (λ { .force → ⌈ ret-lemma t₁ _ (castC c-ok) ⌉ }) ⌋≲≳ ⟩∼
+                   ⟩                                                 ≂⟨ ⌊ cons′-≂D (λ { .force → ⌈ ret-lemma t₁ _ (castC c-ok) ⌉ }) ⌋≂ ⟩∼
 
     2 + length s ∷′
     numbers (⟦ t₁ ⟧ (v₂ ∷ ρ₁) true >>=
@@ -373,11 +373,11 @@ mutual
     VM.stack-sizes ⟨ app ∷ c
                    , val (comp-val v₂) ∷ val (C.con b) ∷ s
                    , ρ
-                   ⟩                                             ∼⟨ ∷∼∷′ ⟩≲≳
+                   ⟩                                             ∼⟨ ∷∼∷′ ⟩≂
 
-    2 + length s ∷′ []                                           ∼⟨ symmetric-∼ ∷∼∷′ ⟩≲≳
+    2 + length s ∷′ []                                           ∼⟨ symmetric-∼ ∷∼∷′ ⟩≂
 
-    numbers ([ pred , pred ] T.con b ∙ v₂ >>= k) (2 + length s)  □≲≳
+    numbers ([ pred , pred ] T.con b ∙ v₂ >>= k) (2 + length s)  □≂
 
   ⟦if⟧-correct :
     ∀ {i n} v₁ t₂ t₃ {ρ : T.Env n} {tc c s}
@@ -387,30 +387,30 @@ mutual
     [ i ] VM.stack-sizes ⟨ bra (comp tc t₂ []) (comp tc t₃ []) ∷ c
                          , val (comp-val v₁) ∷ s
                          , comp-env ρ
-                         ⟩ ≲≳
+                         ⟩ ≂
           numbers (⟦if⟧ v₁ t₂ t₃ ρ tc >>= k) (1 + length s)
 
   ⟦if⟧-correct (T.lam t₁ ρ₁) t₂ t₃ {ρ} {tc} {c} {s} {k} _ _ =
     VM.stack-sizes ⟨ bra (comp tc t₂ []) (comp tc t₃ []) ∷ c
                    , val (comp-val (T.lam t₁ ρ₁)) ∷ s
                    , comp-env ρ
-                   ⟩                                              ∼⟨ ∷∼∷′ ⟩≲≳
+                   ⟩                                              ∼⟨ ∷∼∷′ ⟩≂
 
-    1 + length s ∷′ []                                            ∼⟨ symmetric-∼ ∷∼∷′ ⟩≲≳
+    1 + length s ∷′ []                                            ∼⟨ symmetric-∼ ∷∼∷′ ⟩≂
 
-    numbers (⟦if⟧ (T.lam t₁ ρ₁) t₂ t₃ ρ tc >>= k) (1 + length s)  □≲≳
+    numbers (⟦if⟧ (T.lam t₁ ρ₁) t₂ t₃ ρ tc >>= k) (1 + length s)  □≂
 
   ⟦if⟧-correct (T.con true) t₂ t₃ {ρ} {tc} {c} {s} {k} s-ok c-ok =
     VM.stack-sizes ⟨ bra (comp tc t₂ []) (comp tc t₃ []) ∷ c
                    , val (comp-val (T.con true)) ∷ s
                    , comp-env ρ
-                   ⟩                                             ∼⟨ ∷∼∷′ ⟩≲≳
+                   ⟩                                             ∼⟨ ∷∼∷′ ⟩≂
 
     1 + length s ∷′
-    VM.stack-sizes ⟨ comp tc t₂ [] ++ c , s , comp-env ρ ⟩       ≡⟨ by (comp-++ _ t₂) ⟩≲≳
+    VM.stack-sizes ⟨ comp tc t₂ [] ++ c , s , comp-env ρ ⟩       ≡⟨ by (comp-++ _ t₂) ⟩≂
 
     1 + length s ∷′
-    VM.stack-sizes ⟨ comp tc t₂ c , s , comp-env ρ ⟩             ≲≳⟨ cons″-≲≳ (⟦⟧-correct t₂ _ s-ok c-ok) ⟩∼
+    VM.stack-sizes ⟨ comp tc t₂ c , s , comp-env ρ ⟩             ≂⟨ cons″-≂ (⟦⟧-correct t₂ _ s-ok c-ok) ⟩∼
 
     1 + length s ∷′ numbers (⟦ t₂ ⟧ ρ tc >>= k) (length s)       ∼⟨ symmetric-∼ ∷∼∷′ ⟩
 
@@ -420,13 +420,13 @@ mutual
     VM.stack-sizes ⟨ bra (comp tc t₂ []) (comp tc t₃ []) ∷ c
                    , val (comp-val (T.con false)) ∷ s
                    , comp-env ρ
-                   ⟩                                              ∼⟨ ∷∼∷′ ⟩≲≳
+                   ⟩                                              ∼⟨ ∷∼∷′ ⟩≂
 
     1 + length s ∷′
-    VM.stack-sizes ⟨ comp tc t₃ [] ++ c , s , comp-env ρ ⟩        ≡⟨ by (comp-++ _ t₃) ⟩≲≳
+    VM.stack-sizes ⟨ comp tc t₃ [] ++ c , s , comp-env ρ ⟩        ≡⟨ by (comp-++ _ t₃) ⟩≂
 
     1 + length s ∷′
-    VM.stack-sizes ⟨ comp tc t₃ c , s , comp-env ρ ⟩              ≲≳⟨ cons″-≲≳ (⟦⟧-correct t₃ _ s-ok c-ok) ⟩∼
+    VM.stack-sizes ⟨ comp tc t₃ c , s , comp-env ρ ⟩              ≂⟨ cons″-≂ (⟦⟧-correct t₃ _ s-ok c-ok) ⟩∼
 
     1 + length s ∷′ numbers (⟦ t₃ ⟧ ρ tc >>= k) (length s)        ∼⟨ symmetric-∼ ∷∼∷′ ⟩
 
@@ -437,9 +437,9 @@ mutual
 
 stack-sizes-related :
   (t : Tm 0) →
-  [ ∞ ] VM.stack-sizes ⟨ comp₀ t , [] , [] ⟩ ≲≳ I.stack-sizes t
+  [ ∞ ] VM.stack-sizes ⟨ comp₀ t , [] , [] ⟩ ≂ I.stack-sizes t
 stack-sizes-related t =
-  VM.stack-sizes ⟨ comp false t [] , [] , [] ⟩  ≲≳⟨ ⟦⟧-correct t [] unrestricted (λ _ → cons″-≲≳ (_ □≲≳)) ⟩∼
+  VM.stack-sizes ⟨ comp false t [] , [] , [] ⟩  ≂⟨ ⟦⟧-correct t [] unrestricted (λ _ → cons″-≂ (_ □≂)) ⟩∼
   numbers (comp-val ⟨$⟩ ⟦ t ⟧ [] false) 0       ∼⟨ scanl-cong (DCC.colist-⟨$⟩ _) ⟩
   numbers (⟦ t ⟧ [] false) 0                    ∼⟨⟩
   I.stack-sizes t                               ∎
@@ -452,6 +452,6 @@ maximum-stack-sizes-match :
   LUB (VM.stack-sizes ⟨ comp₀ t , [] , [] ⟩) v →
   Conat.[ ∞ ] i ∼ v
 maximum-stack-sizes-match t {i} {v} i-lub =
-  LUB (VM.stack-sizes ⟨ comp₀ t , [] , [] ⟩) v  ↝⟨ LUB-≲≳ (stack-sizes-related t) ⟩
+  LUB (VM.stack-sizes ⟨ comp₀ t , [] , [] ⟩) v  ↝⟨ LUB-≂ (stack-sizes-related t) ⟩
   LUB (I.stack-sizes t) v                       ↝⟨ lub-unique i-lub ⟩□
   Conat.[ ∞ ] i ∼ v                             □
