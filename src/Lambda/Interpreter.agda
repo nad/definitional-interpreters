@@ -46,7 +46,7 @@ mutual
                          ⟦if⟧ v₁ t₂ t₃ ρ
 
   _∙_ : ∀ {i} → Value → Value → Delay-crash Value i
-  lam t₁ ρ ∙ v₂ = later (⟦ t₁ ⟧′ (v₂ ∷ ρ))
+  lam t₁ ρ ∙ v₂ = later λ { .force → ⟦ t₁ ⟧ (v₂ ∷ ρ) }
   con _    ∙ _  = crash
 
   ⟦if⟧ : ∀ {i n} →
@@ -55,9 +55,6 @@ mutual
   ⟦if⟧ (con true)  t₂ t₃ ρ = ⟦ t₂ ⟧ ρ
   ⟦if⟧ (con false) t₂ t₃ ρ = ⟦ t₃ ⟧ ρ
 
-  ⟦_⟧′ : ∀ {i n} → Tm n → Env n → Delay-crash′ Value i
-  force (⟦ t ⟧′ ρ) = ⟦ t ⟧ ρ
-
 ------------------------------------------------------------------------
 -- An example
 
@@ -65,14 +62,13 @@ mutual
 
 Ω-loops : ∀ {i} → [ i ] ⟦ Ω ⟧ [] ∼ never
 Ω-loops =
-  ⟦ Ω ⟧ []                                  ∼⟨⟩
-  ⟦ ω · ω ⟧ []                              ∼⟨⟩
-  lam ω-body [] ∙ lam ω-body []             ∼⟨⟩
-  later (⟦ ω-body ⟧′ (lam ω-body [] ∷ []))  ∼⟨ later (λ { .force →
+  ⟦ Ω ⟧ []                             ∼⟨⟩
+  ⟦ ω · ω ⟧ []                         ∼⟨⟩
+  lam ω-body [] ∙ lam ω-body []        ∼⟨ later (λ { .force →
 
-      ⟦ ω-body ⟧ (lam ω-body [] ∷ [])            ∼⟨⟩
-      lam ω-body [] ∙ lam ω-body []              ∼⟨⟩
-      ⟦ Ω ⟧ []                                   ∼⟨ Ω-loops ⟩∼
-      never                                      ∎ }) ⟩∼
+      ⟦ ω-body ⟧ (lam ω-body [] ∷ [])       ∼⟨⟩
+      lam ω-body [] ∙ lam ω-body []         ∼⟨⟩
+      ⟦ Ω ⟧ []                              ∼⟨ Ω-loops ⟩∼
+      never                                 ∎ }) ⟩∼
 
-  never                                     ∎
+  never                                ∎
