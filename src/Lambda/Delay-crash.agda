@@ -28,7 +28,8 @@ Delay-crash A i = Delay (Maybe A) i
 
 -- A crashing computation.
 
-pattern crash = now nothing
+crash : ∀ {A i} → Delay-crash A i
+crash = now nothing
 
 -- A raw-monad instance. (This definition is turned into an actual
 -- instance at the end of this module, to avoid problems with instance
