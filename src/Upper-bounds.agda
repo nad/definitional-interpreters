@@ -630,11 +630,8 @@ ns □≂ = (ns □≲) , (ns □≲)
 
 -- The predicate flip LUB n respects [ ∞ ]_≂_.
 
-LUB-≂ :
-  ∀ {ms ns} →
-  [ ∞ ] ms ≂ ns →
-  ∀ {n} → LUB ms n → LUB ns n
-LUB-≂ {ms} {ns} (ms≲ns , ns≲ms) {n} = Σ-map
+LUB-≂ : ∀ {ms ns n} → [ ∞ ] ms ≂ ns → LUB ms n → LUB ns n
+LUB-≂ {ms} {ns} {n} (ms≲ns , ns≲ms) = Σ-map
   ([ ∞ ] ms ⊑ n  ↝⟨ ns≲ms ⟩□
    [ ∞ ] ns ⊑ n  □)
   ((∀ n′ → [ ∞ ] ms ⊑ n′ → [ ∞ ] n ≤ n′)  ↝⟨ (λ hyp n′ → hyp n′ ∘ ms≲ns) ⟩□
@@ -643,10 +640,7 @@ LUB-≂ {ms} {ns} (ms≲ns , ns≲ms) {n} = Σ-map
 -- If [ ∞ ] ms ≂ ns holds, then ms and ns have the same least upper
 -- bounds.
 
-LUB-cong :
-  ∀ {ms ns} →
-  [ ∞ ] ms ≂ ns →
-  ∀ {n} → LUB ms n ⇔ LUB ns n
+LUB-cong : ∀ {ms ns n} → [ ∞ ] ms ≂ ns → LUB ms n ⇔ LUB ns n
 LUB-cong ms≂ns = record
   { to   = LUB-≂              ms≂ns
   ; from = LUB-≂ (symmetric-≂ ms≂ns)

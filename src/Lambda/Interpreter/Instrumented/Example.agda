@@ -39,7 +39,7 @@ loop : Tm 1
 loop = call tt (con true)
 
 def : ⊤ → Tm 1
-def _ = loop
+def tt = loop
 
 -- The two interpreters are instantiated with this definition.
 

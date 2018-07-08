@@ -74,7 +74,7 @@ Cont-OK i ⟨ c , s , ρ ⟩ k =
 data Stack-OK (i : Size) (k : T.Value → Delay-crash C.Value ∞) :
               In-tail-context → Stack → Set where
   unrestricted : ∀ {s} → Stack-OK i k false s
-  restricted   : ∀ {s n c} {ρ : C.Env n} →
+  restricted   : ∀ {s n} {c : Code n} {ρ : C.Env n} →
                  Cont-OK i ⟨ c , s , ρ ⟩ k →
                  Stack-OK i k true (ret c ρ ∷ s)
 

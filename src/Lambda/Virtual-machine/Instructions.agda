@@ -21,8 +21,8 @@ mutual
   -- Instructions.
 
   data Instr (n : ℕ) : Set where
-    var : (x : Fin n) → Instr n
-    clo : (c : Code (suc n)) → Instr n
+    var : Fin n → Instr n
+    clo : Code (suc n) → Instr n
     app : Instr n
     ret : Instr n
     cal : Name → Instr n

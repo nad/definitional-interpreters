@@ -62,7 +62,7 @@ open Delay-crash-colist′ public
 colist : ∀ {A B i} → Delay-crash-colist A B i → Colist A i
 colist (now x)     = []
 colist crash       = []
-colist (later x m) = x ∷ λ { .force → colist (force m) }
+colist (later x m) = x ∷ λ { .force → colist (m .force) }
 colist (tell x m)  = x ∷ λ { .force → colist m }
 
 -- Erases the colist.

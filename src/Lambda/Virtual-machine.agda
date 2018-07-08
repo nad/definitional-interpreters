@@ -51,7 +51,7 @@ mutual
 
   exec⁺′ : ∀ {i} → Result → Delay-crash-colist State Value i
   exec⁺′ (cont s) = exec⁺ s
-  exec⁺′ (done v) = return v
+  exec⁺′ (done v) = now v
   exec⁺′ crash    = crash
 
 -- The semantics without the trace of states.

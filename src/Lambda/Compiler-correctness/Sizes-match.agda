@@ -94,7 +94,7 @@ data Stack-OK (i : Size)
               In-tail-context → Stack → Set where
   unrestricted : ∀ {s} → Stack-OK i k false s
   restricted   :
-    ∀ {s n c} {ρ : C.Env n} →
+    ∀ {s n} {c : Code n} {ρ : C.Env n} →
     (∀ v → [ i ] 2 + length s ∷′
                  VM.stack-sizes ⟨ c , val (comp-val v) ∷ s , ρ ⟩ ≂
                  numbers (k v) (2 + length s)) →
