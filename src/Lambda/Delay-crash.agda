@@ -26,9 +26,6 @@ import Delay-monad.Monad as DM
 Delay-crash : Set → Size → Set
 Delay-crash A i = Delay (Maybe A) i
 
-Delay-crash′ : Set → Size → Set
-Delay-crash′ A i = Delay′ (Maybe A) i
-
 -- A crashing computation.
 
 pattern crash = now nothing

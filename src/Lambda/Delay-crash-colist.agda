@@ -17,7 +17,7 @@ open import Monad E.equality-with-J
 open import Delay-monad using (now; later; force)
 open import Delay-monad.Bisimilarity as D using (now; later; force)
 
-open import Lambda.Delay-crash using (Delay-crash; Delay-crash′)
+open import Lambda.Delay-crash using (Delay-crash)
 
 ------------------------------------------------------------------------
 -- The monad
@@ -65,20 +65,14 @@ colist crash       = []
 colist (later x m) = x ∷ λ { .force → colist (force m) }
 colist (tell x m)  = x ∷ λ { .force → colist m }
 
-mutual
+-- Erases the colist.
 
-  -- Erases the colist.
-
-  delay-crash :
-    ∀ {A B i} → Delay-crash-colist A B i → Delay-crash B i
-  delay-crash (now x)     = now (just x)
-  delay-crash crash       = now nothing
-  delay-crash (later x m) = later (delay-crash′ m)
-  delay-crash (tell x m)  = delay-crash m
-
-  delay-crash′ :
-    ∀ {A B i} → Delay-crash-colist′ A B i → Delay-crash′ B i
-  delay-crash′ m .force = delay-crash (m .force)
+delay-crash :
+  ∀ {A B i} → Delay-crash-colist A B i → Delay-crash B i
+delay-crash (now x)     = now (just x)
+delay-crash crash       = now nothing
+delay-crash (later x m) = later λ { .force → delay-crash (m .force) }
+delay-crash (tell x m)  = delay-crash m
 
 ------------------------------------------------------------------------
 -- Delay-crash-colist is a raw monad
