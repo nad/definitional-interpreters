@@ -90,17 +90,11 @@ mutual
   ⟦if⟧ (con true)  t₂ t₃ ρ tc = tell pred (⟦ t₂ ⟧ ρ tc)
   ⟦if⟧ (con false) t₂ t₃ ρ tc = tell pred (⟦ t₃ ⟧ ρ tc)
 
--- Applies the functions, one after another, to the starting value
--- (that is also the first value in the resulting list).
+-- The numbers produced by a given computation, for a given initial
+-- number. The initial number is the first element in the output.
 
-apply : ∀ {i} → Colist (ℕ → ℕ) i → (ℕ → Colist ℕ i)
-apply = flip (scanl (flip _$_))
-
--- The natural numbers produced by a given computation, for a given
--- initial number.
-
-numbers : ∀ {i A} → Delay-crash-colist (ℕ → ℕ) A i → ℕ → Colist ℕ i
-numbers = apply ∘ colist
+numbers : ∀ {A i} → Delay-crash-colist (ℕ → ℕ) A i → ℕ → Colist ℕ i
+numbers x n = scanl (λ m f → f m) n (colist x)
 
 -- The stack sizes, for an empty initial stack, with false as the
 -- In-tail-context argument.
