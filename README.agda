@@ -89,20 +89,20 @@ import Lambda.Compiler
 
 import Lambda.Compiler-correctness
 
--- A definitional interpreter that is annotated with information about
--- the stack size of the compiled program.
+-- A definitional interpreter that is instrumented with information
+-- about the stack size of the compiled program.
 
-import Lambda.Interpreter.Annotated
+import Lambda.Interpreter.Instrumented
 
 -- The actual maximum stack size of the compiled program matches the
--- maximum stack size of the annotated source-level semantics.
+-- maximum stack size of the instrumented source-level semantics.
 
 import Lambda.Compiler-correctness.Sizes-match
 
 -- An example: A non-terminating program that runs in bounded stack
 -- space.
 
-import Lambda.Interpreter.Annotated.Example
+import Lambda.Interpreter.Instrumented.Example
 
 ------------------------------------------------------------------------
 -- Other code

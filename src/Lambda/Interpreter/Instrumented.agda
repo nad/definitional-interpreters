@@ -1,6 +1,6 @@
 ------------------------------------------------------------------------
--- A definitional interpreter that is annotated with information about
--- the stack size of the compiled program
+-- A definitional interpreter that is instrumented with information
+-- about the stack size of the compiled program
 ------------------------------------------------------------------------
 
 {-# OPTIONS --without-K --safe #-}
@@ -9,7 +9,7 @@ open import Prelude
 
 import Lambda.Syntax
 
-module Lambda.Interpreter.Annotated
+module Lambda.Interpreter.Instrumented
   {Name : Set}
   (open Lambda.Syntax Name)
   (def : Name → Tm 1)
@@ -53,7 +53,7 @@ infix 10 [_,_]_∙_
 
 mutual
 
-  -- The semantics annotated with stack size changes (functions of
+  -- The semantics instrumented with stack size changes (functions of
   -- type ℕ → ℕ). The semantics takes an argument of type
   -- In-tail-context, so that it can produce annotations matching
   -- those produced by the compiler + virtual machine.
@@ -113,12 +113,12 @@ stack-sizes : ∀ {i} → Tm 0 → Colist ℕ i
 stack-sizes t = numbers (⟦ t ⟧ [] false) 0
 
 ------------------------------------------------------------------------
--- The semantics given above gives the same (unannotated) result as
+-- The semantics given above gives the same (uninstrumented) result as
 -- the one in Lambda.Interpreter
 
 mutual
 
-  -- The annotated and the unannotated semantics yield strongly
+  -- The instrumented and the uninstrumented semantics yield strongly
   -- bisimilar results.
 
   ⟦⟧∼⟦⟧ :

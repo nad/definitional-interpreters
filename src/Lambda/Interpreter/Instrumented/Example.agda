@@ -5,7 +5,7 @@
 
 {-# OPTIONS --without-K --safe #-}
 
-module Lambda.Interpreter.Annotated.Example where
+module Lambda.Interpreter.Instrumented.Example where
 
 open import Colist as C
 open import Conat hiding (pred)
@@ -24,7 +24,7 @@ open import Upper-bounds
 
 import Lambda.Delay-crash-colist as DCC
 import Lambda.Interpreter
-import Lambda.Interpreter.Annotated
+import Lambda.Interpreter.Instrumented
 
 -- This module uses a name type with a single inhabitant, allowing
 -- (and requiring) the definition and use of one named definition.
@@ -43,8 +43,8 @@ def _ = loop
 
 -- The two interpreters are instantiated with this definition.
 
-module I = Lambda.Interpreter           def
-module A = Lambda.Interpreter.Annotated def
+module I = Lambda.Interpreter              def
+module A = Lambda.Interpreter.Instrumented def
 
 -- A top-level term to get things going.
 

@@ -1,6 +1,6 @@
 ------------------------------------------------------------------------
 -- The actual maximum stack size of the compiled program matches the
--- maximum stack size of the annotated source-level semantics
+-- maximum stack size of the instrumented source-level semantics
 ------------------------------------------------------------------------
 
 {-# OPTIONS --without-K --safe #-}
@@ -29,7 +29,7 @@ open import Vec.Data E.equality-with-J
 open import Upper-bounds
 
 open import Lambda.Compiler def
-open import Lambda.Interpreter.Annotated def as I
+open import Lambda.Interpreter.Instrumented def as I
 open import Lambda.Delay-crash-colist as DCC
   using (Delay-crash-colist; tell)
 open import Lambda.Virtual-machine.Instructions Name
