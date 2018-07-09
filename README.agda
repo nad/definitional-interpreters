@@ -71,7 +71,7 @@ import Lambda.Type-soundness
 -- A combination of the delay monad (with the possibility of crashing)
 -- and a kind of writer monad yielding colists.
 
-import Lambda.Delay-crash-colist
+import Lambda.Delay-crash-trace
 
 -- Virtual machine instructions, state etc.
 

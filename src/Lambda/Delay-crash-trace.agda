@@ -5,7 +5,7 @@
 
 {-# OPTIONS --without-K --safe #-}
 
-module Lambda.Delay-crash-colist where
+module Lambda.Delay-crash-trace where
 
 open import Colist as C using (Colist; []; _∷_; force)
 open import Equality.Propositional as E using (_≡_; refl)
@@ -25,79 +25,79 @@ open import Lambda.Delay-crash using (Delay-crash)
 mutual
 
   -- A kind of delay monad with the possibility of crashing that also
-  -- yields a colist of values.
+  -- yields a trace (colist) of values.
 
-  data Delay-crash-colist (A B : Set) (i : Size) : Set where
+  data Delay-crash-trace (A B : Set) (i : Size) : Set where
 
     -- A result is returned now.
 
-    now : B → Delay-crash-colist A B i
+    now : B → Delay-crash-trace A B i
 
     -- The computation crashes now.
 
-    crash : Delay-crash-colist A B i
+    crash : Delay-crash-trace A B i
 
     -- A result is possibly returned later. This constructor also
     -- functions as a coinductive cons constructor for the resulting
-    -- colist.
+    -- trace.
 
-    later : A → Delay-crash-colist′ A B i → Delay-crash-colist A B i
+    later : A → Delay-crash-trace′ A B i → Delay-crash-trace A B i
 
-    -- An inductive cons constructor for the resulting colist.
+    -- An inductive cons constructor for the resulting trace.
 
-    tell : A → Delay-crash-colist A B i → Delay-crash-colist A B i
+    tell : A → Delay-crash-trace A B i → Delay-crash-trace A B i
 
-  record Delay-crash-colist′ (A B : Set) (i : Size) : Set where
+  record Delay-crash-trace′ (A B : Set) (i : Size) : Set where
     coinductive
     field
-      force : {j : Size< i} → Delay-crash-colist A B j
+      force : {j : Size< i} → Delay-crash-trace A B j
 
-open Delay-crash-colist′ public
+open Delay-crash-trace′ public
 
 ------------------------------------------------------------------------
--- Extracting or deleting the colist
+-- Extracting or deleting the trace
 
--- Returns the colist.
+-- Returns the trace.
 
-colist : ∀ {A B i} → Delay-crash-colist A B i → Colist A i
-colist (now x)     = []
-colist crash       = []
-colist (later x m) = x ∷ λ { .force → colist (m .force) }
-colist (tell x m)  = x ∷ λ { .force → colist m }
+trace : ∀ {A B i} → Delay-crash-trace A B i → Colist A i
+trace (now x)     = []
+trace crash       = []
+trace (later x m) = x ∷ λ { .force → trace (m .force) }
+trace (tell x m)  = x ∷ λ { .force → trace m }
 
--- Erases the colist.
+-- Erases the trace.
 
 delay-crash :
-  ∀ {A B i} → Delay-crash-colist A B i → Delay-crash B i
+  ∀ {A B i} → Delay-crash-trace A B i → Delay-crash B i
 delay-crash (now x)     = now (just x)
 delay-crash crash       = now nothing
 delay-crash (later x m) = later λ { .force → delay-crash (m .force) }
 delay-crash (tell x m)  = delay-crash m
 
 ------------------------------------------------------------------------
--- Delay-crash-colist is a raw monad
+-- Delay-crash-trace is a raw monad
 
 -- Bind.
 
 bind : ∀ {i A B C} →
-       Delay-crash-colist A B i →
-       (B → Delay-crash-colist A C i) →
-       Delay-crash-colist A C i
+       Delay-crash-trace A B i →
+       (B → Delay-crash-trace A C i) →
+       Delay-crash-trace A C i
 bind (now x)     f = f x
 bind crash       f = crash
 bind (later x m) f = later x λ { .force → bind (force m) f }
 bind (tell x m)  f = tell x (bind m f)
 
--- Delay-crash-colist is a raw monad.
+-- Delay-crash-trace is a raw monad.
 
 instance
 
-  raw-monad : ∀ {A i} → Raw-monad (λ B → Delay-crash-colist A B i)
+  raw-monad : ∀ {A i} → Raw-monad (λ B → Delay-crash-trace A B i)
   Raw-monad.return raw-monad = now
   Raw-monad._>>=_  raw-monad = bind
 
 ------------------------------------------------------------------------
--- Strong bisimilarity for Delay-crash-colist
+-- Strong bisimilarity for Delay-crash-trace
 
 module _ {A B : Set} where
 
@@ -108,8 +108,8 @@ module _ {A B : Set} where
     infix 4 [_]_∼_ [_]_∼′_
 
     data [_]_∼_ (i : Size) :
-           Delay-crash-colist A B ∞ →
-           Delay-crash-colist A B ∞ → Set where
+           Delay-crash-trace A B ∞ →
+           Delay-crash-trace A B ∞ → Set where
       now   : ∀ {x} → [ i ] now x ∼ now x
       crash : [ i ] crash ∼ crash
       later : ∀ {v x y} →
@@ -120,8 +120,8 @@ module _ {A B : Set} where
               [ i ] tell v x ∼ tell v y
 
     record [_]_∼′_ (i : Size)
-             (x : Delay-crash-colist A B ∞)
-             (y : Delay-crash-colist A B ∞) : Set where
+             (x : Delay-crash-trace A B ∞)
+             (y : Delay-crash-trace A B ∞) : Set where
       coinductive
       field
         force : {j : Size< i} → [ j ] x ∼ y
@@ -178,12 +178,12 @@ module _ {A B : Set} where
 -- Monad laws
 
 left-identity :
-  ∀ {A B C : Set} x (f : B → Delay-crash-colist A C ∞) →
+  ∀ {A B C : Set} x (f : B → Delay-crash-trace A C ∞) →
   [ ∞ ] return x >>= f ∼ f x
 left-identity x f = reflexive (f x)
 
 right-identity :
-  ∀ {A B : Set} (x : Delay-crash-colist A B ∞) →
+  ∀ {A B : Set} (x : Delay-crash-trace A B ∞) →
   [ ∞ ] x >>= return ∼ x
 right-identity (now x)     = now
 right-identity crash       = crash
@@ -193,9 +193,9 @@ right-identity (tell v x)  = tell (right-identity x)
 
 associativity :
   ∀ {A B C D : Set} →
-  (x : Delay-crash-colist A B ∞)
-  (f : B → Delay-crash-colist A C ∞)
-  (g : C → Delay-crash-colist A D ∞) →
+  (x : Delay-crash-trace A B ∞)
+  (f : B → Delay-crash-trace A C ∞)
+  (g : C → Delay-crash-trace A D ∞) →
   [ ∞ ] x >>= (λ x → f x >>= g) ∼ x >>= f >>= g
 associativity (now x)     f g = reflexive (f x >>= g)
 associativity crash       f g = crash
@@ -210,8 +210,8 @@ infixl 5 _>>=-cong_
 
 _>>=-cong_ :
   ∀ {i} {A B C : Set}
-    {x y : Delay-crash-colist A B ∞}
-    {f g : B → Delay-crash-colist A C ∞} →
+    {x y : Delay-crash-trace A B ∞}
+    {f g : B → Delay-crash-trace A C ∞} →
   [ i ] x ∼ y → (∀ z → [ i ] f z ∼ g z) →
   [ i ] x >>= f ∼ y >>= g
 now     >>=-cong q = q _
@@ -219,16 +219,16 @@ crash   >>=-cong q = crash
 later p >>=-cong q = later λ { .force → force p >>=-cong q }
 tell p  >>=-cong q = tell (p >>=-cong q)
 
-colist-cong :
-  ∀ {i} {A B : Set} {x y : Delay-crash-colist A B ∞} →
-  [ i ] x ∼ y → C.[ i ] colist x ∼ colist y
-colist-cong now       = []
-colist-cong crash     = []
-colist-cong (later p) = refl ∷ λ { .force → colist-cong (force p) }
-colist-cong (tell p)  = refl ∷ λ { .force → colist-cong p }
+trace-cong :
+  ∀ {i} {A B : Set} {x y : Delay-crash-trace A B ∞} →
+  [ i ] x ∼ y → C.[ i ] trace x ∼ trace y
+trace-cong now       = []
+trace-cong crash     = []
+trace-cong (later p) = refl ∷ λ { .force → trace-cong (force p) }
+trace-cong (tell p)  = refl ∷ λ { .force → trace-cong p }
 
 delay-crash-cong :
-  ∀ {i} {A B : Set} {x y : Delay-crash-colist A B ∞} →
+  ∀ {i} {A B : Set} {x y : Delay-crash-trace A B ∞} →
   [ i ] x ∼ y → D.[ i ] delay-crash x ∼ delay-crash y
 delay-crash-cong now       = now
 delay-crash-cong crash     = now
@@ -242,8 +242,8 @@ delay-crash-cong (tell p)  = delay-crash-cong p
 -- The delay-crash function commutes with _>>=_ (in a certain sense).
 
 delay-crash->>= :
-  ∀ {i A B C} (x : Delay-crash-colist A B ∞)
-    {f : B → Delay-crash-colist A C ∞} →
+  ∀ {i A B C} (x : Delay-crash-trace A B ∞)
+    {f : B → Delay-crash-trace A C ∞} →
   D.[ i ] delay-crash (x >>= f) ∼
           delay-crash x >>= delay-crash ∘ f
 delay-crash->>= (now x)     = D.reflexive _
@@ -252,13 +252,13 @@ delay-crash->>= (later x m) = later λ { .force →
                                 delay-crash->>= (force m) }
 delay-crash->>= (tell x m)  = delay-crash->>= m
 
--- Use of _⟨$⟩_ does not affect the colist.
+-- Use of _⟨$⟩_ does not affect the trace.
 
-colist-⟨$⟩ :
+trace-⟨$⟩ :
   ∀ {i} {A B C : Set} {f : B → C}
-  (x : Delay-crash-colist A B ∞) →
-  C.[ i ] colist (f ⟨$⟩ x) ∼ colist x
-colist-⟨$⟩ (now x)     = []
-colist-⟨$⟩ crash       = []
-colist-⟨$⟩ (later _ x) = refl ∷ λ { .force → colist-⟨$⟩ (force x) }
-colist-⟨$⟩ (tell _ x)  = refl ∷ λ { .force → colist-⟨$⟩ x }
+  (x : Delay-crash-trace A B ∞) →
+  C.[ i ] trace (f ⟨$⟩ x) ∼ trace x
+trace-⟨$⟩ (now x)     = []
+trace-⟨$⟩ crash       = []
+trace-⟨$⟩ (later _ x) = refl ∷ λ { .force → trace-⟨$⟩ (force x) }
+trace-⟨$⟩ (tell _ x)  = refl ∷ λ { .force → trace-⟨$⟩ x }

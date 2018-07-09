@@ -31,7 +31,7 @@ open import Upper-bounds
 
 open import Lambda.Compiler def
 open import Lambda.Delay-crash as DC hiding (crash)
-open import Lambda.Delay-crash-colist as DCC
+open import Lambda.Delay-crash-trace as DCT
 import Lambda.Interpreter def as I
 
 open Closure Tm
@@ -61,7 +61,7 @@ mutual
   ⟦_⟧ :
     ∀ {i n} →
     Tm n → Env n → In-tail-context →
-    Delay-crash-colist (ℕ → ℕ) Value i
+    Delay-crash-trace (ℕ → ℕ) Value i
   ⟦ var x ⟧       ρ _  = tell suc (return (index x ρ))
   ⟦ lam t ⟧       ρ _  = tell suc (return (lam t ρ))
   ⟦ t₁ · t₂ ⟧     ρ _  = do v₁ ← ⟦ t₁ ⟧ ρ false
@@ -76,7 +76,7 @@ mutual
   [_,_]_∙_ :
     ∀ {i} →
     (ℕ → ℕ) → (ℕ → ℕ) →
-    Value → Value → Delay-crash-colist (ℕ → ℕ) Value i
+    Value → Value → Delay-crash-trace (ℕ → ℕ) Value i
   [ f₁ , f₂ ] lam t₁ ρ ∙ v₂ = later f₁ λ { .force → do
                                 v ← ⟦ t₁ ⟧ (v₂ ∷ ρ) true
                                 tell f₂ (return v) }
@@ -85,7 +85,7 @@ mutual
   ⟦if⟧ :
     ∀ {i n} →
     Value → Tm n → Tm n → Env n → In-tail-context →
-    Delay-crash-colist (ℕ → ℕ) Value i
+    Delay-crash-trace (ℕ → ℕ) Value i
   ⟦if⟧ (lam _ _)   _  _  _ _  = crash
   ⟦if⟧ (con true)  t₂ t₃ ρ tc = tell pred (⟦ t₂ ⟧ ρ tc)
   ⟦if⟧ (con false) t₂ t₃ ρ tc = tell pred (⟦ t₃ ⟧ ρ tc)
@@ -93,8 +93,8 @@ mutual
 -- The numbers produced by a given computation, for a given initial
 -- number. The initial number is the first element in the output.
 
-numbers : ∀ {A i} → Delay-crash-colist (ℕ → ℕ) A i → ℕ → Colist ℕ i
-numbers x n = scanl (λ m f → f m) n (colist x)
+numbers : ∀ {A i} → Delay-crash-trace (ℕ → ℕ) A i → ℕ → Colist ℕ i
+numbers x n = scanl (λ m f → f m) n (trace x)
 
 -- The stack sizes, for an empty initial stack, with false as the
 -- In-tail-context argument.
@@ -161,16 +161,16 @@ mutual
     D.[ i ] delay-crash ([ f₁ , f₂ ] v₁ ∙ v₂) ∼ v₁ I.∙ v₂
   ∙∼∙ f₁ {f₂} (lam t₁ ρ) {v₂} = later λ { .force →
     delay-crash (⟦ t₁ ⟧ (v₂ ∷ ρ) true >>=
-                 Delay-crash-colist.tell f₂ ∘ return)  D.∼⟨ delay-crash->>= (⟦ t₁ ⟧ _ _) ⟩
+                 Delay-crash-trace.tell f₂ ∘ return)  D.∼⟨ delay-crash->>= (⟦ t₁ ⟧ _ _) ⟩
 
     delay-crash (⟦ t₁ ⟧ (v₂ ∷ ρ) true) >>=
-    delay-crash ∘ Delay-crash-colist.tell f₂ ∘ return  D.∼⟨ ((delay-crash (⟦ t₁ ⟧ _ _) D.∎) DC.>>=-cong λ _ → D.reflexive _) ⟩
+    delay-crash ∘ Delay-crash-trace.tell f₂ ∘ return  D.∼⟨ ((delay-crash (⟦ t₁ ⟧ _ _) D.∎) DC.>>=-cong λ _ → D.reflexive _) ⟩
 
-    delay-crash (⟦ t₁ ⟧ (v₂ ∷ ρ) true) >>= return      D.∼⟨ DC.right-identity _ ⟩
+    delay-crash (⟦ t₁ ⟧ (v₂ ∷ ρ) true) >>= return     D.∼⟨ DC.right-identity _ ⟩
 
-    delay-crash (⟦ t₁ ⟧ (v₂ ∷ ρ) true)                 D.∼⟨ ⟦⟧∼⟦⟧ t₁ _ ⟩∼
+    delay-crash (⟦ t₁ ⟧ (v₂ ∷ ρ) true)                D.∼⟨ ⟦⟧∼⟦⟧ t₁ _ ⟩∼
 
-    I.⟦ t₁ ⟧ (v₂ ∷ ρ)                                  D.∎ }
+    I.⟦ t₁ ⟧ (v₂ ∷ ρ)                                 D.∎ }
 
   ∙∼∙ _ (con _) = D.reflexive _
 
@@ -187,9 +187,9 @@ mutual
 -- The function numbers preserves strong bisimilarity.
 
 numbers-cong :
-  ∀ {i A} {x y : Delay-crash-colist (ℕ → ℕ) A ∞} {n} →
-  DCC.[ i ] x ∼ y → C.[ i ] numbers x n ∼ numbers y n
-numbers-cong = scanl-cong ∘ colist-cong
+  ∀ {i A} {x y : Delay-crash-trace (ℕ → ℕ) A ∞} {n} →
+  DCT.[ i ] x ∼ y → C.[ i ] numbers x n ∼ numbers y n
+numbers-cong = scanl-cong ∘ trace-cong
 
 ------------------------------------------------------------------------
 -- An example: An analysis of the semantics of Ω
@@ -250,14 +250,14 @@ stack-sizes-Ω∼Ω-sizes-0 =
   numbers (⟦ Ω ⟧ [] false) 0                                        C.∼⟨ (E.refl ∷ λ { .force → E.refl ∷ λ { .force → E.refl ∷ λ { .force →
                                                                           C.reflexive-∼ _ }}}) ⟩
   0 ∷′ 1 ∷′ 2 ∷′ numbers (⟦ ω-body ⟧ (lam ω-body [] ∷ []) true >>=
-                          Delay-crash-colist.tell pred ∘ return) 1  C.∼⟨ (cong₃ λ { .force → lemma 1 }) ⟩
+                          Delay-crash-trace.tell pred ∘ return) 1   C.∼⟨ (cong₃ λ { .force → lemma 1 }) ⟩
 
   0 ∷′ 1 ∷′ 2 ∷′ Ω-sizes 1                                          C.∼⟨ (cong₃ λ { .force → C.reflexive-∼ _ }) ⟩
 
   Ω-sizes 0                                                         C.∎
   where
   lemma :
-    ∀ {i} n {k : Value → Delay-crash-colist (ℕ → ℕ) Value ∞} →
+    ∀ {i} n {k : Value → Delay-crash-trace (ℕ → ℕ) Value ∞} →
     C.[ i ] numbers (⟦ ω-body ⟧ (lam ω-body [] ∷ []) true >>= k) n ∼
             Ω-sizes n
   lemma n {k} =
@@ -268,11 +268,11 @@ stack-sizes-Ω∼Ω-sizes-0 =
                                                                                 C.reflexive-∼ _ }}}) ⟩
     n ∷′ 1 + n ∷′ 2 + n ∷′
     numbers (⟦ ω-body ⟧ (lam ω-body [] ∷ []) true >>=
-             Delay-crash-colist.tell pred ∘ return >>= k) (1 + n)         C.∼⟨ (cong₃ λ { .force → C.symmetric-∼ $ numbers-cong $
-                                                                                DCC.associativity (⟦ ω-body ⟧ (lam _ _ ∷ []) true) _ _ }) ⟩
+             Delay-crash-trace.tell pred ∘ return >>= k) (1 + n)          C.∼⟨ (cong₃ λ { .force → C.symmetric-∼ $ numbers-cong $
+                                                                                DCT.associativity (⟦ ω-body ⟧ (lam _ _ ∷ []) true) _ _ }) ⟩
     n ∷′ 1 + n ∷′ 2 + n ∷′
     numbers (⟦ ω-body ⟧ (lam ω-body [] ∷ []) true >>= λ v →
-             Delay-crash-colist.tell pred (return v) >>= k) (1 + n)       C.∼⟨ (cong₃ λ { .force → lemma (1 + n) }) ⟩
+             Delay-crash-trace.tell pred (return v) >>= k) (1 + n)        C.∼⟨ (cong₃ λ { .force → lemma (1 + n) }) ⟩
 
     n ∷′ 1 + n ∷′ 2 + n ∷′ Ω-sizes (1 + n)                                C.∼⟨ (cong₃ λ { .force → C.reflexive-∼ _ }) ⟩
 

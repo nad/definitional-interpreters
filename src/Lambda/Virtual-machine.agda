@@ -21,7 +21,7 @@ open import Monad equality-with-J
 open import Vec.Data equality-with-J
 
 open import Lambda.Delay-crash using (Delay-crash)
-open import Lambda.Delay-crash-colist
+open import Lambda.Delay-crash-trace
 open import Lambda.Syntax Name
 
 open Closure Code
@@ -46,10 +46,10 @@ step _                                                     = crash
 
 mutual
 
-  exec⁺ : ∀ {i} → State → Delay-crash-colist State Value i
+  exec⁺ : ∀ {i} → State → Delay-crash-trace State Value i
   exec⁺ s = later s λ { .force → exec⁺′ (step s) }
 
-  exec⁺′ : ∀ {i} → Result → Delay-crash-colist State Value i
+  exec⁺′ : ∀ {i} → Result → Delay-crash-trace State Value i
   exec⁺′ (cont s) = exec⁺ s
   exec⁺′ (done v) = now v
   exec⁺′ crash    = crash
@@ -62,4 +62,4 @@ exec = delay-crash ∘ exec⁺
 -- The stack sizes of all the encountered states.
 
 stack-sizes : ∀ {i} → State → Colist ℕ i
-stack-sizes = Colist.map stack-size ∘ colist ∘ exec⁺
+stack-sizes = Colist.map stack-size ∘ trace ∘ exec⁺

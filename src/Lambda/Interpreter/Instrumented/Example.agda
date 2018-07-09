@@ -22,7 +22,7 @@ open import Delay-monad.Bisimilarity as D using (later; force)
 
 open import Upper-bounds
 
-import Lambda.Delay-crash-colist as DCC
+import Lambda.Delay-crash-trace as DCT
 import Lambda.Interpreter
 import Lambda.Interpreter.Instrumented
 
@@ -76,7 +76,7 @@ stack-sizes-go∼go-sizes =
   go-sizes                                                          C.∎
   where
   ρ    = con true ∷ []
-  tell = DCC.Delay-crash-colist.tell
+  tell = DCT.Delay-crash-trace.tell
 
   numbers-loop∼loop-sizes :
     ∀ {i} k → C.[ i ] A.numbers (A.⟦ loop ⟧ ρ true >>= k) 1 ∼ loop-sizes
@@ -84,7 +84,7 @@ stack-sizes-go∼go-sizes =
     A.numbers (A.⟦ loop ⟧ ρ true >>= k) 1                                 C.∼⟨ ∷∼∷′ ⟩
     1 ∷′ A.numbers (A.[ pred , id ] lam loop [] ∙ con true >>= k) 2       C.∼⟨ (refl ∷ λ { .force → ∷∼∷′ }) ⟩
     1 ∷′ 2 ∷′ A.numbers (A.⟦ loop ⟧ ρ true >>= tell id ∘ return >>= k) 1  C.∼⟨ (refl ∷ λ { .force → refl ∷ λ { .force → A.numbers-cong (
-                                                                                DCC.symmetric (DCC.associativity (A.⟦ loop ⟧ ρ true) _ _)) }}) ⟩
+                                                                                DCT.symmetric (DCT.associativity (A.⟦ loop ⟧ ρ true) _ _)) }}) ⟩
     1 ∷′ 2 ∷′ A.numbers (A.⟦ loop ⟧ ρ true >>= tell id ∘ k) 1             C.∼⟨ (refl ∷ λ { .force → refl ∷ λ { .force →
                                                                                 numbers-loop∼loop-sizes _ }}) ⟩
     1 ∷′ 2 ∷′ loop-sizes                                                  C.∼⟨ (refl ∷ λ { .force → C.symmetric-∼ ∷∼∷′ }) ⟩

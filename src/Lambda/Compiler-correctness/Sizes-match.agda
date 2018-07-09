@@ -30,8 +30,8 @@ open import Upper-bounds
 
 open import Lambda.Compiler def
 open import Lambda.Interpreter.Instrumented def as I
-open import Lambda.Delay-crash-colist as DCC
-  using (Delay-crash-colist; tell)
+open import Lambda.Delay-crash-trace as DCT
+  using (Delay-crash-trace; tell)
 open import Lambda.Virtual-machine.Instructions Name
 open import Lambda.Virtual-machine comp-name as VM
 
@@ -46,25 +46,25 @@ private
 
 ⟦⟧-· :
   ∀ {A n} (t₁ t₂ : Tm n)
-    {ρ} tc {k : T.Value → Delay-crash-colist (ℕ → ℕ) A ∞} →
-  DCC.[ ∞ ] ⟦ t₁ · t₂ ⟧ ρ tc >>= k ∼
+    {ρ} tc {k : T.Value → Delay-crash-trace (ℕ → ℕ) A ∞} →
+  DCT.[ ∞ ] ⟦ t₁ · t₂ ⟧ ρ tc >>= k ∼
             do v₁ ← ⟦ t₁ ⟧ ρ false
                v₂ ← ⟦ t₂ ⟧ ρ false
                [ pred , pred ] v₁ ∙ v₂ >>= k
 ⟦⟧-· t₁ t₂ {ρ} tc {k} =
-  ⟦ t₁ · t₂ ⟧ ρ tc >>= k                   DCC.∼⟨⟩
+  ⟦ t₁ · t₂ ⟧ ρ tc >>= k                   DCT.∼⟨⟩
 
   (do v₁ ← ⟦ t₁ ⟧ ρ false
       v₂ ← ⟦ t₂ ⟧ ρ false
-      [ pred , pred ] v₁ ∙ v₂) >>= k       DCC.∼⟨ DCC.symmetric (DCC.associativity (⟦ t₁ ⟧ _ _) _ _) ⟩
+      [ pred , pred ] v₁ ∙ v₂) >>= k       DCT.∼⟨ DCT.symmetric (DCT.associativity (⟦ t₁ ⟧ _ _) _ _) ⟩
 
   (do v₁ ← ⟦ t₁ ⟧ ρ false
       (do v₂ ← ⟦ t₂ ⟧ ρ false
-          [ pred , pred ] v₁ ∙ v₂) >>= k)  DCC.∼⟨ ((⟦ t₁ ⟧ _ _ DCC.∎) DCC.>>=-cong λ _ → DCC.symmetric (DCC.associativity (⟦ t₂ ⟧ _ _) _ _)) ⟩
+          [ pred , pred ] v₁ ∙ v₂) >>= k)  DCT.∼⟨ ((⟦ t₁ ⟧ _ _ DCT.∎) DCT.>>=-cong λ _ → DCT.symmetric (DCT.associativity (⟦ t₂ ⟧ _ _) _ _)) ⟩
 
   (do v₁ ← ⟦ t₁ ⟧ ρ false
       v₂ ← ⟦ t₂ ⟧ ρ false
-      [ pred , pred ] v₁ ∙ v₂ >>= k)       DCC.∎
+      [ pred , pred ] v₁ ∙ v₂ >>= k)       DCT.∎
 
 ------------------------------------------------------------------------
 -- Well-formed continuations and stacks
@@ -73,7 +73,7 @@ private
 -- following property is satisfied.
 
 Cont-OK :
-  Size → State → (T.Value → Delay-crash-colist (ℕ → ℕ) C.Value ∞) → Set
+  Size → State → (T.Value → Delay-crash-trace (ℕ → ℕ) C.Value ∞) → Set
 Cont-OK i ⟨ c , s , ρ ⟩ k =
   ∀ v → [ i ] VM.stack-sizes ⟨ c , val (comp-val v) ∷ s , ρ ⟩ ≂
               numbers (k v) (1 + length s)
@@ -90,7 +90,7 @@ castC {s = ⟨ _ , _ , _ ⟩} c-ok = cast-≂ ∘ c-ok
 -- related to the continuation in a certain way.
 
 data Stack-OK (i : Size)
-              (k : T.Value → Delay-crash-colist (ℕ → ℕ) C.Value ∞) :
+              (k : T.Value → Delay-crash-trace (ℕ → ℕ) C.Value ∞) :
               In-tail-context → Stack → Set where
   unrestricted : ∀ {s} → Stack-OK i k false s
   restricted   :
@@ -118,7 +118,7 @@ mutual
 
   ⟦⟧-correct :
     ∀ {i n} (t : Tm n) (ρ : T.Env n) {tc c s}
-      {k : T.Value → Delay-crash-colist (ℕ → ℕ) C.Value ∞} →
+      {k : T.Value → Delay-crash-trace (ℕ → ℕ) C.Value ∞} →
     Stack-OK i k tc s →
     Cont-OK i ⟨ c , s , comp-env ρ ⟩ k →
     [ i ] VM.stack-sizes ⟨ comp tc t c , s , comp-env ρ ⟩ ≂
@@ -189,7 +189,7 @@ mutual
                                                                                    ⌈ ret-lemma (def f) [] (castC c-ok) ⌉ }) ⌋≂ ⟩∼
       1 + length s ∷′
       numbers (⟦ def f ⟧ (v ∷ []) true >>=
-               Delay-crash-colist.tell pred ∘ return >>= k)
+               Delay-crash-trace.tell pred ∘ return >>= k)
               (1 + length s)                                                  ∼⟨ symmetric-∼ ∷∼∷′ ⟩
 
       numbers ([ id , pred ] T.lam (def f) [] ∙ v >>= k)
@@ -197,7 +197,7 @@ mutual
 
     numbers (⟦ t ⟧ ρ false >>= λ v →
              [ id , pred ] T.lam (def f) [] ∙ v >>= k)
-            (length s)                                                  ∼⟨ numbers-cong (DCC.associativity (⟦ t ⟧ _ _) _ _) ⟩
+            (length s)                                                  ∼⟨ numbers-cong (DCT.associativity (⟦ t ⟧ _ _) _ _) ⟩
 
     numbers ((⟦ t ⟧ ρ false >>=
               [ id , pred ] T.lam (def f) [] ∙_) >>= k)
@@ -241,10 +241,10 @@ mutual
 
       2 + length s ∷′
       numbers (⟦ def f ⟧ (v ∷ []) true >>= tell id ∘ k) (1 + length s)        ∼⟨ (refl ∷ λ { .force →
-                                                                                  numbers-cong (DCC.associativity (⟦ def f ⟧ _ _) _ _) }) ⟩
+                                                                                  numbers-cong (DCT.associativity (⟦ def f ⟧ _ _) _ _) }) ⟩
       2 + length s ∷′
       numbers (⟦ def f ⟧ (v ∷ []) true >>=
-               Delay-crash-colist.tell id ∘ return >>= k)
+               Delay-crash-trace.tell id ∘ return >>= k)
               (1 + length s)                                                  ∼⟨ symmetric-∼ ∷∼∷′ ⟩
 
       numbers ([ pred , id ] T.lam (def f) [] ∙ v >>= k)
@@ -252,7 +252,7 @@ mutual
 
     numbers (⟦ t ⟧ ρ false >>= λ v →
              [ pred , id ] T.lam (def f) [] ∙ v >>= k)
-            (1 + length s)                                              ∼⟨ numbers-cong (DCC.associativity (⟦ t ⟧ _ _) _ _) ⟩
+            (1 + length s)                                              ∼⟨ numbers-cong (DCT.associativity (⟦ t ⟧ _ _) _ _) ⟩
 
     numbers ((⟦ t ⟧ ρ false >>=
               [ pred , id ] T.lam (def f) [] ∙_) >>= k)
@@ -288,21 +288,21 @@ mutual
                    ⟩                                                ≂⟨ (⟦⟧-correct t₁ _ unrestricted λ v₁ → ⟦if⟧-correct v₁ t₂ t₃ s-ok c-ok) ⟩∼
 
     numbers (⟦ t₁ ⟧ ρ false >>= λ v₁ → ⟦if⟧ v₁ t₂ t₃ ρ tc >>= k)
-            (length s)                                              ∼⟨ numbers-cong (DCC.associativity (⟦ t₁ ⟧ _ _) _ _) ⟩
+            (length s)                                              ∼⟨ numbers-cong (DCT.associativity (⟦ t₁ ⟧ _ _) _ _) ⟩
 
     numbers ((⟦ t₁ ⟧ ρ false >>= λ v₁ → ⟦if⟧ v₁ t₂ t₃ ρ tc) >>= k)
             (length s)                                              ∎
 
   ret-lemma :
     ∀ {i n n′} (t : Tm (1 + n)) ρ {ρ′ : C.Env n′} {c s v}
-      {k : T.Value → Delay-crash-colist (ℕ → ℕ) C.Value ∞} →
+      {k : T.Value → Delay-crash-trace (ℕ → ℕ) C.Value ∞} →
     Cont-OK i ⟨ c , s , ρ′ ⟩ k →
     [ i ] VM.stack-sizes ⟨ comp true t (ret ∷ [])
                          , ret c ρ′ ∷ s
                          , comp-val v ∷ comp-env ρ
                          ⟩ ≂
           numbers (⟦ t ⟧ (v ∷ ρ) true >>=
-                   Delay-crash-colist.tell pred ∘ return >>= k)
+                   Delay-crash-trace.tell pred ∘ return >>= k)
                   (1 + length s)
   ret-lemma t ρ {ρ′} {c} {s} {v} {k} c-ok =
     VM.stack-sizes ⟨ comp true t (ret ∷ [])
@@ -325,10 +325,10 @@ mutual
 
       numbers (tell pred (k v′)) (2 + length s)                          ∎) ⟩∼
 
-    numbers (⟦ t ⟧ (v ∷ ρ) true >>= tell pred ∘ k) (1 + length s)  ∼⟨ numbers-cong (DCC.associativity (⟦ t ⟧ _ _) _ _) ⟩
+    numbers (⟦ t ⟧ (v ∷ ρ) true >>= tell pred ∘ k) (1 + length s)  ∼⟨ numbers-cong (DCT.associativity (⟦ t ⟧ _ _) _ _) ⟩
 
     numbers (⟦ t ⟧ (v ∷ ρ) true >>=
-             Delay-crash-colist.tell pred ∘ return >>= k)
+             Delay-crash-trace.tell pred ∘ return >>= k)
             (1 + length s)                                         ∎
     where
     lemma = λ v′ →
@@ -341,7 +341,7 @@ mutual
 
   ∙-correct :
     ∀ {i n} v₁ v₂ {ρ : C.Env n} {c s}
-      {k : T.Value → Delay-crash-colist (ℕ → ℕ) C.Value ∞} →
+      {k : T.Value → Delay-crash-trace (ℕ → ℕ) C.Value ∞} →
     Cont-OK i ⟨ c , s , ρ ⟩ k →
     [ i ] VM.stack-sizes ⟨ app ∷ c
                          , val (comp-val v₂) ∷ val (comp-val v₁) ∷ s
@@ -364,7 +364,7 @@ mutual
 
     2 + length s ∷′
     numbers (⟦ t₁ ⟧ (v₂ ∷ ρ₁) true >>=
-             Delay-crash-colist.tell pred ∘ return >>= k)
+             Delay-crash-trace.tell pred ∘ return >>= k)
             (1 + length s)                                           ∼⟨ symmetric-∼ ∷∼∷′ ⟩
 
     numbers ([ pred , pred ] T.lam t₁ ρ₁ ∙ v₂ >>= k) (2 + length s)  ∎
@@ -381,7 +381,7 @@ mutual
 
   ⟦if⟧-correct :
     ∀ {i n} v₁ t₂ t₃ {ρ : T.Env n} {tc c s}
-      {k : T.Value → Delay-crash-colist (ℕ → ℕ) C.Value ∞} →
+      {k : T.Value → Delay-crash-trace (ℕ → ℕ) C.Value ∞} →
     Stack-OK i k tc s →
     Cont-OK i ⟨ c , s , comp-env ρ ⟩ k →
     [ i ] VM.stack-sizes ⟨ bra (comp tc t₂ []) (comp tc t₃ []) ∷ c
@@ -440,7 +440,7 @@ stack-sizes-related :
   [ ∞ ] VM.stack-sizes ⟨ comp₀ t , [] , [] ⟩ ≂ I.stack-sizes t
 stack-sizes-related t =
   VM.stack-sizes ⟨ comp false t [] , [] , [] ⟩  ≂⟨ ⟦⟧-correct t [] unrestricted (λ _ → cons″-≂ (_ □≂)) ⟩∼
-  numbers (comp-val ⟨$⟩ ⟦ t ⟧ [] false) 0       ∼⟨ scanl-cong (DCC.colist-⟨$⟩ _) ⟩
+  numbers (comp-val ⟨$⟩ ⟦ t ⟧ [] false) 0       ∼⟨ scanl-cong (DCT.trace-⟨$⟩ _) ⟩
   numbers (⟦ t ⟧ [] false) 0                    ∼⟨⟩
   I.stack-sizes t                               ∎
 
