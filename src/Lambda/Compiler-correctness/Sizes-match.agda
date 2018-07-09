@@ -431,6 +431,9 @@ mutual
 
 -- The virtual machine and the interpreter produce related lists of
 -- stack sizes.
+--
+-- (However, the traces are not necessarily bisimilar, see
+-- Lambda.Interpreter.Instrumented.Counterexample.stack-sizes-not-bisimilar.)
 
 stack-sizes-related :
   (t : Tm 0) →

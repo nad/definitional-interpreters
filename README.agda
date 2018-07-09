@@ -104,6 +104,12 @@ import Lambda.Compiler-correctness.Sizes-match
 
 import Lambda.Interpreter.Instrumented.Example
 
+-- A counterexample: The trace of stack sizes produced by the virtual
+-- machine is not necessarily bisimilar to that produced by the
+-- instrumented interpreter.
+
+import Lambda.Interpreter.Instrumented.Counterexample
+
 ------------------------------------------------------------------------
 -- Other code
 
