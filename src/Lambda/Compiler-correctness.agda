@@ -111,7 +111,7 @@ mutual
     ⟦ var x ⟧ ρ >>= k                                              ∎
 
   ⟦⟧-correct (lam t) ρ {c} {s} {k} _ c-ok =
-    exec ⟨ clo (comp true t (ret ∷ [])) ∷ c , s , comp-env ρ ⟩  ≳⟨⟩
+    exec ⟨ clo (comp-body t) ∷ c , s , comp-env ρ ⟩             ≳⟨⟩
     exec ⟨ c , val (comp-val (T.lam t ρ)) ∷ s , comp-env ρ ⟩    ≈⟨ c-ok (T.lam t ρ) ⟩∼
     k (T.lam t ρ)                                               ∼⟨⟩
     ⟦ lam t ⟧ ρ >>= k                                           ∎
@@ -150,7 +150,7 @@ mutual
        exec ⟨ comp-name f
             , ret c (comp-env ρ) ∷ s
             , comp-val v ∷ []
-            ⟩                                                             ≈⟨ ret-lemma (def f) [] c-ok ⟩∼
+            ⟩                                                             ≈⟨ body-lemma (def f) [] c-ok ⟩∼
 
        (⟦ def f ⟧ (v ∷ []) >>= k)                                         ∎ }) ⟩∼
 
@@ -175,7 +175,7 @@ mutual
        exec ⟨ comp-name f
             , ret c′ ρ′ ∷ s
             , comp-val v ∷ []
-            ⟩                                                                   ≈⟨ ret-lemma (def f) [] c-ok ⟩∼
+            ⟩                                                                   ≈⟨ body-lemma (def f) [] c-ok ⟩∼
 
        ⟦ def f ⟧ (v ∷ []) >>= k                                                 ∎ }) ⟩∼
 
@@ -205,36 +205,30 @@ mutual
 
     ⟦ if t₁ t₂ t₃ ⟧ ρ >>= k                                         ∎
 
-  ret-lemma :
+  body-lemma :
     ∀ {i n n′} (t : Tm (1 + n)) ρ {ρ′ : C.Env n′} {c s v}
       {k : T.Value → Delay-crash C.Value ∞} →
     Cont-OK i ⟨ c , s , ρ′ ⟩ k →
-    [ i ] exec ⟨ comp true t (ret ∷ [])
+    [ i ] exec ⟨ comp-body t
                , ret c ρ′ ∷ s
                , comp-val v ∷ comp-env ρ
                ⟩ ≈
           ⟦ t ⟧ (v ∷ ρ) >>= k
-  ret-lemma t ρ {ρ′} {c} {s} {v} {k} c-ok =
-    exec ⟨ comp true t (ret ∷ [])
-         , ret c ρ′ ∷ s
-         , comp-val v ∷ comp-env ρ
-         ⟩                                    ∼⟨⟩
+  body-lemma t ρ {ρ′} {c} {s} {v} {k} c-ok =
+    exec ⟨ comp-body t , ret c ρ′ ∷ s , comp-val v ∷ comp-env ρ ⟩  ∼⟨⟩
 
-    exec ⟨ comp true t (ret ∷ [])
-         , ret c ρ′ ∷ s
-         , comp-env (v ∷ ρ)
-         ⟩                                    ≈⟨ (⟦⟧-correct t (_ ∷ _) (ret-ok c-ok) λ v′ →
+    exec ⟨ comp-body t , ret c ρ′ ∷ s , comp-env (v ∷ ρ) ⟩         ≈⟨ (⟦⟧-correct t (_ ∷ _) (ret-ok c-ok) λ v′ →
 
-     exec ⟨ ret ∷ []
-          , val (comp-val v′) ∷ ret c ρ′ ∷ s
-          , comp-env (v ∷ ρ)
-          ⟩                                         ≳⟨⟩
+      exec ⟨ ret ∷ []
+           , val (comp-val v′) ∷ ret c ρ′ ∷ s
+           , comp-env (v ∷ ρ)
+           ⟩                                                             ≳⟨⟩
 
-     exec ⟨ c , val (comp-val v′) ∷ s , ρ′ ⟩        ≈⟨ c-ok v′ ⟩∼
+      exec ⟨ c , val (comp-val v′) ∷ s , ρ′ ⟩                            ≈⟨ c-ok v′ ⟩∼
 
-     k v′                                           ∎) ⟩∼
+      k v′                                                               ∎) ⟩∼
 
-    ⟦ t ⟧ (v ∷ ρ) >>= k                       ∎
+    ⟦ t ⟧ (v ∷ ρ) >>= k                                            ∎
 
   ∙-correct :
     ∀ {i n} v₁ v₂ {ρ : C.Env n} {c s}
@@ -250,16 +244,13 @@ mutual
     exec ⟨ app ∷ c
          , val (comp-val v₂) ∷ val (comp-val (T.lam t₁ ρ₁)) ∷ s
          , ρ
-         ⟩                                                       ≈⟨ later (λ { .force →
+         ⟩                                                             ≈⟨ later (λ { .force →
 
-      exec ⟨ comp true t₁ (ret ∷ [])
-           , ret c ρ ∷ s
-           , comp-val v₂ ∷ comp-env ρ₁
-           ⟩                                                          ≈⟨ ret-lemma t₁ _ c-ok ⟩∼
+      exec ⟨ comp-body t₁ , ret c ρ ∷ s , comp-val v₂ ∷ comp-env ρ₁ ⟩       ≈⟨ body-lemma t₁ _ c-ok ⟩∼
 
-      ⟦ t₁ ⟧ (v₂ ∷ ρ₁) >>= k                                          ∎ }) ⟩∎
+      ⟦ t₁ ⟧ (v₂ ∷ ρ₁) >>= k                                                ∎ }) ⟩∎
 
-    T.lam t₁ ρ₁ ∙ v₂ >>= k                                       ∎
+    T.lam t₁ ρ₁ ∙ v₂ >>= k                                             ∎
 
   ∙-correct (T.con b) v₂ {ρ} {c} {s} {k} _ =
     exec ⟨ app ∷ c

@@ -40,20 +40,25 @@ In-tail-context = Bool
 
 -- The compiler (which takes a code continuation).
 
-comp : ∀ {n} → In-tail-context → Tm n → Code n → Code n
-comp _     (var x)       c = var x ∷ c
-comp _     (lam t)       c = clo (comp true t (ret ∷ [])) ∷ c
-comp _     (t₁ · t₂)     c = comp false t₁ (comp false t₂ (app ∷ c))
-comp true  (call f t)    c = comp false t (tcl f ∷ c)
-comp false (call f t)    c = comp false t (cal f ∷ c)
-comp _     (con b)       c = con b ∷ c
-comp tc    (if t₁ t₂ t₃) c =
-  comp false t₁ (bra (comp tc t₂ []) (comp tc t₃ []) ∷ c)
+mutual
+
+  comp : ∀ {n} → In-tail-context → Tm n → Code n → Code n
+  comp _     (var x)       c = var x ∷ c
+  comp _     (lam t)       c = clo (comp-body t) ∷ c
+  comp _     (t₁ · t₂)     c = comp false t₁ (comp false t₂ (app ∷ c))
+  comp true  (call f t)    c = comp false t (tcl f ∷ c)
+  comp false (call f t)    c = comp false t (cal f ∷ c)
+  comp _     (con b)       c = con b ∷ c
+  comp tc    (if t₁ t₂ t₃) c =
+    comp false t₁ (bra (comp tc t₂ []) (comp tc t₃ []) ∷ c)
+
+  comp-body : ∀ {n} → Tm (suc n) → Code (suc n)
+  comp-body t = comp true t (ret ∷ [])
 
 -- Compiler for named definitions.
 
 comp-name : Name → Code 1
-comp-name f = comp true (def f) (ret ∷ [])
+comp-name f = comp-body (def f)
 
 -- Top-level compiler.
 --
@@ -75,7 +80,7 @@ mutual
   comp-env (v ∷ ρ) = comp-val v ∷ comp-env ρ
 
   comp-val : T.Value → C.Value
-  comp-val (T.lam t ρ) = C.lam (comp true t (ret ∷ [])) (comp-env ρ)
+  comp-val (T.lam t ρ) = C.lam (comp-body t) (comp-env ρ)
   comp-val (T.con b)   = C.con b
 
 -- Indexing commutes with compilation.

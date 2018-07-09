@@ -138,7 +138,7 @@ mutual
     numbers (⟦ var x ⟧ ρ tc >>= k) (length s)                             ∎
 
   ⟦⟧-correct (lam t) ρ {tc} {c} {s} {k} _ c-ok =
-    VM.stack-sizes ⟨ clo (comp true t (ret ∷ [])) ∷ c , s , comp-env ρ ⟩  ∼⟨ ∷∼∷′ ⟩≂
+    VM.stack-sizes ⟨ clo (comp-body t) ∷ c , s , comp-env ρ ⟩             ∼⟨ ∷∼∷′ ⟩≂
 
     (length s ∷′
      VM.stack-sizes ⟨ c , val (comp-val (T.lam t ρ)) ∷ s , comp-env ρ ⟩)  ≂⟨ cons″-≂ (c-ok (T.lam t ρ)) ⟩∼
@@ -186,7 +186,7 @@ mutual
                      , ret c (comp-env ρ) ∷ s
                      , comp-val v ∷ []
                      ⟩                                                        ≂⟨ ⌊ cons′-≂D (λ { .force →
-                                                                                   ⌈ ret-lemma (def f) [] (castC c-ok) ⌉ }) ⌋≂ ⟩∼
+                                                                                   ⌈ body-lemma (def f) [] (castC c-ok) ⌉ }) ⌋≂ ⟩∼
       1 + length s ∷′
       numbers (⟦ def f ⟧ (v ∷ []) true >>=
                Delay-crash-trace.tell pred ∘ return >>= k)
@@ -293,24 +293,24 @@ mutual
     numbers ((⟦ t₁ ⟧ ρ false >>= λ v₁ → ⟦if⟧ v₁ t₂ t₃ ρ tc) >>= k)
             (length s)                                              ∎
 
-  ret-lemma :
+  body-lemma :
     ∀ {i n n′} (t : Tm (1 + n)) ρ {ρ′ : C.Env n′} {c s v}
       {k : T.Value → Delay-crash-trace (ℕ → ℕ) C.Value ∞} →
     Cont-OK i ⟨ c , s , ρ′ ⟩ k →
-    [ i ] VM.stack-sizes ⟨ comp true t (ret ∷ [])
+    [ i ] VM.stack-sizes ⟨ comp-body t
                          , ret c ρ′ ∷ s
                          , comp-val v ∷ comp-env ρ
                          ⟩ ≂
           numbers (⟦ t ⟧ (v ∷ ρ) true >>=
                    Delay-crash-trace.tell pred ∘ return >>= k)
                   (1 + length s)
-  ret-lemma t ρ {ρ′} {c} {s} {v} {k} c-ok =
-    VM.stack-sizes ⟨ comp true t (ret ∷ [])
+  body-lemma t ρ {ρ′} {c} {s} {v} {k} c-ok =
+    VM.stack-sizes ⟨ comp-body t
                    , ret c ρ′ ∷ s
                    , comp-val v ∷ comp-env ρ
                    ⟩                                               ≡⟨⟩≂
 
-    VM.stack-sizes ⟨ comp true t (ret ∷ [])
+    VM.stack-sizes ⟨ comp-body t
                    , ret c ρ′ ∷ s
                    , comp-env (v ∷ ρ)
                    ⟩                                               ≂⟨ (⟦⟧-correct t (_ ∷ _) (any-OK (restricted lemma)) λ v′ →
@@ -357,10 +357,10 @@ mutual
       ⟩                                                              ∼⟨ ∷∼∷′ ⟩≂
 
     2 + length s ∷′
-    VM.stack-sizes ⟨ comp true t₁ (ret ∷ [])
+    VM.stack-sizes ⟨ comp-body t₁
                    , ret c ρ ∷ s
                    , comp-val v₂ ∷ comp-env ρ₁
-                   ⟩                                                 ≂⟨ ⌊ cons′-≂D (λ { .force → ⌈ ret-lemma t₁ _ (castC c-ok) ⌉ }) ⌋≂ ⟩∼
+                   ⟩                                                 ≂⟨ ⌊ cons′-≂D (λ { .force → ⌈ body-lemma t₁ _ (castC c-ok) ⌉ }) ⌋≂ ⟩∼
 
     2 + length s ∷′
     numbers (⟦ t₁ ⟧ (v₂ ∷ ρ₁) true >>=
