@@ -377,8 +377,8 @@ cons′-≲ = cons-≲ (inj₁ (here Nat.≤-refl))
 -- colist would have been bounded by any infinite colist.
 
 consʳ-≲′→≲-infinite :
-  (∀ {ms ns n i} → [ i ] ms ≲′ ns .force → [ i ] ms ≲ n ∷ ns) →
-  (∀ {ms ns i} → Conat.[ ∞ ] length ns ∼ infinity → [ i ] ms ≲ ns)
+  (∀ {i ms ns n} → [ i ] ms ≲′ ns .force → [ i ] ms ≲ n ∷ ns) →
+  (∀ {i ms ns} → Conat.[ ∞ ] length ns ∼ infinity → [ i ] ms ≲ ns)
 consʳ-≲′→≲-infinite consʳ-≲′ {ns = []}    ()
 consʳ-≲′→≲-infinite consʳ-≲′ {ns = _ ∷ _} (suc p) =
   consʳ-≲′ λ { hyp .force →
@@ -387,10 +387,10 @@ consʳ-≲′→≲-infinite consʳ-≲′ {ns = _ ∷ _} (suc p) =
 -- Thus one cannot make this argument's type primed.
 
 ¬-consʳ-≲′ :
-  ¬ (∀ {ms ns n i} → [ i ] ms ≲′ ns .force → [ i ] ms ≲ n ∷ ns)
+  ¬ (∀ {i ms ns n} → [ i ] ms ≲′ ns .force → [ i ] ms ≲ n ∷ ns)
 ¬-consʳ-≲′ =
-  (∀ {ms ns n i} → [ i ] ms ≲′ ns .force → [ i ] ms ≲ n ∷ ns)       ↝⟨ consʳ-≲′→≲-infinite ⟩
-  (∀ {ms ns i} → Conat.[ ∞ ] length ns ∼ infinity → [ i ] ms ≲ ns)  ↝⟨ (λ hyp → hyp (length-replicate _)) ⟩
+  (∀ {i ms ns n} → [ i ] ms ≲′ ns .force → [ i ] ms ≲ n ∷ ns)       ↝⟨ consʳ-≲′→≲-infinite ⟩
+  (∀ {i ms ns} → Conat.[ ∞ ] length ns ∼ infinity → [ i ] ms ≲ ns)  ↝⟨ (λ hyp → hyp (length-replicate _)) ⟩
   [ ∞ ] repeat 1 ≲ repeat 0                                         ↝⟨ _$ replicate⊑ _ ⟩
   [ ∞ ] repeat 1 ⊑ zero                                             ↝⟨ □-head ⟩
   [ ∞ ] ⌜ 1 ⌝ ≤ ⌜ 0 ⌝                                               ↝⟨ ≮0 ⟩□

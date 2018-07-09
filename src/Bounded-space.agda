@@ -158,8 +158,8 @@ infix 4 [_]_≃_ [_]_≃′_
 
 -- The relation is an equivalence relation.
 
-reflexive : ∀ {i p} → [ i ] p ≃ p
-reflexive = 0 , λ _ _ _ → B.reflexive _
+reflexive : ∀ {i} p → [ i ] p ≃ p
+reflexive _ = 0 , λ _ _ _ → B.reflexive _
 
 symmetric : ∀ {i p q} → [ i ] p ≃ q → [ i ] q ≃ p
 symmetric = Σ-map id λ hyp l h c → B.symmetric (hyp l h c)
@@ -184,7 +184,7 @@ transitive {p = p} {q} {r} (c₁ , p₁) (c₂ , p₂) =
 -- The relation is compatible with respect to the program formers.
 
 []-cong : ∀ {i} → [ i ] [] ≃ []
-[]-cong = 0 , λ _ _ _ → B.reflexive _
+[]-cong = reflexive []
 
 ∷-cong : ∀ {s p q i} → [ i ] p .force ≃′ q .force → [ i ] s ∷ p ≃ s ∷ q
 ∷-cong {deallocate} (c , p≈q) =

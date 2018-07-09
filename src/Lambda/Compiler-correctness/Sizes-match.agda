@@ -31,13 +31,15 @@ open import Upper-bounds
 open import Lambda.Compiler def
 open import Lambda.Interpreter.Instrumented def as I
 open import Lambda.Delay-crash-trace as DCT
-  using (Delay-crash-trace; tell)
+  using (Delay-crash-trace)
 open import Lambda.Virtual-machine.Instructions Name
 open import Lambda.Virtual-machine comp-name as VM
 
 private
   module C = Closure Code
   module T = Closure Tm
+
+open Delay-crash-trace using (tell)
 
 ------------------------------------------------------------------------
 -- A lemma
@@ -188,8 +190,7 @@ mutual
                      ⟩                                                        ≂⟨ ⌊ cons′-≂D (λ { .force →
                                                                                    ⌈ body-lemma (def f) [] (castC c-ok) ⌉ }) ⌋≂ ⟩∼
       1 + length s ∷′
-      numbers (⟦ def f ⟧ (v ∷ []) true >>=
-               Delay-crash-trace.tell pred ∘ return >>= k)
+      numbers (⟦ def f ⟧ (v ∷ []) true >>= tell pred ∘ return >>= k)
               (1 + length s)                                                  ∼⟨ symmetric-∼ ∷∼∷′ ⟩
 
       numbers ([ id , pred ] T.lam (def f) [] ∙ v >>= k)
@@ -243,8 +244,7 @@ mutual
       numbers (⟦ def f ⟧ (v ∷ []) true >>= tell id ∘ k) (1 + length s)        ∼⟨ (refl ∷ λ { .force →
                                                                                   numbers-cong (DCT.associativity (⟦ def f ⟧ _ _) _ _) }) ⟩
       2 + length s ∷′
-      numbers (⟦ def f ⟧ (v ∷ []) true >>=
-               Delay-crash-trace.tell id ∘ return >>= k)
+      numbers (⟦ def f ⟧ (v ∷ []) true >>= tell id ∘ return >>= k)
               (1 + length s)                                                  ∼⟨ symmetric-∼ ∷∼∷′ ⟩
 
       numbers ([ pred , id ] T.lam (def f) [] ∙ v >>= k)
@@ -301,8 +301,7 @@ mutual
                          , ret c ρ′ ∷ s
                          , comp-val v ∷ comp-env ρ
                          ⟩ ≂
-          numbers (⟦ t ⟧ (v ∷ ρ) true >>=
-                   Delay-crash-trace.tell pred ∘ return >>= k)
+          numbers (⟦ t ⟧ (v ∷ ρ) true >>= tell pred ∘ return >>= k)
                   (1 + length s)
   body-lemma t ρ {ρ′} {c} {s} {v} {k} c-ok =
     VM.stack-sizes ⟨ comp-body t
@@ -327,8 +326,7 @@ mutual
 
     numbers (⟦ t ⟧ (v ∷ ρ) true >>= tell pred ∘ k) (1 + length s)  ∼⟨ numbers-cong (DCT.associativity (⟦ t ⟧ _ _) _ _) ⟩
 
-    numbers (⟦ t ⟧ (v ∷ ρ) true >>=
-             Delay-crash-trace.tell pred ∘ return >>= k)
+    numbers (⟦ t ⟧ (v ∷ ρ) true >>= tell pred ∘ return >>= k)
             (1 + length s)                                         ∎
     where
     lemma = λ v′ →
@@ -363,8 +361,7 @@ mutual
                    ⟩                                                 ≂⟨ ⌊ cons′-≂D (λ { .force → ⌈ body-lemma t₁ _ (castC c-ok) ⌉ }) ⌋≂ ⟩∼
 
     2 + length s ∷′
-    numbers (⟦ t₁ ⟧ (v₂ ∷ ρ₁) true >>=
-             Delay-crash-trace.tell pred ∘ return >>= k)
+    numbers (⟦ t₁ ⟧ (v₂ ∷ ρ₁) true >>= tell pred ∘ return >>= k)
             (1 + length s)                                           ∼⟨ symmetric-∼ ∷∼∷′ ⟩
 
     numbers ([ pred , pred ] T.lam t₁ ρ₁ ∙ v₂ >>= k) (2 + length s)  ∎

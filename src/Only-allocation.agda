@@ -29,20 +29,14 @@ Program i = Colist Stmt i
 -- A program that runs in constant space.
 
 constant-space : ∀ {i} → Program i
-constant-space =
-  allocate   ∷ λ { .force →
-  deallocate ∷ λ { .force →
-  constant-space }}
+constant-space = allocate ∷′ deallocate ∷ λ { .force → constant-space }
 
 -- Another program that runs in constant space.
 
 constant-space₂ : ∀ {i} → Program i
 constant-space₂ =
-  allocate   ∷ λ { .force →
-  allocate   ∷ λ { .force →
-  deallocate ∷ λ { .force →
-  deallocate ∷ λ { .force →
-  constant-space₂ }}}}
+  allocate   ∷′ allocate   ∷′
+  deallocate ∷′ deallocate ∷ λ { .force → constant-space₂ }
 
 -- A program that does not run in bounded space.
 

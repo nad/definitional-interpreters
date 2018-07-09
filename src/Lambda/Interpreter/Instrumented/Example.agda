@@ -26,6 +26,8 @@ import Lambda.Delay-crash-trace as DCT
 import Lambda.Interpreter
 import Lambda.Interpreter.Instrumented
 
+open DCT.Delay-crash-trace
+
 -- This module uses a name type with a single inhabitant, allowing
 -- (and requiring) the definition and use of one named definition.
 
@@ -43,8 +45,8 @@ def tt = loop
 
 -- The two interpreters are instantiated with this definition.
 
-module I = Lambda.Interpreter              def
-module A = Lambda.Interpreter.Instrumented def
+open Lambda.Interpreter def
+module I = Lambda.Interpreter.Instrumented def
 
 -- A top-level term to get things going.
 
@@ -53,7 +55,7 @@ go = call tt (con true)
 
 -- The semantics of go is the non-terminating computation never.
 
-go-loops : ∀ {i} → D.[ i ] I.⟦ go ⟧ [] ∼ never
+go-loops : ∀ {i} → D.[ i ] ⟦ go ⟧ [] ∼ never
 go-loops = later λ { .force → go-loops }
 
 -- Colists used to analyse the stack space usage of go.
@@ -67,25 +69,24 @@ go-sizes = 0 ∷′ 1 ∷′ loop-sizes
 -- When go is interpreted (starting with an empty stack) the stack
 -- sizes that are encountered match the sizes in go-sizes.
 
-stack-sizes-go∼go-sizes : ∀ {i} → C.[ i ] A.stack-sizes go ∼ go-sizes
+stack-sizes-go∼go-sizes : ∀ {i} → C.[ i ] I.stack-sizes go ∼ go-sizes
 stack-sizes-go∼go-sizes =
-  A.numbers (A.⟦ go ⟧ [] false) 0                                   C.∼⟨ ∷∼∷′ ⟩
-  0 ∷′ A.numbers (A.[ id , pred ] lam loop [] ∙ con true) 1         C.∼⟨ (refl ∷ λ { .force → ∷∼∷′ }) ⟩
-  0 ∷′ 1 ∷′ A.numbers (A.⟦ loop ⟧ ρ true >>= tell pred ∘ return) 1  C.∼⟨ (refl ∷ λ { .force → refl ∷ λ { .force → numbers-loop∼loop-sizes _ }}) ⟩
+  I.numbers (I.⟦ go ⟧ [] false) 0                                   C.∼⟨ ∷∼∷′ ⟩
+  0 ∷′ I.numbers (I.[ id , pred ] lam loop [] ∙ con true) 1         C.∼⟨ (refl ∷ λ { .force → ∷∼∷′ }) ⟩
+  0 ∷′ 1 ∷′ I.numbers (I.⟦ loop ⟧ ρ true >>= tell pred ∘ return) 1  C.∼⟨ (refl ∷ λ { .force → refl ∷ λ { .force → numbers-loop∼loop-sizes _ }}) ⟩
   0 ∷′ 1 ∷′ loop-sizes                                              C.∼⟨⟩
   go-sizes                                                          C.∎
   where
-  ρ    = con true ∷ []
-  tell = DCT.Delay-crash-trace.tell
+  ρ = con true ∷ []
 
   numbers-loop∼loop-sizes :
-    ∀ {i} k → C.[ i ] A.numbers (A.⟦ loop ⟧ ρ true >>= k) 1 ∼ loop-sizes
+    ∀ {i} k → C.[ i ] I.numbers (I.⟦ loop ⟧ ρ true >>= k) 1 ∼ loop-sizes
   numbers-loop∼loop-sizes k =
-    A.numbers (A.⟦ loop ⟧ ρ true >>= k) 1                                 C.∼⟨ ∷∼∷′ ⟩
-    1 ∷′ A.numbers (A.[ pred , id ] lam loop [] ∙ con true >>= k) 2       C.∼⟨ (refl ∷ λ { .force → ∷∼∷′ }) ⟩
-    1 ∷′ 2 ∷′ A.numbers (A.⟦ loop ⟧ ρ true >>= tell id ∘ return >>= k) 1  C.∼⟨ (refl ∷ λ { .force → refl ∷ λ { .force → A.numbers-cong (
-                                                                                DCT.symmetric (DCT.associativity (A.⟦ loop ⟧ ρ true) _ _)) }}) ⟩
-    1 ∷′ 2 ∷′ A.numbers (A.⟦ loop ⟧ ρ true >>= tell id ∘ k) 1             C.∼⟨ (refl ∷ λ { .force → refl ∷ λ { .force →
+    I.numbers (I.⟦ loop ⟧ ρ true >>= k) 1                                 C.∼⟨ ∷∼∷′ ⟩
+    1 ∷′ I.numbers (I.[ pred , id ] lam loop [] ∙ con true >>= k) 2       C.∼⟨ (refl ∷ λ { .force → ∷∼∷′ }) ⟩
+    1 ∷′ 2 ∷′ I.numbers (I.⟦ loop ⟧ ρ true >>= tell id ∘ return >>= k) 1  C.∼⟨ (refl ∷ λ { .force → refl ∷ λ { .force → I.numbers-cong (
+                                                                                DCT.symmetric (DCT.associativity (I.⟦ loop ⟧ ρ true) _ _)) }}) ⟩
+    1 ∷′ 2 ∷′ I.numbers (I.⟦ loop ⟧ ρ true >>= tell id ∘ k) 1             C.∼⟨ (refl ∷ λ { .force → refl ∷ λ { .force →
                                                                                 numbers-loop∼loop-sizes _ }}) ⟩
     1 ∷′ 2 ∷′ loop-sizes                                                  C.∼⟨ (refl ∷ λ { .force → C.symmetric-∼ ∷∼∷′ }) ⟩
     loop-sizes                                                            C.∎
@@ -114,7 +115,7 @@ lub-go-sizes-2 =
 -- The maximum stack size encountered when running go (starting with
 -- an empty stack) is 2.
 
-go-bounded-stack : LUB (A.stack-sizes go) ⌜ 2 ⌝
+go-bounded-stack : LUB (I.stack-sizes go) ⌜ 2 ⌝
 go-bounded-stack =
   LUB-∼ (C.symmetric-∼ stack-sizes-go∼go-sizes)
         (Conat.reflexive-∼ _)

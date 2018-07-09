@@ -31,10 +31,11 @@ open import Upper-bounds
 
 open import Lambda.Compiler def
 open import Lambda.Delay-crash as DC hiding (crash)
-open import Lambda.Delay-crash-trace as DCT
+open import Lambda.Delay-crash-trace as DCT hiding (tell)
 import Lambda.Interpreter def as I
 
 open Closure Tm
+open Delay-crash-trace using (tell)
 
 ------------------------------------------------------------------------
 -- The interpreter
@@ -160,17 +161,16 @@ mutual
     ∀ {i} f₁ {f₂} (v₁ {v₂} : Value) →
     D.[ i ] delay-crash ([ f₁ , f₂ ] v₁ ∙ v₂) ∼ v₁ I.∙ v₂
   ∙∼∙ f₁ {f₂} (lam t₁ ρ) {v₂} = later λ { .force →
-    delay-crash (⟦ t₁ ⟧ (v₂ ∷ ρ) true >>=
-                 Delay-crash-trace.tell f₂ ∘ return)  D.∼⟨ delay-crash->>= (⟦ t₁ ⟧ _ _) ⟩
+    delay-crash (⟦ t₁ ⟧ (v₂ ∷ ρ) true >>= tell f₂ ∘ return)  D.∼⟨ delay-crash->>= (⟦ t₁ ⟧ _ _) ⟩
 
     delay-crash (⟦ t₁ ⟧ (v₂ ∷ ρ) true) >>=
-    delay-crash ∘ Delay-crash-trace.tell f₂ ∘ return  D.∼⟨ ((delay-crash (⟦ t₁ ⟧ _ _) D.∎) DC.>>=-cong λ _ → D.reflexive _) ⟩
+    delay-crash ∘ tell f₂ ∘ return                           D.∼⟨ ((delay-crash (⟦ t₁ ⟧ _ _) D.∎) DC.>>=-cong λ _ → D.reflexive _) ⟩
 
-    delay-crash (⟦ t₁ ⟧ (v₂ ∷ ρ) true) >>= return     D.∼⟨ DC.right-identity _ ⟩
+    delay-crash (⟦ t₁ ⟧ (v₂ ∷ ρ) true) >>= return            D.∼⟨ DC.right-identity _ ⟩
 
-    delay-crash (⟦ t₁ ⟧ (v₂ ∷ ρ) true)                D.∼⟨ ⟦⟧∼⟦⟧ t₁ _ ⟩∼
+    delay-crash (⟦ t₁ ⟧ (v₂ ∷ ρ) true)                       D.∼⟨ ⟦⟧∼⟦⟧ t₁ _ ⟩∼
 
-    I.⟦ t₁ ⟧ (v₂ ∷ ρ)                                 D.∎ }
+    I.⟦ t₁ ⟧ (v₂ ∷ ρ)                                        D.∎ }
 
   ∙∼∙ _ (con _) = D.reflexive _
 
@@ -250,7 +250,7 @@ stack-sizes-Ω∼Ω-sizes-0 =
   numbers (⟦ Ω ⟧ [] false) 0                                        C.∼⟨ (E.refl ∷ λ { .force → E.refl ∷ λ { .force → E.refl ∷ λ { .force →
                                                                           C.reflexive-∼ _ }}}) ⟩
   0 ∷′ 1 ∷′ 2 ∷′ numbers (⟦ ω-body ⟧ (lam ω-body [] ∷ []) true >>=
-                          Delay-crash-trace.tell pred ∘ return) 1   C.∼⟨ (cong₃ λ { .force → lemma 1 }) ⟩
+                          tell pred ∘ return) 1                     C.∼⟨ (cong₃ λ { .force → lemma 1 }) ⟩
 
   0 ∷′ 1 ∷′ 2 ∷′ Ω-sizes 1                                          C.∼⟨ (cong₃ λ { .force → C.reflexive-∼ _ }) ⟩
 
@@ -268,11 +268,11 @@ stack-sizes-Ω∼Ω-sizes-0 =
                                                                                 C.reflexive-∼ _ }}}) ⟩
     n ∷′ 1 + n ∷′ 2 + n ∷′
     numbers (⟦ ω-body ⟧ (lam ω-body [] ∷ []) true >>=
-             Delay-crash-trace.tell pred ∘ return >>= k) (1 + n)          C.∼⟨ (cong₃ λ { .force → C.symmetric-∼ $ numbers-cong $
+             tell pred ∘ return >>= k) (1 + n)                            C.∼⟨ (cong₃ λ { .force → C.symmetric-∼ $ numbers-cong $
                                                                                 DCT.associativity (⟦ ω-body ⟧ (lam _ _ ∷ []) true) _ _ }) ⟩
     n ∷′ 1 + n ∷′ 2 + n ∷′
     numbers (⟦ ω-body ⟧ (lam ω-body [] ∷ []) true >>= λ v →
-             Delay-crash-trace.tell pred (return v) >>= k) (1 + n)        C.∼⟨ (cong₃ λ { .force → lemma (1 + n) }) ⟩
+             tell pred (return v) >>= k) (1 + n)                          C.∼⟨ (cong₃ λ { .force → lemma (1 + n) }) ⟩
 
     n ∷′ 1 + n ∷′ 2 + n ∷′ Ω-sizes (1 + n)                                C.∼⟨ (cong₃ λ { .force → C.reflexive-∼ _ }) ⟩
 

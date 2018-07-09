@@ -183,8 +183,8 @@ max→wlpo find-max = λ f → case find-max (p f) of λ where
   p f = helper (f 0)
     module P where
     helper =
-      if_then allocate   ∷ (λ { .force → [] })
-         else deallocate ∷ (λ { .force → p (λ n → f (1 + n)) })
+      if_then allocate   ∷′ []
+         else deallocate ∷  λ { .force → p (λ n → f (1 + n)) }
 
   -- The maximum heap usage of p f is zero iff f always takes the
   -- value false.
@@ -461,19 +461,31 @@ mutual
       [ i ] ⟦ Optimise.optimise₁ p p′ ⟧ h ≲ h ∷′ ⟦ p′ ⟧ (1 + h)
     optimise-correct₁ []                []≡ = default-correct []≡
     optimise-correct₁ (deallocate ∷ p′) d∷≡ = default-correct d∷≡
-    optimise-correct₁ (allocate   ∷ p′) a∷≡ = optimise-correct₂ _ refl
+    optimise-correct₁ (allocate   ∷ p′) a∷≡ =
+      ⟦ Optimise.optimise₂ p (p′ .force) ⟧ h  ≲⟨ optimise-correct₂ (p′ .force) refl ⟩
+      h ∷′ 1 + h ∷′ ⟦ p′ .force ⟧ (2 + h)     ∼⟨ (refl ∷ λ { .force → Colist.symmetric-∼ ∷∼∷′ }) ⟩□≲
+      h ∷′ ⟦ allocate ∷ p′ ⟧ (1 + h)
       where
+      default-correct′ :
+        ∀ {i p″} →
+        p″ ≡ p′ .force →
+        [ i ] ⟦ Optimise.default p ⟧ h ≲ h ∷′ 1 + h ∷′ ⟦ p″ ⟧ (2 + h)
+      default-correct′ refl =
+        ⟦ Optimise.default p ⟧ h              ≲⟨ default-correct refl ⟩
+        h ∷′ ⟦ p .force ⟧ (1 + h)             ≡⟨ by a∷≡ ⟩≲
+        h ∷′ ⟦ allocate ∷ p′ ⟧ (1 + h)        ∼⟨ (refl ∷ λ { .force → ∷∼∷′ }) ⟩□≲
+        h ∷′ 1 + h ∷′ ⟦ p′ .force ⟧ (2 + h)
+
       optimise-correct₂ :
         ∀ {i} p″ →
         p″ ≡ p′ .force →
         [ i ] ⟦ Optimise.optimise₂ p p″ ⟧ h ≲
-              h ∷′ ⟦ allocate ∷ p′ ⟧ (1 + h)
-      optimise-correct₂ []                _   = default-correct a∷≡
-      optimise-correct₂ (allocate   ∷ p″) _   = default-correct a∷≡
-      optimise-correct₂ (deallocate ∷ p″) d∷≡ =
+              h ∷′ 1 + h ∷′ ⟦ p″ ⟧ (2 + h)
+      optimise-correct₂ []                []≡ = default-correct′ []≡
+      optimise-correct₂ (allocate   ∷ p″) a∷≡ = default-correct′ a∷≡
+      optimise-correct₂ (deallocate ∷ p″) _   =
         ⟦ Optimise.optimise₂ p (deallocate ∷ p″) ⟧ h  ∼⟨ ∷∼∷′ ⟩≲
-        h ∷′ ⟦ optimise (p″ .force) ⟧ (1 + h)         ≲⟨ (cons′-≲ λ { hyp .force → consʳ-≲ (consʳ-≲ (optimise-correct-≲ (p″ .force))) hyp }) ⟩
-        h ∷′ 1 + h ∷′ 2 + h ∷′ ⟦ p″ .force ⟧ (1 + h)  ∼⟨ (refl ∷ λ { .force → refl ∷ λ { .force → Colist.symmetric-∼ ∷∼∷′ } }) ⟩≲
-        h ∷′ 1 + h ∷′ ⟦ deallocate ∷ p″ ⟧ (2 + h)     ≡⟨ by d∷≡ ⟩≲
-        h ∷′ 1 + h ∷′ ⟦ p′ .force ⟧ (2 + h)           ∼⟨ (refl ∷ λ { .force → Colist.symmetric-∼ ∷∼∷′ }) ⟩□≲
-        h ∷′ ⟦ allocate ∷ p′ ⟧ (1 + h)
+        h ∷′ ⟦ optimise (p″ .force) ⟧ (1 + h)         ≲⟨ (cons′-≲ λ { hyp .force → optimise-correct-≲ (p″ .force) hyp }) ⟩
+        h ∷′ ⟦ p″ .force ⟧ (1 + h)                    ≲⟨ (cons′-≲ λ { hyp .force → consʳ-≲ (consʳ-≲ (_ □≲)) hyp }) ⟩
+        h ∷′ 1 + h ∷′ 2 + h ∷′ ⟦ p″ .force ⟧ (1 + h)  ∼⟨ (refl ∷ λ { .force → refl ∷ λ { .force → Colist.symmetric-∼ ∷∼∷′ } }) ⟩□≲
+        h ∷′ 1 + h ∷′ ⟦ deallocate ∷ p″ ⟧ (2 + h)
