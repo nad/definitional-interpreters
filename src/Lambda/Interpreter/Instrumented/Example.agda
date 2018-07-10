@@ -35,13 +35,10 @@ open import Lambda.Syntax ⊤
 
 open Closure Tm
 
--- A term that calls itself repeatedly using a tail call.
-
-loop : Tm 1
-loop = call tt (con true)
+-- A definition that calls itself repeatedly using a tail call.
 
 def : ⊤ → Tm 1
-def tt = loop
+def tt = call tt (con true)
 
 -- The two interpreters are instantiated with this definition.
 
@@ -71,25 +68,25 @@ go-sizes = 0 ∷′ 1 ∷′ loop-sizes
 
 stack-sizes-go∼go-sizes : ∀ {i} → C.[ i ] I.stack-sizes go ∼ go-sizes
 stack-sizes-go∼go-sizes =
-  I.numbers (I.⟦ go ⟧ [] false) 0                                   C.∼⟨ ∷∼∷′ ⟩
-  0 ∷′ I.numbers (I.[ id , pred ] lam loop [] ∙ con true) 1         C.∼⟨ (refl ∷ λ { .force → ∷∼∷′ }) ⟩
-  0 ∷′ 1 ∷′ I.numbers (I.⟦ loop ⟧ ρ true >>= tell pred ∘ return) 1  C.∼⟨ (refl ∷ λ { .force → refl ∷ λ { .force → numbers-loop∼loop-sizes _ }}) ⟩
-  0 ∷′ 1 ∷′ loop-sizes                                              C.∼⟨⟩
-  go-sizes                                                          C.∎
+  I.numbers (I.⟦ go ⟧ [] false) 0                                     C.∼⟨ ∷∼∷′ ⟩
+  0 ∷′ I.numbers (I.[ id , pred ] lam (def tt) [] ∙ con true) 1       C.∼⟨ (refl ∷ λ { .force → ∷∼∷′ }) ⟩
+  0 ∷′ 1 ∷′ I.numbers (I.⟦ def tt ⟧ ρ true >>= tell pred ∘ return) 1  C.∼⟨ (refl ∷ λ { .force → refl ∷ λ { .force → numbers-loop∼loop-sizes _ }}) ⟩
+  0 ∷′ 1 ∷′ loop-sizes                                                C.∼⟨⟩
+  go-sizes                                                            C.∎
   where
   ρ = con true ∷ []
 
   numbers-loop∼loop-sizes :
-    ∀ {i} k → C.[ i ] I.numbers (I.⟦ loop ⟧ ρ true >>= k) 1 ∼ loop-sizes
+    ∀ {i} k → C.[ i ] I.numbers (I.⟦ def tt ⟧ ρ true >>= k) 1 ∼ loop-sizes
   numbers-loop∼loop-sizes k =
-    I.numbers (I.⟦ loop ⟧ ρ true >>= k) 1                                 C.∼⟨ ∷∼∷′ ⟩
-    1 ∷′ I.numbers (I.[ pred , id ] lam loop [] ∙ con true >>= k) 2       C.∼⟨ (refl ∷ λ { .force → ∷∼∷′ }) ⟩
-    1 ∷′ 2 ∷′ I.numbers (I.⟦ loop ⟧ ρ true >>= tell id ∘ return >>= k) 1  C.∼⟨ (refl ∷ λ { .force → refl ∷ λ { .force → I.numbers-cong (
-                                                                                DCT.symmetric (DCT.associativity (I.⟦ loop ⟧ ρ true) _ _)) }}) ⟩
-    1 ∷′ 2 ∷′ I.numbers (I.⟦ loop ⟧ ρ true >>= tell id ∘ k) 1             C.∼⟨ (refl ∷ λ { .force → refl ∷ λ { .force →
-                                                                                numbers-loop∼loop-sizes _ }}) ⟩
-    1 ∷′ 2 ∷′ loop-sizes                                                  C.∼⟨ (refl ∷ λ { .force → C.symmetric-∼ ∷∼∷′ }) ⟩
-    loop-sizes                                                            C.∎
+    I.numbers (I.⟦ def tt ⟧ ρ true >>= k) 1                                 C.∼⟨ ∷∼∷′ ⟩
+    1 ∷′ I.numbers (I.[ pred , id ] lam (def tt) [] ∙ con true >>= k) 2     C.∼⟨ (refl ∷ λ { .force → ∷∼∷′ }) ⟩
+    1 ∷′ 2 ∷′ I.numbers (I.⟦ def tt ⟧ ρ true >>= tell id ∘ return >>= k) 1  C.∼⟨ (refl ∷ λ { .force → refl ∷ λ { .force → I.numbers-cong (
+                                                                                  DCT.symmetric (DCT.associativity (I.⟦ def tt ⟧ ρ true) _ _)) }}) ⟩
+    1 ∷′ 2 ∷′ I.numbers (I.⟦ def tt ⟧ ρ true >>= tell id ∘ k) 1             C.∼⟨ (refl ∷ λ { .force → refl ∷ λ { .force →
+                                                                                  numbers-loop∼loop-sizes _ }}) ⟩
+    1 ∷′ 2 ∷′ loop-sizes                                                    C.∼⟨ (refl ∷ λ { .force → C.symmetric-∼ ∷∼∷′ }) ⟩
+    loop-sizes                                                              C.∎
 
 -- The least upper bound of go-sizes is 2.
 
