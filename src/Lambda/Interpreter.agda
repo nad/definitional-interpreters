@@ -72,3 +72,8 @@ mutual
       never                                 ∎ }) ⟩∼
 
   never                                ∎
+
+-- A more direct proof.
+
+Ω-loops′ : ∀ {i} → [ i ] ⟦ Ω ⟧ [] ∼ never
+Ω-loops′ = later λ { .force → Ω-loops′ }
