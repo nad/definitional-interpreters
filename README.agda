@@ -109,11 +109,3 @@ import Lambda.Interpreter.Instrumented.Example
 -- instrumented interpreter.
 
 import Lambda.Interpreter.Instrumented.Counterexample
-
-------------------------------------------------------------------------
--- Other code
-
--- A small language with lambdas, general recursion, natural numbers,
--- references and IO.
-
-import Lambda
