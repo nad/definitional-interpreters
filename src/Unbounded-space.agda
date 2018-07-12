@@ -416,7 +416,7 @@ optimise-improves =
       max-constant-space-1
 
 -- The optimised program's maximum heap usage is at most as large as
--- that of the original program.
+-- that of the original program (assuming that these maximums exist).
 
 mutual
 
