@@ -1,5 +1,6 @@
 ------------------------------------------------------------------------
--- Code related to definitional interpreters
+-- Code related to the paper "Total Definitional Interpreters for
+-- Looping Programs"
 --
 -- Nils Anders Danielsson
 ------------------------------------------------------------------------
@@ -7,6 +8,15 @@
 {-# OPTIONS --without-K --safe #-}
 
 module README where
+
+------------------------------------------------------------------------
+-- Pointers to results from the paper
+
+-- In order to more easily find code corresponding to results from the
+-- paper, see the following module. Note that some of the code
+-- referenced below is not discussed at all in the paper.
+
+import README.Pointers-to-results-from-the-paper
 
 ------------------------------------------------------------------------
 -- Responses to some challenges from Ancona, Dagnino and Zucca
