@@ -127,7 +127,7 @@ constant-space₂ = Only-allocation.constant-space₂
 unbounded-space = Only-allocation.unbounded-space
 _∷′_            = Colist._∷′_
 
--- Some properties about the examples.
+-- Some properties related to the examples.
 
 constant-space-crash  = Bounded-space.constant-space-crash
 constant-space-loop   = Bounded-space.constant-space-loop
