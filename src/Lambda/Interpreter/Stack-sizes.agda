@@ -9,7 +9,7 @@ open import Prelude
 
 import Lambda.Syntax
 
-module Lambda.Interpreter.Instrumented
+module Lambda.Interpreter.Stack-sizes
   {Name : Set}
   (open Lambda.Syntax Name)
   (def : Name → Tm 1)

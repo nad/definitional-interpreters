@@ -6,7 +6,7 @@
 
 {-# OPTIONS --without-K --safe #-}
 
-module Lambda.Interpreter.Instrumented.Counterexample where
+module Lambda.Interpreter.Stack-sizes.Counterexample where
 
 open import Colist
 open import Equality.Propositional as E using (_≡_)
@@ -16,7 +16,7 @@ open import Function-universe E.equality-with-J
 open import Vec.Data E.equality-with-J
 
 import Lambda.Compiler
-import Lambda.Interpreter.Instrumented
+import Lambda.Interpreter.Stack-sizes
 import Lambda.Virtual-machine
 import Lambda.Virtual-machine.Instructions
 
@@ -35,7 +35,7 @@ def false = con true
 -- The instrumented interpreter, compiler and virtual machine are
 -- instantiated with this definition.
 
-module I = Lambda.Interpreter.Instrumented def
+module I = Lambda.Interpreter.Stack-sizes def
 open Lambda.Compiler def
 open Lambda.Virtual-machine.Instructions Bool
 open module VM = Lambda.Virtual-machine comp-name

@@ -102,7 +102,7 @@ import Lambda.Compiler-correctness
 -- A definitional interpreter that is instrumented with information
 -- about the stack size of the compiled program.
 
-import Lambda.Interpreter.Instrumented
+import Lambda.Interpreter.Stack-sizes
 
 -- The actual maximum stack size of the compiled program matches the
 -- maximum stack size of the instrumented source-level semantics.
@@ -112,10 +112,10 @@ import Lambda.Compiler-correctness.Sizes-match
 -- An example: A non-terminating program that runs in bounded stack
 -- space.
 
-import Lambda.Interpreter.Instrumented.Example
+import Lambda.Interpreter.Stack-sizes.Example
 
 -- A counterexample: The trace of stack sizes produced by the virtual
 -- machine is not necessarily bisimilar to that produced by the
 -- instrumented interpreter.
 
-import Lambda.Interpreter.Instrumented.Counterexample
+import Lambda.Interpreter.Stack-sizes.Counterexample

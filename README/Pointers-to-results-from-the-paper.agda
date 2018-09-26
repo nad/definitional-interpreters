@@ -27,9 +27,9 @@ import Lambda.Compiler-correctness.Sizes-match
 import Lambda.Delay-crash
 import Lambda.Delay-crash-trace
 import Lambda.Interpreter
-import Lambda.Interpreter.Instrumented
-import Lambda.Interpreter.Instrumented.Counterexample
-import Lambda.Interpreter.Instrumented.Example
+import Lambda.Interpreter.Stack-sizes
+import Lambda.Interpreter.Stack-sizes.Counterexample
+import Lambda.Interpreter.Stack-sizes.Example
 import Lambda.Virtual-machine
 import Lambda.Virtual-machine.Instructions
 import Lambda.Syntax
@@ -420,19 +420,19 @@ Stack-OK₁  = Lambda.Compiler-correctness.Stack-OK
 
 -- The instrumented interpreter.
 
-[_,_]_∙I_    = Lambda.Interpreter.Instrumented.[_,_]_∙_
-⟦_⟧I         = Lambda.Interpreter.Instrumented.⟦_⟧
-δ₁           = Lambda.Interpreter.Instrumented.δ₁
-δ₂           = Lambda.Interpreter.Instrumented.δ₂
-⟦if⟧I        = Lambda.Interpreter.Instrumented.⟦if⟧
+[_,_]_∙I_    = Lambda.Interpreter.Stack-sizes.[_,_]_∙_
+⟦_⟧I         = Lambda.Interpreter.Stack-sizes.⟦_⟧
+δ₁           = Lambda.Interpreter.Stack-sizes.δ₁
+δ₂           = Lambda.Interpreter.Stack-sizes.δ₂
+⟦if⟧I        = Lambda.Interpreter.Stack-sizes.⟦if⟧
 scanl        = Colist.scanl
-numbers      = Lambda.Interpreter.Instrumented.numbers
-stack-sizesI = Lambda.Interpreter.Instrumented.stack-sizes
+numbers      = Lambda.Interpreter.Stack-sizes.numbers
+stack-sizesI = Lambda.Interpreter.Stack-sizes.stack-sizes
 
 -- The instrumented semantics produces computations that are strongly
 -- bisimilar to those produced by the other semantics.
 
-⟦⟧∼⟦⟧ = Lambda.Interpreter.Instrumented.⟦⟧∼⟦⟧
+⟦⟧∼⟦⟧ = Lambda.Interpreter.Stack-sizes.⟦⟧∼⟦⟧
 
 -- If the trace of stack sizes produced by the instrumented semantics
 -- has the least upper bound i, and the corresponding trace produced
@@ -447,7 +447,7 @@ maximum-stack-sizes-match =
 -- interpreter.
 
 stack-sizes-not-bisimilar =
-  Lambda.Interpreter.Instrumented.Counterexample.stack-sizes-not-bisimilar
+  Lambda.Interpreter.Stack-sizes.Counterexample.stack-sizes-not-bisimilar
 
 -- The trace of stack sizes produced by the virtual machine and that
 -- produced by the instrumented interpreter are upper bounds of each
@@ -504,48 +504,49 @@ Stack-OK₂  = Lambda.Compiler-correctness.Sizes-match.Stack-OK
 
 -- Ω-sizes.
 
-Ω-sizes = Lambda.Interpreter.Instrumented.Ω-sizes
+Ω-sizes = Lambda.Interpreter.Stack-sizes.Ω-sizes
 
 -- Ω-sizes 0 matches the stack-sizes encountered when interpreting Ω.
 
 stack-sizes-Ω∼Ω-sizes-0 =
-  Lambda.Interpreter.Instrumented.stack-sizes-Ω∼Ω-sizes-0
+  Lambda.Interpreter.Stack-sizes.stack-sizes-Ω∼Ω-sizes-0
 
 -- The least upper bound of Ω-sizes 0 is infinity.
 
 lub-Ω-sizes-0-infinity =
-  Lambda.Interpreter.Instrumented.lub-Ω-sizes-0-infinity
+  Lambda.Interpreter.Stack-sizes.lub-Ω-sizes-0-infinity
 
 -- Ω does not run in bounded stack space.
 
 Ω-requires-unbounded-space =
-  Lambda.Interpreter.Instrumented.Ω-requires-unbounded-space
+  Lambda.Interpreter.Stack-sizes.Ω-requires-unbounded-space
 
 -- The implementations of def and go.
 
-def = Lambda.Interpreter.Instrumented.Example.def
-go  = Lambda.Interpreter.Instrumented.Example.go
+def = Lambda.Interpreter.Stack-sizes.Example.def
+go  = Lambda.Interpreter.Stack-sizes.Example.go
 
 -- The program go does not terminate.
 
-go-loops = Lambda.Interpreter.Instrumented.Example.go-loops
+go-loops = Lambda.Interpreter.Stack-sizes.Example.go-loops
 
 -- The colists loop-sizes and go-sizes.
 
-loop-sizes = Lambda.Interpreter.Instrumented.Example.loop-sizes
-go-sizes   = Lambda.Interpreter.Instrumented.Example.go-sizes
+loop-sizes = Lambda.Interpreter.Stack-sizes.Example.loop-sizes
+go-sizes   = Lambda.Interpreter.Stack-sizes.Example.go-sizes
 
 -- The colist go-sizes matches the stack-sizes encountered when
 -- interpreting go.
 
 stack-sizes-go∼go-sizes =
-  Lambda.Interpreter.Instrumented.Example.stack-sizes-go∼go-sizes
+  Lambda.Interpreter.Stack-sizes.Example.stack-sizes-go∼go-sizes
 
 -- The least upper bound of go-sizes is 2.
 
-lub-go-sizes-2 = Lambda.Interpreter.Instrumented.Example.lub-go-sizes-2
+lub-go-sizes-2 =
+  Lambda.Interpreter.Stack-sizes.Example.lub-go-sizes-2
 
 -- The program go runs in bounded stack space.
 
 go-bounded-stack =
-  Lambda.Interpreter.Instrumented.Example.go-bounded-stack
+  Lambda.Interpreter.Stack-sizes.Example.go-bounded-stack

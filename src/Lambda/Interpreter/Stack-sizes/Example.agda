@@ -5,7 +5,7 @@
 
 {-# OPTIONS --without-K --safe #-}
 
-module Lambda.Interpreter.Instrumented.Example where
+module Lambda.Interpreter.Stack-sizes.Example where
 
 open import Colist as C
 open import Conat hiding (pred)
@@ -24,7 +24,7 @@ open import Upper-bounds
 
 import Lambda.Delay-crash-trace as DCT
 import Lambda.Interpreter
-import Lambda.Interpreter.Instrumented
+import Lambda.Interpreter.Stack-sizes
 
 open DCT.Delay-crash-trace
 
@@ -43,7 +43,7 @@ def tt = call tt (con true)
 -- The two interpreters are instantiated with this definition.
 
 open Lambda.Interpreter def
-module I = Lambda.Interpreter.Instrumented def
+module I = Lambda.Interpreter.Stack-sizes def
 
 -- A top-level term to get things going.
 

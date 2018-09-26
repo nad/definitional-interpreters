@@ -29,7 +29,7 @@ open import Vec.Data E.equality-with-J
 open import Upper-bounds
 
 open import Lambda.Compiler def
-open import Lambda.Interpreter.Instrumented def as I
+open import Lambda.Interpreter.Stack-sizes def as I
 open import Lambda.Delay-crash-trace as DCT
   using (Delay-crash-trace)
 open import Lambda.Virtual-machine.Instructions Name
@@ -433,7 +433,7 @@ mutual
 -- stack sizes.
 --
 -- (However, the traces are not necessarily bisimilar, see
--- Lambda.Interpreter.Instrumented.Counterexample.stack-sizes-not-bisimilar.)
+-- Lambda.Interpreter.Stack-sizes.Counterexample.stack-sizes-not-bisimilar.)
 
 stack-sizes-related :
   (t : Tm 0) →
