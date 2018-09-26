@@ -134,7 +134,7 @@ mutual
 
         v₁ ∙ v₂ >>= k                                                    ∎) ⟩∼
 
-     (⟦ t₂ ⟧ ρ >>= λ v₂ → v₁ ∙ v₂ >>= k)                           ∎) ⟩∼
+      (⟦ t₂ ⟧ ρ >>= λ v₂ → v₁ ∙ v₂ >>= k)                          ∎) ⟩∼
 
     (⟦ t₁ ⟧ ρ >>= λ v₁ → ⟦ t₂ ⟧ ρ >>= λ v₂ → v₁ ∙ v₂ >>= k)  ∼⟨ symmetric (⟦⟧-· t₁ t₂) ⟩
 
@@ -147,12 +147,12 @@ mutual
 
       exec ⟨ cal f ∷ c , val (comp-val v) ∷ s , comp-env ρ ⟩        ≈⟨ (later λ { .force →
 
-       exec ⟨ comp-name f
-            , ret c (comp-env ρ) ∷ s
-            , comp-val v ∷ []
-            ⟩                                                             ≈⟨ body-lemma (def f) [] c-ok ⟩∼
+        exec ⟨ comp-name f
+             , ret c (comp-env ρ) ∷ s
+             , comp-val v ∷ []
+             ⟩                                                            ≈⟨ body-lemma (def f) [] c-ok ⟩∼
 
-       (⟦ def f ⟧ (v ∷ []) >>= k)                                         ∎ }) ⟩∼
+        (⟦ def f ⟧ (v ∷ []) >>= k)                                        ∎ }) ⟩∼
 
       (T.lam (def f) [] ∙ v >>= k)                                  ∎) ⟩∼
 
@@ -172,14 +172,14 @@ mutual
            , comp-env ρ
            ⟩                                                              ≈⟨ (later λ { .force →
 
-       exec ⟨ comp-name f
-            , ret c′ ρ′ ∷ s
-            , comp-val v ∷ []
-            ⟩                                                                   ≈⟨ body-lemma (def f) [] c-ok ⟩∼
+        exec ⟨ comp-name f
+             , ret c′ ρ′ ∷ s
+             , comp-val v ∷ []
+             ⟩                                                                  ≈⟨ body-lemma (def f) [] c-ok ⟩∼
 
-       ⟦ def f ⟧ (v ∷ []) >>= k                                                 ∎ }) ⟩∼
+        ⟦ def f ⟧ (v ∷ []) >>= k                                                ∎ }) ⟩∼
 
-     T.lam (def f) [] ∙ v >>= k                                           ∎) ⟩∼
+      T.lam (def f) [] ∙ v >>= k                                          ∎) ⟩∼
 
     (⟦ t ⟧ ρ >>= λ v → T.lam (def f) [] ∙ v >>= k)                  ∼⟨ associativity (⟦ t ⟧ ρ) _ _ ⟩
 
