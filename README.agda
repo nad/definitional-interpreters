@@ -14,7 +14,8 @@ module README where
 
 -- In order to more easily find code corresponding to results from the
 -- paper, see the following module. Note that some of the code
--- referenced below is not discussed at all in the paper.
+-- referenced below (for instance the code related to time complexity)
+-- is not discussed at all in the paper.
 
 import README.Pointers-to-results-from-the-paper
 
@@ -119,3 +120,19 @@ import Lambda.Interpreter.Stack-sizes.Example
 -- instrumented interpreter.
 
 import Lambda.Interpreter.Stack-sizes.Counterexample
+
+-- A counterexample: The number of steps taken by the uninstrumented
+-- interpreter is not, in general, linear in the number of steps taken
+-- by the virtual machine for the corresponding compiled program.
+
+import Lambda.Interpreter.Steps.Counterexample
+
+-- A definitional interpreter that is instrumented with information
+-- about the number of steps required to run the compiled program.
+
+import Lambda.Interpreter.Steps
+
+-- The "time complexity" of the compiled program matches the one
+-- obtained from the instrumented interpreter.
+
+import Lambda.Compiler-correctness.Steps-match

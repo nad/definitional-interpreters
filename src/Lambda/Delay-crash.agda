@@ -6,6 +6,7 @@
 
 module Lambda.Delay-crash where
 
+import Conat
 import Equality.Propositional as E
 open import Logical-equivalence using (_⇔_)
 open import Prelude
@@ -48,16 +49,17 @@ private
 ------------------------------------------------------------------------
 -- Some properties
 
--- Bind preserves strong bisimilarity.
+-- Bind preserves strong and weak bisimilarity and the expansion
+-- relation.
 
 infixl 5 _>>=-cong_
 
 _>>=-cong_ :
-  ∀ {i} {A B : Set}
+  ∀ {i k} {A B : Set}
     {x y : Delay-crash A ∞} {f g : A → Delay-crash B ∞} →
-  [ i ] x ∼ y →
-  (∀ z → [ i ] f z ∼ g z) →
-  [ i ] x DC.>>= f ∼ y DC.>>= g
+  [ i ] x ⟨ k ⟩ y →
+  (∀ z → [ i ] f z ⟨ k ⟩ g z) →
+  [ i ] x DC.>>= f ⟨ k ⟩ y DC.>>= g
 p >>=-cong q = p DM.>>=-cong [ (λ _ → run fail ∎) , q ]
 
 -- The monad laws.
@@ -94,6 +96,21 @@ associativity x f g =
         >>= maybe g (return nothing)                 ∼⟨⟩
 
   x DC.>>= f DC.>>= g                                ∎
+
+-- Use of _⟨$⟩_ does not affect the number of steps in the
+-- computation.
+
+steps-⟨$⟩ :
+  ∀ {i A B} {f : A → B} {x : Delay-crash A ∞} →
+  Conat.[ i ] steps (f DC.⟨$⟩ x) ∼ steps x
+steps-⟨$⟩ {f = f} {x} =
+  steps (f DC.⟨$⟩ x)                                        Conat.≡⟨⟩∼
+  steps (x DC.>>= DC.return ∘ f)                            Conat.≡⟨⟩∼
+  steps (x >>= maybe (return ∘ just ∘ f) (return nothing))  Conat.∼⟨ steps-cong ((x ∎) DM.>>=-cong [ (λ _ → run fail ∎)
+                                                                                                   , (λ x → return (just (f x)) ∎)
+                                                                                                   ]) ⟩
+  steps (x >>= return ∘ maybe (just ∘ f) nothing)           Conat.∼⟨ DM.steps-⟨$⟩ _ ⟩
+  steps x                                                   Conat.∎∼
 
 ------------------------------------------------------------------------
 -- The instance declaration
