@@ -21,14 +21,12 @@ mutual
   -- Instructions.
 
   data Instr (n : ℕ) : Set where
-    var : Fin n → Instr n
-    clo : Code (suc n) → Instr n
-    app : Instr n
-    ret : Instr n
-    cal : Name → Instr n
-    tcl : Name → Instr n  -- Tail call.
-    con : Bool → Instr n
-    bra : Code n → Code n → Instr n
+    var     : Fin n → Instr n
+    clo     : Code (suc n) → Instr n
+    app ret : Instr n
+    cal tcl : Name → Instr n  -- Calls and tail calls.
+    con     : Bool → Instr n
+    bra     : Code n → Code n → Instr n
 
   -- Code.
 
