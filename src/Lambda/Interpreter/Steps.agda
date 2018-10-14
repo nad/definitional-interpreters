@@ -33,10 +33,10 @@ open Closure Tm
 
 -- A step annotation.
 
-infix 1 √_
+infix 1 ✓_
 
-√_ : ∀ {A i} → Delay-crash A i → Delay-crash A i
-√ x = later λ { .force → x }
+✓_ : ∀ {A i} → Delay-crash A i → Delay-crash A i
+✓ x = later λ { .force → x }
 
 -- The instrumented interpreter.
 
@@ -45,14 +45,14 @@ infix 10 _∙_
 mutual
 
   ⟦_⟧ : ∀ {i n} → Tm n → Env n → Delay-crash Value i
-  ⟦ var x ⟧       ρ = √ return (index x ρ)
-  ⟦ lam t ⟧       ρ = √ return (lam t ρ)
+  ⟦ var x ⟧       ρ = ✓ return (index x ρ)
+  ⟦ lam t ⟧       ρ = ✓ return (lam t ρ)
   ⟦ t₁ · t₂ ⟧     ρ = do v₁ ← ⟦ t₁ ⟧ ρ
                          v₂ ← ⟦ t₂ ⟧ ρ
                          v₁ ∙ v₂
   ⟦ call f t ⟧    ρ = do v ← ⟦ t ⟧ ρ
                          lam (def f) [] ∙ v
-  ⟦ con b ⟧       ρ = √ return (con b)
+  ⟦ con b ⟧       ρ = ✓ return (con b)
   ⟦ if t₁ t₂ t₃ ⟧ ρ = do v₁ ← ⟦ t₁ ⟧ ρ
                          ⟦if⟧ v₁ t₂ t₃ ρ
 
@@ -63,8 +63,8 @@ mutual
   ⟦if⟧ : ∀ {i n} →
          Value → Tm n → Tm n → Env n → Delay-crash Value i
   ⟦if⟧ (lam _ _)   _  _  _ = crash
-  ⟦if⟧ (con true)  t₂ t₃ ρ = √ ⟦ t₂ ⟧ ρ
-  ⟦if⟧ (con false) t₂ t₃ ρ = √ ⟦ t₃ ⟧ ρ
+  ⟦if⟧ (con true)  t₂ t₃ ρ = ✓ ⟦ t₂ ⟧ ρ
+  ⟦if⟧ (con false) t₂ t₃ ρ = ✓ ⟦ t₃ ⟧ ρ
 
 ------------------------------------------------------------------------
 -- The semantics given above gives the same (uninstrumented) result as
