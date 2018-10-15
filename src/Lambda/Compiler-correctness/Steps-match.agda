@@ -29,7 +29,7 @@ open import Vec.Data E.equality-with-J
 
 open import Delay-monad
 open import Delay-monad.Bisimilarity
-open import Delay-monad.Stepped-weak-bisimilarity
+open import Delay-monad.Quantitative-weak-bisimilarity
 
 open import Lambda.Compiler def
 open import Lambda.Delay-crash
