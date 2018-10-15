@@ -378,7 +378,8 @@ mutual
     ⟦if⟧ (T.con false) t₂ t₃ ρ >>= k                ∎
 
 -- The "time complexity" of the compiled program is linear in the time
--- complexity obtained from the instrumented interpreter.
+-- complexity obtained from the instrumented interpreter, and vice
+-- versa.
 
 steps-match :
   (t : Tm 0) →
