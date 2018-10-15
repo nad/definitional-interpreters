@@ -6,7 +6,7 @@
 
 {-# OPTIONS --without-K --safe #-}
 
-open import Prelude hiding (_*_)
+open import Prelude
 
 import Lambda.Syntax
 
@@ -16,11 +16,12 @@ module Lambda.Interpreter.Steps.Counterexample
   (def : Name → Tm 1)
   where
 
-open import Conat hiding (_+_; [_]_∼_; step-∼)
+open import Conat
+  hiding ([_]_∼_; step-∼) renaming (_+_ to _⊕_; _*_ to _⊛_)
 import Equality.Propositional as E
 
-open import Monad E.equality-with-J
-open import Nat E.equality-with-J using (_≤_; ≤-refl)
+open import Monad E.equality-with-J hiding (_⊛_)
+import Nat E.equality-with-J as Nat
 open import Vec.Data E.equality-with-J
 
 open import Delay-monad
@@ -42,16 +43,17 @@ open Closure Tm
 
 not-suitable-cost-measure :
   ∃ λ (t : ℕ → Tm 0) →
-    ¬ ∃ λ k → ∃ λ n₀ → ∀ n → n₀ ≤ n →
+    ¬ ∃ λ k₁ → ∃ λ k₂ → ∀ n →
       [ ∞ ] steps (exec ⟨ comp₀ (t n) , [] , [] ⟩) ≤
-            ⌜ k ⌝ * steps (⟦ t n ⟧ [])
+            ⌜ k₁ ⌝ ⊕ ⌜ k₂ ⌝ ⊛ steps (⟦ t n ⟧ [])
 not-suitable-cost-measure =
-  t , λ { (k , n₀ , hyp) → ≮0 (
-    ⌜ 3 + n₀ ⌝                               ∼⟨ symmetric-∼ (steps-exec-t∼ n₀) ⟩≤
-    steps (exec ⟨ comp₀ (t n₀) , [] , [] ⟩)  ≤⟨ hyp n₀ ≤-refl ⟩
-    ⌜ k ⌝ * steps (⟦ t n₀ ⟧ [])              ∼⟨ (_ ∎∼) *-cong steps⟦t⟧∼0 n₀ ⟩≤
-    ⌜ k ⌝ * zero                             ∼⟨ *-right-zero ⟩≤
-    zero                                     ∎≤) }
+  t , λ { (k₁ , k₂ , hyp) → Nat.+≮ 2 $ ⌜⌝-mono⁻¹ (
+    ⌜ 3 + k₁ ⌝                               ∼⟨ symmetric-∼ (steps-exec-t∼ k₁) ⟩≤
+    steps (exec ⟨ comp₀ (t k₁) , [] , [] ⟩)  ≤⟨ hyp k₁ ⟩
+    ⌜ k₁ ⌝ ⊕ ⌜ k₂ ⌝ ⊛ steps (⟦ t k₁ ⟧ [])    ∼⟨ (⌜ k₁ ⌝ ∎∼) +-cong (_ ∎∼) *-cong steps⟦t⟧∼0 k₁ ⟩≤
+    ⌜ k₁ ⌝ ⊕ ⌜ k₂ ⌝ ⊛ zero                   ∼⟨ (_ ∎∼) +-cong *-right-zero ⟩≤
+    ⌜ k₁ ⌝ ⊕ zero                            ∼⟨ +-right-identity _ ⟩≤
+    ⌜ k₁ ⌝                                   ∎≤) }
   where
   -- A family of programs.
 
