@@ -658,17 +658,17 @@ mutual
   infix 4 [_]_≲D_ [_]_≲D′_
 
   data [_]_≲D_ (i : Size) : Colist ℕ ∞ → Colist ℕ ∞ → Set where
-    ⌈_⌉      : ∀ {ms ns} →
-               [ i ] ms ≲ ns →
-               [ i ] ms ≲D ns
-    consˡ-≲D : ∀ {m ms ns} →
-               Bounded m ns →
-               [ i ] ms .force ≲D′ ns →
-               [ i ] m ∷ ms ≲D ns
-    cons-≲D  : ∀ {m ms n ns} →
-               Bounded m (n ∷ ns) →
-               [ i ] ms .force ≲D′ ns .force →
-               [ i ] m ∷ ms ≲D n ∷ ns
+    ⌈_⌉   : ∀ {ms ns} →
+            [ i ] ms ≲ ns →
+            [ i ] ms ≲D ns
+    consˡ : ∀ {m ms ns} →
+            Bounded m ns →
+            [ i ] ms .force ≲D′ ns →
+            [ i ] m ∷ ms ≲D ns
+    cons  : ∀ {m ms n ns} →
+            Bounded m (n ∷ ns) →
+            [ i ] ms .force ≲D′ ns .force →
+            [ i ] m ∷ ms ≲D n ∷ ns
 
   record [_]_≲D′_ (i : Size) (ms ns : Colist ℕ ∞) : Set where
     coinductive
@@ -677,12 +677,32 @@ mutual
 
 open [_]_≲D′_ public
 
--- Interprets [_]_≲D_.
+mutual
 
-⌊_⌋≲ : ∀ {i ms ns} → [ i ] ms ≲D ns → [ i ] ms ≲ ns
-⌊ ⌈ p ⌉ ⌋≲        = p
-⌊ consˡ-≲D b p ⌋≲ = consˡ-≲ b λ { hyp .force → ⌊ p .force ⌋≲ hyp }
-⌊ cons-≲D b p ⌋≲  = cons-≲  b λ { hyp .force → ⌊ p .force ⌋≲ hyp }
+  -- Interprets [_]_≲D_.
+
+  ⌊_⌋≲ : ∀ {i ms ns} → [ i ] ms ≲D ns → [ i ] ms ≲ ns
+  ⌊ ⌈ p ⌉ ⌋≲     = p
+  ⌊ consˡ b p ⌋≲ = consˡ-≲ b ⌊ p ⌋≲′
+  ⌊ cons b p ⌋≲  = cons-≲ b ⌊ p ⌋≲′
+
+  -- Interprets [_]_≲D′_.
+
+  ⌊_⌋≲′ : ∀ {i ms ns} → [ i ] ms ≲D′ ns → [ i ] ms ≲′ ns
+  ⌊ p ⌋≲′ hyp .force = ⌊ p .force ⌋≲ hyp
+
+-- [_]_≲_ and [_]_≲D_ are pointwise logically equivalent.
+
+≲⇔≲D : ∀ {i ms ns} → [ i ] ms ≲ ns ⇔ [ i ] ms ≲D ns
+≲⇔≲D = record { to = ⌈_⌉ ; from = ⌊_⌋≲ }
+
+-- [_]_≲′_ and [_]_≲D′_ are pointwise logically equivalent.
+
+≲′⇔≲D′ : ∀ {i ms ns} → [ i ] ms ≲′ ns ⇔ [ i ] ms ≲D′ ns
+≲′⇔≲D′ = record
+  { to   = λ { p .force → ⌈ (λ hyp → p hyp .force) ⌉ }
+  ; from = ⌊_⌋≲′
+  }
 
 -- Some abbreviations.
 
@@ -706,22 +726,14 @@ mutual
   infix 4 [_]_≂D_ [_]_≂D′_
 
   data [_]_≂D_ (i : Size) : Colist ℕ ∞ → Colist ℕ ∞ → Set where
-    ⌈_⌉      : ∀ {ms ns} →
-               [ i ] ms ≂ ns →
-               [ i ] ms ≂D ns
-    consʳ-≂D : ∀ {ms n ns} →
-               Bounded n ms →
-               [ i ] ms ≂D ns .force →
-               [ i ] ms ≂D n ∷ ns
-    consˡ-≂D : ∀ {m ms ns} →
-               Bounded m ns →
-               [ i ] ms .force ≂D ns →
-               [ i ] m ∷ ms ≂D ns
-    cons-≂D  : ∀ {m ms n ns} →
-               Bounded m (n ∷ ns) →
-               Bounded n (m ∷ ms) →
-               [ i ] ms .force ≂D′ ns .force →
-               [ i ] m ∷ ms ≂D n ∷ ns
+    ⌈_⌉  : ∀ {ms ns} →
+           [ i ] ms ≂ ns →
+           [ i ] ms ≂D ns
+    cons : ∀ {m ms n ns} →
+           Bounded m (n ∷ ns) →
+           Bounded n (m ∷ ms) →
+           [ i ] ms .force ≂D′ ns .force →
+           [ i ] m ∷ ms ≂D n ∷ ns
 
   record [_]_≂D′_ (i : Size) (ms ns : Colist ℕ ∞) : Set where
     coinductive
@@ -730,24 +742,56 @@ mutual
 
 open [_]_≂D′_ public
 
--- Interprets [_]_≂D_.
+mutual
 
-⌊_⌋≂ : ∀ {i ms ns} → [ i ] ms ≂D ns → [ i ] ms ≂ ns
-⌊ ⌈ p ⌉ ⌋≂           = p
-⌊ consʳ-≂D b p ⌋≂    = consʳ-≂ b ⌊ p ⌋≂
-⌊ consˡ-≂D b p ⌋≂    = consˡ-≂ b ⌊ p ⌋≂
-⌊ cons-≂D b₁ b₂ p ⌋≂ =
-  cons-≂ b₁ b₂ ( (λ { hyp .force {j} → proj₁ ⌊ p .force {j} ⌋≂ hyp  })
-               , (λ { hyp .force     → proj₂ ⌊ p .force     ⌋≂ hyp  })
-               )
+  -- Interprets [_]_≂D_.
 
--- An abbreviation.
+  ⌊_⌋≂ : ∀ {i ms ns} → [ i ] ms ≂D ns → [ i ] ms ≂ ns
+  ⌊ ⌈ p ⌉ ⌋≂        = p
+  ⌊ cons b₁ b₂ p ⌋≂ = cons-≂ b₁ b₂ ⌊ p ⌋≂′
+
+  -- Interprets [_]_≂D′_.
+
+  ⌊_⌋≂′ : ∀ {i ms ns} → [ i ] ms ≂D′ ns → [ i ] ms ≂′ ns
+  ⌊ p ⌋≂′ = (λ { hyp .force → proj₁ ⌊ p .force ⌋≂ hyp })
+          , (λ { hyp .force → proj₂ ⌊ p .force ⌋≂ hyp })
+
+-- [_]_≂_ and [_]_≂D_ are pointwise logically equivalent.
+
+≂⇔≂D : ∀ {i ms ns} → [ i ] ms ≂ ns ⇔ [ i ] ms ≂D ns
+≂⇔≂D = record { to = ⌈_⌉ ; from = ⌊_⌋≂ }
+
+-- [_]_≂′_ and [_]_≂D′_ are pointwise logically equivalent.
+
+≂′⇔≂D′ : ∀ {i ms ns} → [ i ] ms ≂′ ns ⇔ [ i ] ms ≂D′ ns
+≂′⇔≂D′ = record
+  { to   = λ { p .force → ⌈ (λ hyp → proj₁ p hyp .force)
+                          , (λ hyp → proj₂ p hyp .force)
+                          ⌉ }
+  ; from = ⌊_⌋≂′
+  }
+
+-- Some abbreviations.
+
+consʳ-≂D :
+  ∀ {i ms n ns} →
+  Bounded n ms →
+  [ i ] ms ≂D ns .force →
+  [ i ] ms ≂D n ∷ ns
+consʳ-≂D b p = ⌈ consʳ-≂ b ⌊ p ⌋≂ ⌉
+
+consˡ-≂D :
+  ∀ {i m ms ns} →
+  Bounded m ns →
+  [ i ] ms .force ≂D ns →
+  [ i ] m ∷ ms ≂D ns
+consˡ-≂D b p = ⌈ consˡ-≂ b ⌊ p ⌋≂ ⌉
 
 cons′-≂D :
   ∀ {i m ms ns} →
   [ i ] ms .force ≂D′ ns .force →
   [ i ] m ∷ ms ≂D m ∷ ns
-cons′-≂D = cons-≂D (inj₁ (here Nat.≤-refl)) (inj₁ (here Nat.≤-refl))
+cons′-≂D = cons (inj₁ (here Nat.≤-refl)) (inj₁ (here Nat.≤-refl))
 
 -- A workaround for what might be an Agda bug.
 
