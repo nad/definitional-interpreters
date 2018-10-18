@@ -8,15 +8,13 @@ module README.Pointers-to-results-from-the-paper where
 
 import Colist
 import Conat
-import Nat
 import Omniscience
-import Prelude
 
 import Delay-monad
 import Delay-monad.Bisimilarity
 import Delay-monad.Monad
+import Delay-monad.Quantitative-weak-bisimilarity
 
-import Bounded-space
 import Only-allocation
 import Unbounded-space
 import Upper-bounds
@@ -24,12 +22,15 @@ import Upper-bounds
 import Lambda.Compiler
 import Lambda.Compiler-correctness
 import Lambda.Compiler-correctness.Sizes-match
+import Lambda.Compiler-correctness.Steps-match
 import Lambda.Delay-crash
 import Lambda.Delay-crash-trace
 import Lambda.Interpreter
 import Lambda.Interpreter.Stack-sizes
 import Lambda.Interpreter.Stack-sizes.Counterexample
 import Lambda.Interpreter.Stack-sizes.Example
+import Lambda.Interpreter.Steps
+import Lambda.Interpreter.Steps.Counterexample
 import Lambda.Virtual-machine
 import Lambda.Virtual-machine.Instructions
 import Lambda.Syntax
@@ -53,34 +54,10 @@ infinity = Conat.infinity
 
 -- Bisimilarity.
 
-[_]_∼N_  = Conat.[_]_∼_
-[_]_∼N′_ = Conat.[_]_∼′_
+[_]_∼N_ = Conat.[_]_∼_
 
 ------------------------------------------------------------------------
 -- Section 3
-
--- The delay monad.
-
-Delay  = Delay-monad.Delay
-Delay′ = Delay-monad.Delay′
-
--- The non-terminating computation never.
-
-never = Delay-monad.never
-
--- Monadic combinators. (These combinators are not defined in exactly
--- the same way as in the paper.)
-
-monad-instance = Delay-monad.Monad.delay-raw-monad
-
--- Strong and weak bisimilarity. (These relations are not defined in
--- exactly the same way as in the paper.)
-
-[_]_∼D_ = Delay-monad.Bisimilarity.[_]_∼_
-[_]_≈D_ = Delay-monad.Bisimilarity.[_]_≈_
-
-------------------------------------------------------------------------
--- Section 4
 
 -- Programs.
 
@@ -89,81 +66,12 @@ Program = Only-allocation.Program
 
 -- Colists.
 
-Colist  = Colist.Colist
-Colist′ = Colist.Colist′
-
--- Heaps.
-
-Heap = Bounded-space.Heap
-
--- A proof-producing comparison operator.
-
-_⊎_   = Prelude._⊎_
-_≤_   = Nat._≤_
-_<_   = Nat._<_
-_≤⊎>_ = Nat._≤⊎>_
-
--- Heap operations.
-
-shrink = Bounded-space.shrink
-Maybe  = Prelude.Maybe
-grow   = Bounded-space.grow
-
--- The interpreter.
-
-step₁  = Bounded-space.step
-⟦_⟧₁   = Bounded-space.⟦_⟧
-crash₁ = Bounded-space.crash
-
--- The computation now x is not weakly bisimilar to never.
-
-¬_        = Prelude.¬_
-now≉never = Delay-monad.Bisimilarity.now≉never
-
--- Some examples.
-
-constant-space  = Only-allocation.constant-space
-constant-space₂ = Only-allocation.constant-space₂
-unbounded-space = Only-allocation.unbounded-space
-_∷′_            = Colist._∷′_
-
--- Some properties related to the examples.
-
-constant-space-crash  = Bounded-space.constant-space-crash
-constant-space-loop   = Bounded-space.constant-space-loop
-constant-space₂-loop  = Bounded-space.constant-space₂-loop
-unbounded-space-crash = Bounded-space.unbounded-space-crash
-
--- The _≃_ relation. (Unlike in the paper this relation is sized.)
-
-∃   = Prelude.∃
-_≃_ = Bounded-space.[_]_≃_
-
--- The _≃_ relation is an equivalence relation.
-
-reflexive-≃  = Bounded-space.reflexive
-symmetric-≃  = Bounded-space.symmetric
-transitive-≃ = Bounded-space.transitive
-
--- The _≃_ relation is preserved by the cons operator.
-
-∷-cong = Bounded-space.∷-cong
-
--- The _≃_ relation relates constant-space and constant-space₂, but
--- not constant-space and unbounded-space.
-
-constant-space≃constant-space₂ =
-  Bounded-space.constant-space≃constant-space₂
-¬constant-space≃unbounded-space =
-  Bounded-space.¬constant-space≃unbounded-space
-
-------------------------------------------------------------------------
--- Section 5
+Colist = Colist.Colist
 
 -- The interpreter.
 
 modify = Unbounded-space.modify
-⟦_⟧₂   = Unbounded-space.⟦_⟧
+⟦_⟧₁   = Unbounded-space.⟦_⟧
 ⟦_⟧′   = Unbounded-space.⟦_⟧′
 
 -- Upper bounds.
@@ -173,8 +81,7 @@ modify = Unbounded-space.modify
 
 -- The □ predicate.
 
-□  = Colist.□
-□′ = Colist.□′
+□ = Colist.□
 
 -- Least upper bounds.
 
@@ -188,26 +95,53 @@ lub-unique = Upper-bounds.lub-unique
 
 antisymmetric = Conat.antisymmetric-≤
 
+-- WLPO.
+
+WLPO = Omniscience.WLPO
+
+-- WLPO is classically valid: it follows from excluded middle and
+-- extensionality for functions.
+
+LEM→WLPO = Omniscience.LEM→WLPO
+
+-- WLPO is logically equivalent to one formulation of "least upper
+-- bounds exist for every colist".
+
+wlpo⇔lub = Unbounded-space.wlpo⇔lub
+
 -- Maximum heap usage.
 
-Maximum-heap-usage = Unbounded-space.Maximum-heap-usage
+Heap-usage = Unbounded-space.Heap-usage
 
--- Maximum heap usage is unique up to bisimilarity.
+-- This was not mentioned in the paper, but WLPO is also logically
+-- equivalent to one formulation of "maximum heap usages exist for
+-- every program".
+
+wlpo⇔max = Unbounded-space.wlpo⇔max
+
+-- The maximum heap usage is unique up to bisimilarity.
 
 max-unique = Unbounded-space.max-unique
 
+-- Some examples.
+
+bounded   = Only-allocation.bounded
+bounded₂  = Only-allocation.bounded₂
+unbounded = Only-allocation.unbounded
+_∷′_      = Colist._∷′_
+
 -- The example programs have infinitely long traces.
 
-constant-space-loops  = Unbounded-space.constant-space-loops
-constant-space₂-loops = Unbounded-space.constant-space₂-loops
-unbounded-space-loops = Unbounded-space.unbounded-space-loops
+bounded-loops   = Unbounded-space.bounded-loops
+bounded₂-loops  = Unbounded-space.bounded₂-loops
+unbounded-loops = Unbounded-space.unbounded-loops
 
 -- Properties showing that the example programs have certain maximum
 -- heap usages.
 
-max-constant-space-1  = Unbounded-space.max-constant-space-1
-max-constant-space₂-2 = Unbounded-space.max-constant-space₂-2
-max-unbounded-space-∞ = Unbounded-space.max-unbounded-space-∞
+max-bounded-1   = Unbounded-space.max-bounded-1
+max-bounded₂-2  = Unbounded-space.max-bounded₂-2
+max-unbounded-∞ = Unbounded-space.max-unbounded-∞
 
 -- If no natural number is an upper bound of the heap usage of p, then
 -- the maximum heap usage of p is infinity.
@@ -220,50 +154,21 @@ no-finite-max→infinite-max = Unbounded-space.no-finite-max→infinite-max
 no-finite→infinite = Upper-bounds.no-finite→infinite
 
 ------------------------------------------------------------------------
--- Section 6
-
--- If the maximum heap usage could always be computed (in a certain
--- sense), then WLPO would hold.
-
-max→wlpo = Unbounded-space.max→wlpo
-
--- Dec and WLPO.
-
-Dec  = Prelude.Dec
-WLPO = Omniscience.WLPO
-
--- WLPO follows from excluded middle and extensionality for functions.
-
-LEM→WLPO = Omniscience.LEM→WLPO
-
--- If WLPO holds, then the least upper bound of a colist of natural
--- numbers can be determined.
-
-wlpo→lub = Upper-bounds.wlpo→lub
-
--- WLPO is logically equivalent to both of the computability
--- statements for maximum heap usages and least upper bounds.
-
-wlpo⇔max = Unbounded-space.wlpo⇔max
-wlpo⇔lub = Unbounded-space.wlpo⇔lub
-
-------------------------------------------------------------------------
--- Section 7
+-- Section 4
 
 -- The optimiser.
 
-optimise = Unbounded-space.optimise
+opt = Unbounded-space.opt
 
 -- The optimiser improves the space complexity of at least one
 -- program.
 
-optimise-improves = Unbounded-space.optimise-improves
+opt-improves = Unbounded-space.opt-improves
 
--- The semantics of optimise constant-space₂ matches that of
--- constant-space.
+-- The semantics of optimise bounded-space₂ matches that of
+-- bounded-space.
 
-optimise-constant-space₂∼constant-space =
-  Unbounded-space.optimise-constant-space₂∼constant-space
+opt-bounded₂∼bounded = Unbounded-space.opt-bounded₂∼bounded
 
 -- Bisimilarity of colists.
 
@@ -273,7 +178,7 @@ optimise-constant-space₂∼constant-space =
 -- as that of the original program (assuming that these maximums
 -- exist).
 
-optimise-correct = Unbounded-space.optimise-correct
+opt-correct = Unbounded-space.opt-correct
 
 -- The [_]_≲_ relation.
 
@@ -321,10 +226,40 @@ transitive-∼≲ = Upper-bounds.step-∼≲
 -- optimised program is at most as high as that of the original
 -- program (assuming that these maximums exist).
 
-optimise-correct-≲ = Unbounded-space.optimise-correct-≲
+opt-correct-≲ = Unbounded-space.opt-correct-≲
 
 ------------------------------------------------------------------------
--- Section 8
+-- Section 5
+
+-- The delay monad.
+
+Delay = Delay-monad.Delay
+
+-- The non-terminating computation never.
+
+never = Delay-monad.never
+
+-- Monad instance.
+
+monad-instance₁ = Delay-monad.Monad.delay-raw-monad
+
+-- Strong bisimilarity.
+
+[_]_∼D_ = Delay-monad.Bisimilarity.[_]_∼_
+
+-- Monad laws.
+
+left-identity₁  = Delay-monad.Monad.left-identity′
+right-identity₁ = Delay-monad.Monad.right-identity′
+associativity₁  = Delay-monad.Monad.associativity′
+
+-- Weak bisimilarity. (This relation is not defined in exactly the
+-- same way as in the paper.)
+
+[_]_≈D_ = Delay-monad.Bisimilarity.[_]_≈_
+
+------------------------------------------------------------------------
+-- Section 6
 
 -- Terms.
 
@@ -337,26 +272,44 @@ Tm = Lambda.Syntax.Tm
 Env   = Lambda.Syntax.Closure.Env
 Value = Lambda.Syntax.Closure.Value
 
--- Delay-crash and crash.
+-- DelayC (called Delay-crash in the code) and crash.
 
-Delay-crash = Lambda.Delay-crash.Delay-crash
-crash₂      = Lambda.Delay-crash.crash
+DelayC = Lambda.Delay-crash.Delay-crash
+crash  = Lambda.Delay-crash.crash
+
+-- The computation crash (in fact, any computation of the form now x)
+-- is not weakly bisimilar to never.
+
+now≉never = Delay-monad.Bisimilarity.now≉never
 
 -- The interpreter.
 
 _∙_  = Lambda.Interpreter._∙_
-⟦_⟧₃ = Lambda.Interpreter.⟦_⟧
+⟦_⟧₂ = Lambda.Interpreter.⟦_⟧
 ⟦if⟧ = Lambda.Interpreter.⟦if⟧
 
 ------------------------------------------------------------------------
--- Section 9
+-- Section 7
 
--- Delay-crash-trace.
+-- DelayCT (called Delay-crash-trace in the code).
 
-Delay-crash-trace  = Lambda.Delay-crash-trace.Delay-crash-trace
-Delay-crash-trace′ = Lambda.Delay-crash-trace.Delay-crash-trace′
-trace              = Lambda.Delay-crash-trace.trace
-delay-crash        = Lambda.Delay-crash-trace.delay-crash
+DelayCT = Lambda.Delay-crash-trace.Delay-crash-trace
+trace   = Lambda.Delay-crash-trace.trace
+delayC  = Lambda.Delay-crash-trace.delay-crash
+
+-- Monad instance.
+
+monad-instance₂ = Lambda.Delay-crash-trace.raw-monad
+
+-- Strong bisimilarity.
+
+[_]_∼DCT_ = Lambda.Delay-crash-trace.[_]_∼_
+
+-- Monad laws.
+
+left-identity₂  = Lambda.Delay-crash-trace.left-identity
+right-identity₂ = Lambda.Delay-crash-trace.right-identity
+associativity₂  = Lambda.Delay-crash-trace.associativity
 
 -- Instructions and code.
 
@@ -382,15 +335,14 @@ State = Lambda.Virtual-machine.Instructions.State
 -- The virtual machine.
 
 Result      = Lambda.Virtual-machine.Instructions.Result
-step₂       = Lambda.Virtual-machine.step
+step        = Lambda.Virtual-machine.step
 exec⁺       = Lambda.Virtual-machine.exec⁺
 exec⁺′      = Lambda.Virtual-machine.exec⁺′
 exec        = Lambda.Virtual-machine.exec
-stack-size  = Lambda.Virtual-machine.Instructions.stack-size
 stack-sizes = Lambda.Virtual-machine.stack-sizes
 
 ------------------------------------------------------------------------
--- Section 10
+-- Section 8
 
 -- Tail context information.
 
@@ -412,22 +364,21 @@ compiler-correct = Lambda.Compiler-correctness.correct
 -- The key lemma used to prove compiler correctness.
 
 key-lemma₁ = Lambda.Compiler-correctness.⟦⟧-correct
-Cont-OK₁   = Lambda.Compiler-correctness.Cont-OK
-Stack-OK₁  = Lambda.Compiler-correctness.Stack-OK
+Cont-OK    = Lambda.Compiler-correctness.Cont-OK
+Stack-OK   = Lambda.Compiler-correctness.Stack-OK
 
 ------------------------------------------------------------------------
--- Section 11
+-- Section 9
 
 -- The instrumented interpreter.
 
-[_,_]_∙I_    = Lambda.Interpreter.Stack-sizes.[_,_]_∙_
-⟦_⟧I         = Lambda.Interpreter.Stack-sizes.⟦_⟧
-δ₁           = Lambda.Interpreter.Stack-sizes.δ₁
-δ₂           = Lambda.Interpreter.Stack-sizes.δ₂
-⟦if⟧I        = Lambda.Interpreter.Stack-sizes.⟦if⟧
+[_,_]_∙S_    = Lambda.Interpreter.Stack-sizes.[_,_]_∙_
+⟦_⟧S         = Lambda.Interpreter.Stack-sizes.⟦_⟧
+δ            = Lambda.Interpreter.Stack-sizes.δ
+⟦if⟧S        = Lambda.Interpreter.Stack-sizes.⟦if⟧
 scanl        = Colist.scanl
 numbers      = Lambda.Interpreter.Stack-sizes.numbers
-stack-sizesI = Lambda.Interpreter.Stack-sizes.stack-sizes
+stack-sizesS = Lambda.Interpreter.Stack-sizes.stack-sizes
 
 -- The instrumented semantics produces computations that are strongly
 -- bisimilar to those produced by the other semantics.
@@ -484,69 +435,98 @@ transitive-≂  = Upper-bounds.step-≂
 transitive-∼≂ = Upper-bounds.step-∼≂
 transitive-≂∼ = Upper-bounds.step-≂∼
 
+-- The [_]_≂″_ relation.
+
+[_]_≂″_ = Upper-bounds.[_]_≂″_
+
+-- [_]_≂′_ and [_]_≂″_ are pointwise logically equivalent.
+
+≂′⇔≂″ = Upper-bounds.≂′⇔≂″
+
+-- This was not mentioned in the paper, but a corresponding relation
+-- can also be defined for [_]_≲′_.
+
+[_]_≲″_ = Upper-bounds.[_]_≲″_
+≲′⇔≲″   = Upper-bounds.≲′⇔≲″
+
 -- The key lemma used to prove correctness.
 
 key-lemma₂ = Lambda.Compiler-correctness.Sizes-match.⟦⟧-correct
-Cont-OK₂   = Lambda.Compiler-correctness.Sizes-match.Cont-OK
-Stack-OK₂  = Lambda.Compiler-correctness.Sizes-match.Stack-OK
 
-------------------------------------------------------------------------
--- Section 12
+-- A non-terminating program that requires unbounded stack space.
 
--- Ω and ω.
-
-ω = Lambda.Syntax.ω
-Ω = Lambda.Syntax.Ω
-
--- Ω is non-terminating.
-
-Ω-loops = Lambda.Interpreter.Ω-loops′
-
--- Ω-sizes.
-
-Ω-sizes = Lambda.Interpreter.Stack-sizes.Ω-sizes
-
--- Ω-sizes 0 matches the stack-sizes encountered when interpreting Ω.
-
-stack-sizes-Ω∼Ω-sizes-0 =
-  Lambda.Interpreter.Stack-sizes.stack-sizes-Ω∼Ω-sizes-0
-
--- The least upper bound of Ω-sizes 0 is infinity.
-
-lub-Ω-sizes-0-infinity =
-  Lambda.Interpreter.Stack-sizes.lub-Ω-sizes-0-infinity
-
--- Ω does not run in bounded stack space.
-
+Ω                          = Lambda.Syntax.Ω
+Ω-loops                    = Lambda.Interpreter.Ω-loops′
 Ω-requires-unbounded-space =
   Lambda.Interpreter.Stack-sizes.Ω-requires-unbounded-space
 
--- The implementations of def and go.
+-- A non-terminating program that runs in bounded stack space.
 
-def = Lambda.Interpreter.Stack-sizes.Example.def
-go  = Lambda.Interpreter.Stack-sizes.Example.go
-
--- The program go does not terminate.
-
-go-loops = Lambda.Interpreter.Stack-sizes.Example.go-loops
-
--- The colists loop-sizes and go-sizes.
-
-loop-sizes = Lambda.Interpreter.Stack-sizes.Example.loop-sizes
-go-sizes   = Lambda.Interpreter.Stack-sizes.Example.go-sizes
-
--- The colist go-sizes matches the stack-sizes encountered when
--- interpreting go.
-
-stack-sizes-go∼go-sizes =
-  Lambda.Interpreter.Stack-sizes.Example.stack-sizes-go∼go-sizes
-
--- The least upper bound of go-sizes is 2.
-
-lub-go-sizes-2 =
-  Lambda.Interpreter.Stack-sizes.Example.lub-go-sizes-2
-
--- The program go runs in bounded stack space.
-
+go               = Lambda.Interpreter.Stack-sizes.Example.go
+go-loops         = Lambda.Interpreter.Stack-sizes.Example.go-loops
 go-bounded-stack =
   Lambda.Interpreter.Stack-sizes.Example.go-bounded-stack
+
+------------------------------------------------------------------------
+-- Section 10
+
+-- The uninstrumented interpreter does not provide a suitable cost
+-- measure, in the sense that there is a family of programs for which
+-- the running "time" (number of steps) of the corresponding compiled
+-- programs on the virtual machine is not linear in the running time
+-- on the interpreter.
+
+not-suitable-cost-measure =
+  Lambda.Interpreter.Steps.Counterexample.not-suitable-cost-measure
+
+-- The instrumented interpreter.
+
+✓_    = Lambda.Interpreter.Steps.✓_
+_∙T_  = Lambda.Interpreter.Steps._∙_
+⟦_⟧T  = Lambda.Interpreter.Steps.⟦_⟧
+⟦if⟧T = Lambda.Interpreter.Steps.⟦if⟧
+
+-- The cost measure provided by the instrumented interpreter is
+-- "suitable", in the sense that the cost of running a compiled
+-- program on the virtual machine is linear in the cost of running the
+-- corresponding source program on the interpreter, and vice versa.
+
+the-cost-measure-is-suitable =
+  Lambda.Compiler-correctness.Steps-match.steps-match
+
+-- Quantitative weak bisimilarity.
+
+[_∣_∣_∣_∣_]_≈D_ =
+  Delay-monad.Quantitative-weak-bisimilarity.[_∣_∣_∣_∣_]_≈_
+
+-- A characterisation of quantitative weak bisimilarity.
+
+≈⇔≈×steps≤steps² =
+  Delay-monad.Quantitative-weak-bisimilarity.≈⇔≈×steps≤steps²
+
+-- The left-to-right direction of the characterisation can be made
+-- size-preserving.
+
+≈→≈×steps≤steps² =
+  Delay-monad.Quantitative-weak-bisimilarity.≈→≈×steps≤steps²
+
+-- The right-to-left direction of the characterisation can be made
+-- size-preserving if and only if the carrier type is uninhabited
+-- (assuming that Agda is not buggy).
+
+≈×steps≤steps²→≈⇔uninhabited =
+  Delay-monad.Quantitative-weak-bisimilarity.≈×steps≤steps²→≈⇔uninhabited
+
+-- Weakening.
+
+weaken = Delay-monad.Quantitative-weak-bisimilarity.weaken
+
+-- Two transitivity-like results.
+
+transitive-≳∼ = Delay-monad.Quantitative-weak-bisimilarity.transitive-≳∼
+transitive-≈∼ = Delay-monad.Quantitative-weak-bisimilarity.transitive-≈∼
+transitive-∼≈ = Delay-monad.Quantitative-weak-bisimilarity.transitive-∼≈
+
+-- The key lemma used to prove that the cost measure is "suitable".
+
+key-lemma₃ = Lambda.Compiler-correctness.Steps-match.⟦⟧-correct

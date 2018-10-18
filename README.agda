@@ -1,6 +1,6 @@
 ------------------------------------------------------------------------
--- Code related to the paper "Total Definitional Interpreters for
--- Looping Programs"
+-- Code related to the paper "Total Definitional Interpreters for Time
+-- and Space Complexity"
 --
 -- Nils Anders Danielsson
 ------------------------------------------------------------------------
@@ -14,8 +14,7 @@ module README where
 
 -- In order to more easily find code corresponding to results from the
 -- paper, see the following module. Note that some of the code
--- referenced below (for instance the code related to time complexity)
--- is not discussed at all in the paper.
+-- referenced below is not discussed at all in the paper.
 
 import README.Pointers-to-results-from-the-paper
 

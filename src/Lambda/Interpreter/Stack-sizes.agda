@@ -41,15 +41,10 @@ open Delay-crash-trace using (tell)
 ------------------------------------------------------------------------
 -- The interpreter
 
--- Stack size change functions used in the interpreter's call case.
+-- A stack size change function used in the interpreter's call case.
 
-δ₁ : In-tail-context → ℕ → ℕ
-δ₁ true  = pred
-δ₁ false = id
-
-δ₂ : In-tail-context → ℕ → ℕ
-δ₂ true  = id
-δ₂ false = pred
+δ : In-tail-context → ℕ → ℕ
+δ tc = if tc then pred else id
 
 infix 10 [_,_]_∙_
 
@@ -70,7 +65,7 @@ mutual
                             v₂ ← ⟦ t₂ ⟧ ρ false
                             [ pred , pred ] v₁ ∙ v₂
   ⟦ call f t ⟧    ρ tc = do v ← ⟦ t ⟧ ρ false
-                            [ δ₁ tc , δ₂ tc ] lam (def f) [] ∙ v
+                            [ δ tc , δ (not tc) ] lam (def f) [] ∙ v
   ⟦ con b ⟧       ρ _  = tell suc (return (con b))
   ⟦ if t₁ t₂ t₃ ⟧ ρ tc = do v₁ ← ⟦ t₁ ⟧ ρ false
                             ⟦if⟧ v₁ t₂ t₃ ρ tc
@@ -141,12 +136,12 @@ mutual
 
   ⟦⟧∼⟦⟧ (call f t) {ρ} tc =
     delay-crash (⟦ t ⟧ ρ false >>= λ v →
-                 [ _ , _ ] lam (def f) [] ∙ v)        D.∼⟨ delay-crash->>= (⟦ t ⟧ _ _) ⟩
+                 [ _ , _ ] lam (def f) [] ∙ v)       D.∼⟨ delay-crash->>= (⟦ t ⟧ _ _) ⟩
 
     (delay-crash (⟦ t ⟧ ρ false) >>= λ v →
-     delay-crash ([ δ₁ tc , _ ] lam (def f) [] ∙ v))  D.∼⟨ (⟦⟧∼⟦⟧ t _ DC.>>=-cong λ _ → ∙∼∙ (δ₁ tc) (lam (def f) [])) ⟩∼
+     delay-crash ([ δ tc , _ ] lam (def f) [] ∙ v))  D.∼⟨ (⟦⟧∼⟦⟧ t _ DC.>>=-cong λ _ → ∙∼∙ (δ tc) (lam (def f) [])) ⟩∼
 
-    (I.⟦ t ⟧ ρ >>= λ v → lam (def f) [] I.∙ v)        D.∎
+    (I.⟦ t ⟧ ρ >>= λ v → lam (def f) [] I.∙ v)       D.∎
 
   ⟦⟧∼⟦⟧ (con b) _ = D.reflexive _
 

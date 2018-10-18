@@ -16,7 +16,7 @@ open import Colist using (Colist)
 open import Equality.Propositional
 open import Prelude
 
-open import List equality-with-J using (_++_)
+open import List equality-with-J using (_++_; length)
 open import Monad equality-with-J
 open import Vec.Data equality-with-J
 
@@ -62,4 +62,5 @@ exec = delay-crash ∘ exec⁺
 -- The stack sizes of all the encountered states.
 
 stack-sizes : ∀ {i} → State → Colist ℕ i
-stack-sizes = Colist.map stack-size ∘ trace ∘ exec⁺
+stack-sizes =
+  Colist.map (λ { ⟨ _ , s , _ ⟩ → length s }) ∘ trace ∘ exec⁺

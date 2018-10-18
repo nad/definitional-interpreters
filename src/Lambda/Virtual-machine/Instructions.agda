@@ -9,8 +9,6 @@ module Lambda.Virtual-machine.Instructions (Name : Set) where
 open import Equality.Propositional
 open import Prelude
 
-open import List equality-with-J using (length)
-
 open import Lambda.Syntax Name
 
 ------------------------------------------------------------------------
@@ -53,11 +51,6 @@ Stack = List Stack-element
 
 data State : Set where
   ⟨_,_,_⟩ : ∀ {n} → Code n → Stack → Env n → State
-
--- The length of the stack.
-
-stack-size : State → ℕ
-stack-size ⟨ _ , s , _ ⟩ = length s
 
 ------------------------------------------------------------------------
 -- Results

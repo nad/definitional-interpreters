@@ -16,7 +16,7 @@ open import Prelude
 -- Statements.
 
 data Stmt : Set where
-  allocate deallocate : Stmt
+  alloc dealloc : Stmt
 
 -- Programs are potentially infinite sequences of statements.
 
@@ -26,19 +26,19 @@ Program i = Colist Stmt i
 ------------------------------------------------------------------------
 -- Some examples
 
--- A program that runs in constant space.
+-- A program that runs in bounded space.
 
-constant-space : ∀ {i} → Program i
-constant-space = allocate ∷′ deallocate ∷ λ { .force → constant-space }
+bounded : ∀ {i} → Program i
+bounded = alloc ∷′ dealloc ∷ λ { .force → bounded }
 
--- Another program that runs in constant space.
+-- Another program that runs in bounded space.
 
-constant-space₂ : ∀ {i} → Program i
-constant-space₂ =
-  allocate   ∷′ allocate   ∷′
-  deallocate ∷′ deallocate ∷ λ { .force → constant-space₂ }
+bounded₂ : ∀ {i} → Program i
+bounded₂ =
+  alloc   ∷′ alloc   ∷′
+  dealloc ∷′ dealloc ∷ λ { .force → bounded₂ }
 
 -- A program that does not run in bounded space.
 
-unbounded-space : ∀ {i} → Program i
-unbounded-space = allocate ∷ λ { .force → unbounded-space }
+unbounded : ∀ {i} → Program i
+unbounded = alloc ∷ λ { .force → unbounded }
