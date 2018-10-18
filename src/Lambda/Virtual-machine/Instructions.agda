@@ -65,6 +65,6 @@ stack-size ⟨ _ , s , _ ⟩ = length s
 -- The result of running the VM one step.
 
 data Result : Set where
-  cont  : State → Result
-  done  : Value → Result
-  crash : Result
+  continue : State → Result
+  done     : Value → Result
+  crash    : Result
