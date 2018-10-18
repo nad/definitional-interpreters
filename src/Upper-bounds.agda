@@ -646,156 +646,61 @@ LUB-cong ms≂ns = record
   ; from = LUB-≂ (symmetric-≂ ms≂ns)
   }
 
-------------------------------------------------------------------------
--- Variants of [_]_≲_ and [_]_≂_ that are intended to make certain
--- proofs easier to write
-
--- Using consˡ-≲/cons-≲/cons′-≲ in recursive proofs can be awkward.
--- [_]_≲D_ is intended to make it a little easier.
-
-mutual
-
-  infix 4 [_]_≲D_ [_]_≲D′_
-
-  data [_]_≲D_ (i : Size) : Colist ℕ ∞ → Colist ℕ ∞ → Set where
-    ⌈_⌉   : ∀ {ms ns} →
-            [ i ] ms ≲ ns →
-            [ i ] ms ≲D ns
-    consˡ : ∀ {m ms ns} →
-            Bounded m ns →
-            [ i ] ms .force ≲D′ ns →
-            [ i ] m ∷ ms ≲D ns
-    cons  : ∀ {m ms n ns} →
-            Bounded m (n ∷ ns) →
-            [ i ] ms .force ≲D′ ns .force →
-            [ i ] m ∷ ms ≲D n ∷ ns
-
-  record [_]_≲D′_ (i : Size) (ms ns : Colist ℕ ∞) : Set where
-    coinductive
-    field
-      force : {j : Size< i} → [ j ] ms ≲D ns
-
-open [_]_≲D′_ public
-
-mutual
-
-  -- Interprets [_]_≲D_.
-
-  ⌊_⌋≲ : ∀ {i ms ns} → [ i ] ms ≲D ns → [ i ] ms ≲ ns
-  ⌊ ⌈ p ⌉ ⌋≲     = p
-  ⌊ consˡ b p ⌋≲ = consˡ-≲ b ⌊ p ⌋≲′
-  ⌊ cons b p ⌋≲  = cons-≲ b ⌊ p ⌋≲′
-
-  -- Interprets [_]_≲D′_.
-
-  ⌊_⌋≲′ : ∀ {i ms ns} → [ i ] ms ≲D′ ns → [ i ] ms ≲′ ns
-  ⌊ p ⌋≲′ hyp .force = ⌊ p .force ⌋≲ hyp
-
--- [_]_≲_ and [_]_≲D_ are pointwise logically equivalent.
-
-≲⇔≲D : ∀ {i ms ns} → [ i ] ms ≲ ns ⇔ [ i ] ms ≲D ns
-≲⇔≲D = record { to = ⌈_⌉ ; from = ⌊_⌋≲ }
-
--- [_]_≲′_ and [_]_≲D′_ are pointwise logically equivalent.
-
-≲′⇔≲D′ : ∀ {i ms ns} → [ i ] ms ≲′ ns ⇔ [ i ] ms ≲D′ ns
-≲′⇔≲D′ = record
-  { to   = λ { p .force → ⌈ (λ hyp → p hyp .force) ⌉ }
-  ; from = ⌊_⌋≲′
-  }
-
--- Some abbreviations.
-
-consʳ-≲D :
-  ∀ {i ms n ns} →
-  [ i ] ms ≲D ns .force →
-  [ i ] ms ≲D n ∷ ns
-consʳ-≲D = ⌈_⌉ ∘ consʳ-≲ ∘ ⌊_⌋≲
-
-cons′-≲D :
-  ∀ {i m ms ns} →
-  [ i ] ms .force ≲D′ ns .force →
-  [ i ] m ∷ ms ≲D m ∷ ns
-cons′-≲D p = ⌈ cons′-≲ (λ { hyp .force → ⌊ p .force ⌋≲ hyp }) ⌉
-
--- Using cons-≂/cons′-≂ in recursive proofs can be awkward. [_]_≂D_ is
--- intended to make it a little easier.
-
-mutual
-
-  infix 4 [_]_≂D_ [_]_≂D′_
-
-  data [_]_≂D_ (i : Size) : Colist ℕ ∞ → Colist ℕ ∞ → Set where
-    ⌈_⌉  : ∀ {ms ns} →
-           [ i ] ms ≂ ns →
-           [ i ] ms ≂D ns
-    cons : ∀ {m ms n ns} →
-           Bounded m (n ∷ ns) →
-           Bounded n (m ∷ ms) →
-           [ i ] ms .force ≂D′ ns .force →
-           [ i ] m ∷ ms ≂D n ∷ ns
-
-  record [_]_≂D′_ (i : Size) (ms ns : Colist ℕ ∞) : Set where
-    coinductive
-    field
-      force : {j : Size< i} → [ j ] ms ≂D ns
-
-open [_]_≂D′_ public
-
-mutual
-
-  -- Interprets [_]_≂D_.
-
-  ⌊_⌋≂ : ∀ {i ms ns} → [ i ] ms ≂D ns → [ i ] ms ≂ ns
-  ⌊ ⌈ p ⌉ ⌋≂        = p
-  ⌊ cons b₁ b₂ p ⌋≂ = cons-≂ b₁ b₂ ⌊ p ⌋≂′
-
-  -- Interprets [_]_≂D′_.
-
-  ⌊_⌋≂′ : ∀ {i ms ns} → [ i ] ms ≂D′ ns → [ i ] ms ≂′ ns
-  ⌊ p ⌋≂′ = (λ { hyp .force → proj₁ ⌊ p .force ⌋≂ hyp })
-          , (λ { hyp .force → proj₂ ⌊ p .force ⌋≂ hyp })
-
--- [_]_≂_ and [_]_≂D_ are pointwise logically equivalent.
-
-≂⇔≂D : ∀ {i ms ns} → [ i ] ms ≂ ns ⇔ [ i ] ms ≂D ns
-≂⇔≂D = record { to = ⌈_⌉ ; from = ⌊_⌋≂ }
-
--- [_]_≂′_ and [_]_≂D′_ are pointwise logically equivalent.
-
-≂′⇔≂D′ : ∀ {i ms ns} → [ i ] ms ≂′ ns ⇔ [ i ] ms ≂D′ ns
-≂′⇔≂D′ = record
-  { to   = λ { p .force → ⌈ (λ hyp → proj₁ p hyp .force)
-                          , (λ hyp → proj₂ p hyp .force)
-                          ⌉ }
-  ; from = ⌊_⌋≂′
-  }
-
--- Some abbreviations.
-
-consʳ-≂D :
-  ∀ {i ms n ns} →
-  Bounded n ms →
-  [ i ] ms ≂D ns .force →
-  [ i ] ms ≂D n ∷ ns
-consʳ-≂D b p = ⌈ consʳ-≂ b ⌊ p ⌋≂ ⌉
-
-consˡ-≂D :
-  ∀ {i m ms ns} →
-  Bounded m ns →
-  [ i ] ms .force ≂D ns →
-  [ i ] m ∷ ms ≂D ns
-consˡ-≂D b p = ⌈ consˡ-≂ b ⌊ p ⌋≂ ⌉
-
-cons′-≂D :
-  ∀ {i m ms ns} →
-  [ i ] ms .force ≂D′ ns .force →
-  [ i ] m ∷ ms ≂D m ∷ ns
-cons′-≂D = cons (inj₁ (here Nat.≤-refl)) (inj₁ (here Nat.≤-refl))
-
 -- A workaround for what might be an Agda bug.
 
 cast-≂ :
   ∀ {i} {j : Size< i} {ms ns} →
   [ i ] ms ≂ ns → [ j ] ms ≂ ns
-cast-≂ {i} p = ⌊ [_]_≂D_.⌈_⌉ {i = i} p ⌋≂
+cast-≂ p = proj₁ p , proj₂ p
+
+------------------------------------------------------------------------
+-- Variants of [_]_≲′_ and [_]_≂′_ that are intended to make certain
+-- proofs easier to write
+
+-- Using consˡ-≲/cons-≲/cons′-≲ in recursive proofs can be awkward.
+-- [_]_≲″_ is intended to make it a little easier.
+
+infix 4 [_]_≲″_
+
+record [_]_≲″_ (i : Size) (ms ns : Colist ℕ ∞) : Set where
+  coinductive
+  field
+    force : {j : Size< i} → [ j ] ms ≲ ns
+
+open [_]_≲″_ public
+
+-- Interprets [_]_≲″_.
+
+⌊_⌋≲″ : ∀ {i ms ns} → [ i ] ms ≲″ ns → [ i ] ms ≲′ ns
+⌊ p ⌋≲″ hyp .force = p .force hyp
+
+-- [_]_≲′_ and [_]_≲″_ are pointwise logically equivalent.
+
+≲′⇔≲″ : ∀ {i ms ns} → [ i ] ms ≲′ ns ⇔ [ i ] ms ≲″ ns
+≲′⇔≲″ = record
+  { to   = λ { p .force hyp → p hyp .force }
+  ; from = λ { p hyp .force → p .force hyp }
+  }
+
+-- Using cons-≂/cons′-≂ in recursive proofs can be awkward. [_]_≂″_ is
+-- intended to make it a little easier.
+
+infix 4 [_]_≂″_
+
+record [_]_≂″_ (i : Size) (ms ns : Colist ℕ ∞) : Set where
+  coinductive
+  field
+    force : {j : Size< i} → [ j ] ms ≂ ns
+
+open [_]_≂″_ public
+
+-- [_]_≂′_ and [_]_≂″_ are pointwise logically equivalent.
+
+≂′⇔≂″ : ∀ {i ms ns} → [ i ] ms ≂′ ns ⇔ [ i ] ms ≂″ ns
+≂′⇔≂″ = record
+  { to   = λ { p .force → (λ hyp → proj₁ p hyp .force)
+                        , (λ hyp → proj₂ p hyp .force)
+             }
+  ; from = λ p → (λ { hyp .force → proj₁ (p .force) hyp })
+               , (λ { hyp .force → proj₂ (p .force) hyp })
+  }

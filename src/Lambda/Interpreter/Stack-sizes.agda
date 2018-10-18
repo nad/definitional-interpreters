@@ -18,6 +18,7 @@ module Lambda.Interpreter.Stack-sizes
 open import Colist as C
 open import Conat using (infinity)
 import Equality.Propositional as E
+open import Logical-equivalence using (_⇔_)
 
 open import Function-universe E.equality-with-J hiding (id; _∘_)
 open import Monad E.equality-with-J
@@ -223,10 +224,10 @@ private
 Ω-sizes≂nats-from : ∀ {i} n → [ i ] Ω-sizes n ≂ nats-from n
 Ω-sizes≂nats-from n =
   Ω-sizes n                               ∼⟨ (cong₃ λ { .force → C.reflexive-∼ _ }) ⟩≂
-  n ∷′ 1 + n ∷′ 2 + n ∷′ Ω-sizes (suc n)  ≂⟨ ⌊ cons′-≂D (λ { .force → ⌈
-                                               consˡ-≂ (inj₁ (here ≤-refl)) (
-                                               consˡ-≂ (inj₁ (there (here ≤-refl))) (
-                                               Ω-sizes≂nats-from (suc n))) ⌉ }) ⌋≂ ⟩∼
+  n ∷′ 1 + n ∷′ 2 + n ∷′ Ω-sizes (suc n)  ≂⟨ cons′-≂ (_⇔_.from ≂′⇔≂″ λ { .force →
+                                             consˡ-≂ (inj₁ (here ≤-refl)) (
+                                             consˡ-≂ (inj₁ (there (here ≤-refl))) (
+                                             Ω-sizes≂nats-from (suc n))) }) ⟩∼
   n ∷′ nats-from (suc n)                  C.∼⟨ C.symmetric-∼ ∷∼∷′ ⟩
   nats-from n                             C.∎
 

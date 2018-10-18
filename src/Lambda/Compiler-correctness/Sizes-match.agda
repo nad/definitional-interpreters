@@ -18,6 +18,7 @@ module Lambda.Compiler-correctness.Sizes-match
 open import Colist hiding (_++_; length)
 import Conat
 open import Equality.Propositional as E using (refl)
+open import Logical-equivalence using (_⇔_)
 open import Tactic.By using (by)
 
 open import Function-universe E.equality-with-J hiding (id; _∘_)
@@ -187,8 +188,8 @@ mutual
       VM.stack-sizes ⟨ comp-name f
                      , ret c (comp-env ρ) ∷ s
                      , comp-val v ∷ []
-                     ⟩                                                        ≂⟨ ⌊ cons′-≂D (λ { .force →
-                                                                                   ⌈ body-lemma (def f) [] (castC c-ok) ⌉ }) ⌋≂ ⟩∼
+                     ⟩                                                        ≂⟨ cons′-≂ (_⇔_.from ≂′⇔≂″ λ { .force →
+                                                                                   body-lemma (def f) [] (castC c-ok) }) ⟩∼
       1 + length s ∷′
       numbers (⟦ def f ⟧ (v ∷ []) true >>= tell pred ∘ return >>= k)
               (1 + length s)                                                  ∼⟨ symmetric-∼ ∷∼∷′ ⟩
@@ -228,8 +229,8 @@ mutual
       VM.stack-sizes ⟨ comp-name f
                      , ret c′ ρ′ ∷ s
                      , comp-env (v ∷ [])
-                     ⟩                                                        ≂⟨ ⌊ cons′-≂D (λ { .force →
-                                                                                   ⌈ ⟦⟧-correct (def f) (_ ∷ []) (restricted lemma) (λ v′ →
+                     ⟩                                                        ≂⟨ cons′-≂ (_⇔_.from ≂′⇔≂″ λ { .force →
+                                                                                   ⟦⟧-correct (def f) (_ ∷ []) (restricted lemma) (λ v′ →
         VM.stack-sizes ⟨ ret ∷ []
                        , val (comp-val v′) ∷ ret c′ ρ′ ∷ s
                        , comp-env (v ∷ [])
@@ -238,7 +239,7 @@ mutual
         2 + length s ∷′
         VM.stack-sizes ⟨ c′ , val (comp-val v′) ∷ s , ρ′ ⟩                           ≂⟨ lemma v′ ⟩∼
 
-        numbers (tell id (k v′)) (2 + length s)                                      ∎) ⌉ }) ⌋≂ ⟩∼
+        numbers (tell id (k v′)) (2 + length s)                                      ∎) }) ⟩∼
 
       2 + length s ∷′
       numbers (⟦ def f ⟧ (v ∷ []) true >>= tell id ∘ k) (1 + length s)        ∼⟨ (refl ∷ λ { .force →
@@ -358,7 +359,7 @@ mutual
     VM.stack-sizes ⟨ comp-body t₁
                    , ret c ρ ∷ s
                    , comp-val v₂ ∷ comp-env ρ₁
-                   ⟩                                                 ≂⟨ ⌊ cons′-≂D (λ { .force → ⌈ body-lemma t₁ _ (castC c-ok) ⌉ }) ⌋≂ ⟩∼
+                   ⟩                                                 ≂⟨ cons′-≂ (_⇔_.from ≂′⇔≂″ λ { .force → body-lemma t₁ _ (castC c-ok) }) ⟩∼
 
     2 + length s ∷′
     numbers (⟦ t₁ ⟧ (v₂ ∷ ρ₁) true >>= tell pred ∘ return >>= k)
