@@ -183,8 +183,8 @@ left-identity :
 left-identity x f = reflexive (f x)
 
 right-identity :
-  ∀ {A B : Set} (x : Delay-crash-trace A B ∞) →
-  [ ∞ ] x >>= return ∼ x
+  ∀ {i} {A B : Set} (x : Delay-crash-trace A B ∞) →
+  [ i ] x >>= return ∼ x
 right-identity (now x)     = now
 right-identity crash       = crash
 right-identity (later v x) = later λ { .force →
@@ -192,11 +192,11 @@ right-identity (later v x) = later λ { .force →
 right-identity (tell v x)  = tell (right-identity x)
 
 associativity :
-  ∀ {A B C D : Set} →
+  ∀ {i} {A B C D : Set} →
   (x : Delay-crash-trace A B ∞)
   (f : B → Delay-crash-trace A C ∞)
   (g : C → Delay-crash-trace A D ∞) →
-  [ ∞ ] x >>= (λ x → f x >>= g) ∼ x >>= f >>= g
+  [ i ] x >>= (λ x → f x >>= g) ∼ x >>= f >>= g
 associativity (now x)     f g = reflexive (f x >>= g)
 associativity crash       f g = crash
 associativity (later v x) f g = later λ { .force →
