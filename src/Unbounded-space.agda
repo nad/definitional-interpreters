@@ -16,7 +16,7 @@
 -- program, and then reason about this list. This approach is taken
 -- below.
 
-{-# OPTIONS --without-K --safe #-}
+{-# OPTIONS --without-K --safe --sized-types #-}
 
 module Unbounded-space where
 

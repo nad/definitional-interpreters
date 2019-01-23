@@ -3,7 +3,7 @@
 -- and a kind of writer monad yielding colists
 ------------------------------------------------------------------------
 
-{-# OPTIONS --without-K --safe #-}
+{-# OPTIONS --without-K --safe --sized-types #-}
 
 module Lambda.Delay-crash-trace where
 

@@ -2,7 +2,7 @@
 -- A delay monad with the possibility of crashing
 ------------------------------------------------------------------------
 
-{-# OPTIONS --without-K --safe #-}
+{-# OPTIONS --without-K --safe --sized-types #-}
 
 module Lambda.Delay-crash where
 

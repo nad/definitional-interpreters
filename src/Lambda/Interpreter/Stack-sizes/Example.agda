@@ -3,7 +3,7 @@
 -- space
 ------------------------------------------------------------------------
 
-{-# OPTIONS --without-K --safe #-}
+{-# OPTIONS --without-K --safe --sized-types #-}
 
 module Lambda.Interpreter.Stack-sizes.Example where
 

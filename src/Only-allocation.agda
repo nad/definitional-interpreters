@@ -3,7 +3,7 @@
 -- allocation and deallocation of memory
 ------------------------------------------------------------------------
 
-{-# OPTIONS --without-K --safe #-}
+{-# OPTIONS --without-K --safe --sized-types #-}
 
 module Only-allocation where
 

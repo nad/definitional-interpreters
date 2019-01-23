@@ -2,7 +2,7 @@
 -- Pointers to results from the paper
 ------------------------------------------------------------------------
 
-{-# OPTIONS --without-K --safe #-}
+{-# OPTIONS --without-K --safe --sized-types #-}
 
 module README.Pointers-to-results-from-the-paper where
 

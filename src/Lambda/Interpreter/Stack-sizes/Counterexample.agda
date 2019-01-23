@@ -4,7 +4,7 @@
 -- instrumented interpreter
 ------------------------------------------------------------------------
 
-{-# OPTIONS --without-K --safe #-}
+{-# OPTIONS --without-K --safe --sized-types #-}
 
 module Lambda.Interpreter.Stack-sizes.Counterexample where
 

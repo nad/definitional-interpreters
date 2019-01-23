@@ -3,7 +3,7 @@
 -- booleans and recursive unary function calls
 ------------------------------------------------------------------------
 
-{-# OPTIONS --without-K --safe #-}
+{-# OPTIONS --without-K --safe --sized-types #-}
 
 module Lambda.Syntax (Name : Set) where
 

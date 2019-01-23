@@ -3,7 +3,7 @@
 -- maximum stack size of the instrumented source-level semantics
 ------------------------------------------------------------------------
 
-{-# OPTIONS --without-K --safe #-}
+{-# OPTIONS --without-K --safe --sized-types #-}
 
 open import Prelude
 

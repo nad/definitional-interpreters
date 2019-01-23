@@ -2,7 +2,7 @@
 -- Virtual machine instructions, state etc.
 ------------------------------------------------------------------------
 
-{-# OPTIONS --without-K --safe #-}
+{-# OPTIONS --without-K --safe --sized-types #-}
 
 module Lambda.Virtual-machine.Instructions (Name : Set) where
 

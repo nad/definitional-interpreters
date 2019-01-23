@@ -3,7 +3,7 @@
 -- about the number of steps required to run the compiled program
 ------------------------------------------------------------------------
 
-{-# OPTIONS --without-K --safe #-}
+{-# OPTIONS --without-K --safe --sized-types #-}
 
 open import Prelude
 
