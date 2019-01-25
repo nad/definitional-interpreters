@@ -9,6 +9,7 @@ module Lambda.Syntax (Name : Set) where
 
 open import Equality.Propositional
 open import Prelude
+open import Size
 
 open import Vec.Data equality-with-J
 

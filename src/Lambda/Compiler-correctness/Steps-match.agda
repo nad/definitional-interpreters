@@ -21,6 +21,7 @@ open import Conat
 import Equality.Propositional as E
 open import Logical-equivalence using (_⇔_)
 import Tactic.By as By
+open import Size
 
 open import Function-universe E.equality-with-J hiding (_∘_)
 open import List E.equality-with-J using (_++_)

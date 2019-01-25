@@ -10,6 +10,7 @@ import Conat
 import Equality.Propositional as E
 open import Logical-equivalence using (_⇔_)
 open import Prelude
+open import Size
 
 open import Maybe E.equality-with-J as Maybe hiding (raw-monad)
 open import Monad E.equality-with-J as M

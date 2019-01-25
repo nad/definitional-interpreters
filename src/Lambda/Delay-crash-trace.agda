@@ -10,6 +10,7 @@ module Lambda.Delay-crash-trace where
 open import Colist as C using (Colist; []; _∷_; force)
 open import Equality.Propositional as E using (_≡_; refl)
 open import Prelude
+open import Size
 
 open import Monad E.equality-with-J
   using (Raw-monad; return; _>>=_; _⟨$⟩_)

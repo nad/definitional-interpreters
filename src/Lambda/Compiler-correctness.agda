@@ -16,6 +16,7 @@ module Lambda.Compiler-correctness
 
 import Equality.Propositional as E
 import Tactic.By as By
+open import Size
 
 open import List E.equality-with-J using (_++_)
 open import Monad E.equality-with-J using (return; _>>=_)

@@ -27,6 +27,7 @@ open import Logical-equivalence using (_⇔_)
 open import Omniscience
 open import Prelude
 open import Tactic.By
+open import Size
 
 open import Function-universe equality-with-J as F hiding (_∘_)
 open import Nat equality-with-J as Nat using (_≤_; _≤↑_; pred)

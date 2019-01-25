@@ -12,6 +12,7 @@ open import Equality.Propositional
 open import Logical-equivalence using (_⇔_)
 open import Omniscience
 open import Prelude
+open import Size
 
 open import Equality.Decision-procedures equality-with-J
 open import Function-universe equality-with-J as F hiding (id; _∘_)
