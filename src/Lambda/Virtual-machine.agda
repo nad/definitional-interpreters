@@ -29,7 +29,7 @@ open Closure Code
 -- A single step of the computation.
 
 step : State → Result
-step ⟨ var x     ∷ c ,                           s  , ρ  ⟩ = continue ⟨ c       , val (index x ρ) ∷ s ,     ρ  ⟩
+step ⟨ var x     ∷ c ,                           s  , ρ  ⟩ = continue ⟨ c       , val (index ρ x) ∷ s ,     ρ  ⟩
 step ⟨ clo c′    ∷ c ,                           s  , ρ  ⟩ = continue ⟨ c       , val (lam c′ ρ)  ∷ s ,     ρ  ⟩
 step ⟨ app       ∷ c , val v ∷ val (lam c′ ρ′) ∷ s  , ρ  ⟩ = continue ⟨ c′      , ret c ρ         ∷ s , v ∷ ρ′ ⟩
 step ⟨ ret       ∷ c , val v ∷       ret c′ ρ′ ∷ s  , ρ  ⟩ = continue ⟨ c′      , val v           ∷ s ,     ρ′ ⟩

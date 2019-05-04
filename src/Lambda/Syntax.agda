@@ -86,7 +86,7 @@ infix 4 _,_⊢_∈_
 
 data _,_⊢_∈_ (Σ : Name → Ty ∞ × Ty ∞) {n} (Γ : Ctxt n) :
              Tm n → Ty ∞ → Set where
-  var  : ∀ {x} → Σ , Γ ⊢ var x ∈ index x Γ
+  var  : ∀ {x} → Σ , Γ ⊢ var x ∈ index Γ x
   lam  : ∀ {t σ τ} →
          Σ , force σ ∷ Γ ⊢ t ∈ force τ →
          Σ , Γ ⊢ lam t ∈ σ ⇾′ τ

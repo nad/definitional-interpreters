@@ -106,9 +106,9 @@ mutual
 
   ⟦⟧-correct (var x) ρ {c} {s} {k} _ c-ok =
     exec ⟨ var x ∷ c , s , comp-env ρ ⟩                            ≳⟨⟩
-    exec ⟨ c , val By.⟨ index x (comp-env ρ) ⟩ ∷ s , comp-env ρ ⟩  ≡⟨ By.⟨by⟩ (comp-index x ρ) ⟩
-    exec ⟨ c , val (comp-val (index x ρ)) ∷ s , comp-env ρ ⟩       ≈⟨ c-ok (index x ρ) ⟩∼
-    k (index x ρ)                                                  ∼⟨⟩
+    exec ⟨ c , val By.⟨ index (comp-env ρ) x ⟩ ∷ s , comp-env ρ ⟩  ≡⟨ By.⟨by⟩ (comp-index ρ x) ⟩
+    exec ⟨ c , val (comp-val (index ρ x)) ∷ s , comp-env ρ ⟩       ≈⟨ c-ok (index ρ x) ⟩∼
+    k (index ρ x)                                                  ∼⟨⟩
     ⟦ var x ⟧ ρ >>= k                                              ∎
 
   ⟦⟧-correct (lam t) ρ {c} {s} {k} _ c-ok =

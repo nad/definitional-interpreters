@@ -60,7 +60,7 @@ mutual
     ∀ {i n} →
     Tm n → Env n → In-tail-context →
     Delay-crash-trace (ℕ → ℕ) Value i
-  ⟦ var x ⟧       ρ _  = tell suc (return (index x ρ))
+  ⟦ var x ⟧       ρ _  = tell suc (return (index ρ x))
   ⟦ lam t ⟧       ρ _  = tell suc (return (lam t ρ))
   ⟦ t₁ · t₂ ⟧     ρ _  = do v₁ ← ⟦ t₁ ⟧ ρ false
                             v₂ ← ⟦ t₂ ⟧ ρ false

@@ -45,7 +45,7 @@ infix 10 _∙_
 mutual
 
   ⟦_⟧ : ∀ {i n} → Tm n → Env n → Delay-crash Value i
-  ⟦ var x ⟧       ρ = ✓ return (index x ρ)
+  ⟦ var x ⟧       ρ = ✓ return (index ρ x)
   ⟦ lam t ⟧       ρ = ✓ return (lam t ρ)
   ⟦ t₁ · t₂ ⟧     ρ = do v₁ ← ⟦ t₁ ⟧ ρ
                          v₂ ← ⟦ t₂ ⟧ ρ

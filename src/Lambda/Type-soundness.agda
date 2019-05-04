@@ -44,7 +44,7 @@ mutual
     con   : ∀ b → WF-Value bool (con b)
 
   WF-Env : ∀ {n} → Ctxt n → Env n → Set
-  WF-Env Γ ρ = ∀ x → WF-Value (index x Γ) (index x ρ)
+  WF-Env Γ ρ = ∀ x → WF-Value (index Γ x) (index ρ x)
 
 WF-MV : Ty ∞ → Maybe Value → Set
 WF-MV σ v = maybe (WF-Value σ) Prelude.⊥ v

@@ -85,11 +85,10 @@ mutual
 
 -- Indexing commutes with compilation.
 
-comp-index : ∀ {n} (x : Fin n) (ρ : T.Env n) →
-             index x (comp-env ρ) ≡ comp-val (index x ρ)
-comp-index ()       []
-comp-index fzero    (v ∷ ρ) = refl
-comp-index (fsuc i) (v ∷ ρ) = comp-index i ρ
+comp-index : ∀ {n} (ρ : T.Env n) (x : Fin n) →
+             index (comp-env ρ) x ≡ comp-val (index ρ x)
+comp-index (v ∷ ρ) fzero    = refl
+comp-index (v ∷ ρ) (fsuc i) = comp-index ρ i
 
 -- The function comp tc t commutes with _++ c₂.
 

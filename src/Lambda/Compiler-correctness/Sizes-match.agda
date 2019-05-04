@@ -132,12 +132,12 @@ mutual
     VM.stack-sizes ⟨ var x ∷ c , s , comp-env ρ ⟩                         ∼⟨ ∷∼∷′ ⟩≂
 
     (length s ∷′
-     VM.stack-sizes ⟨ c , val (index x (comp-env ρ)) ∷ s , comp-env ρ ⟩)  ≡⟨ by (comp-index x ρ) ⟩≂
+     VM.stack-sizes ⟨ c , val (index (comp-env ρ) x) ∷ s , comp-env ρ ⟩)  ≡⟨ by (comp-index ρ x) ⟩≂
 
     (length s ∷′
-     VM.stack-sizes ⟨ c , val (comp-val (index x ρ)) ∷ s , comp-env ρ ⟩)  ≂⟨ cons″-≂ (c-ok (index x ρ)) ⟩∼
+     VM.stack-sizes ⟨ c , val (comp-val (index ρ x)) ∷ s , comp-env ρ ⟩)  ≂⟨ cons″-≂ (c-ok (index ρ x)) ⟩∼
 
-    (length s ∷′ numbers (k (index x ρ)) (1 + length s))                  ∼⟨ symmetric-∼ ∷∼∷′ ⟩
+    (length s ∷′ numbers (k (index ρ x)) (1 + length s))                  ∼⟨ symmetric-∼ ∷∼∷′ ⟩
 
     numbers (⟦ var x ⟧ ρ tc >>= k) (length s)                             ∎
 
