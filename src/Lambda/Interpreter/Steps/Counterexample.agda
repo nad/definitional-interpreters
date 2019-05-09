@@ -19,7 +19,7 @@ module Lambda.Interpreter.Steps.Counterexample
 open import Conat
   hiding ([_]_∼_; step-∼) renaming (_+_ to _⊕_; _*_ to _⊛_)
 import Equality.Propositional as E
-open import Size
+open import Prelude.Size
 
 open import Monad E.equality-with-J hiding (_⊛_)
 import Nat E.equality-with-J as Nat

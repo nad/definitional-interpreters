@@ -9,7 +9,7 @@ module Only-allocation where
 
 open import Colist
 open import Prelude
-open import Size
+open import Prelude.Size
 
 ------------------------------------------------------------------------
 -- Programs

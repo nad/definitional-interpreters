@@ -20,7 +20,7 @@ import Conat
 open import Equality.Propositional as E using (refl)
 open import Logical-equivalence using (_⇔_)
 open import Tactic.By using (by)
-open import Size
+open import Prelude.Size
 
 open import Function-universe E.equality-with-J hiding (id; _∘_)
 open import List E.equality-with-J using (_++_; length)

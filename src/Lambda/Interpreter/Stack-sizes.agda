@@ -19,7 +19,7 @@ open import Colist as C
 open import Conat using (infinity)
 import Equality.Propositional as E
 open import Logical-equivalence using (_⇔_)
-open import Size
+open import Prelude.Size
 
 open import Function-universe E.equality-with-J hiding (id; _∘_)
 open import Monad E.equality-with-J

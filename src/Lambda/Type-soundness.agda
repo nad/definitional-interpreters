@@ -5,7 +5,7 @@
 {-# OPTIONS --without-K --safe --sized-types #-}
 
 open import Prelude
-open import Size
+open import Prelude.Size
 
 import Lambda.Syntax
 

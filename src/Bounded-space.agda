@@ -35,7 +35,7 @@ open import Colist
 open import Equality.Propositional
 open import Prelude
 open import Tactic.By
-open import Size
+open import Prelude.Size
 
 open import Nat equality-with-J
 

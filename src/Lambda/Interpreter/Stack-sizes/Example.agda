@@ -11,7 +11,7 @@ open import Colist as C
 open import Conat hiding (pred)
 open import Equality.Propositional as E using (refl)
 open import Prelude
-open import Size
+open import Prelude.Size
 
 open import Function-universe E.equality-with-J hiding (id; _∘_)
 open import Monad E.equality-with-J
