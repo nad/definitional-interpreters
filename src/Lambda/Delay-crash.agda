@@ -6,12 +6,12 @@
 
 module Lambda.Delay-crash where
 
-import Conat
 import Equality.Propositional as E
 open import Logical-equivalence using (_⇔_)
 open import Prelude
 open import Prelude.Size
 
+import Conat E.equality-with-J as Conat
 open import Maybe E.equality-with-J as Maybe hiding (raw-monad)
 open import Monad E.equality-with-J as M
   using (Raw-monad; return; _>>=_)

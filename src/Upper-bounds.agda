@@ -6,17 +6,18 @@
 
 module Upper-bounds where
 
-open import Colist
-open import Conat hiding (pred) renaming (_+_ to _⊕_; _∸_ to _⊖_)
 open import Equality.Propositional
 open import Logical-equivalence using (_⇔_)
-open import Omniscience
 open import Prelude
 open import Prelude.Size
 
+open import Colist equality-with-J as Colist
+open import Conat equality-with-J as Conat
+  hiding (pred) renaming (_+_ to _⊕_; _∸_ to _⊖_)
 open import Equality.Decision-procedures equality-with-J
 open import Function-universe equality-with-J as F hiding (id; _∘_)
 open import Nat equality-with-J as Nat using (_≤_; _<_; pred)
+open import Omniscience equality-with-J
 
 ------------------------------------------------------------------------
 -- Upper bounds

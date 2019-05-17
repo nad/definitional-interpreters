@@ -12,10 +12,10 @@ module Lambda.Virtual-machine
   (def : Name → Code 1)
   where
 
-open import Colist using (Colist)
 open import Equality.Propositional
 open import Prelude
 
+open import Colist equality-with-J as Colist using (Colist)
 open import List equality-with-J using (_++_; length)
 open import Monad equality-with-J
 open import Vec.Data equality-with-J

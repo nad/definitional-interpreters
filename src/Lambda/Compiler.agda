@@ -15,7 +15,7 @@ module Lambda.Compiler
   where
 
 open import Equality.Propositional
-open import Tactic.By
+open import Tactic.By.Propositional
 
 open import List equality-with-J using (_++_)
 open import Vec.Data equality-with-J

@@ -8,11 +8,11 @@
 
 module Lambda.Interpreter.Stack-sizes.Counterexample where
 
-open import Colist
 open import Equality.Propositional as E using (_≡_)
 open import Prelude
 open import Prelude.Size
 
+open import Colist E.equality-with-J
 open import Function-universe E.equality-with-J
 open import Vec.Data E.equality-with-J
 

@@ -15,14 +15,14 @@ module Lambda.Compiler-correctness.Steps-match
   (def : Name → Tm 1)
   where
 
-open import Conat
-  using (Conat; zero; suc; force; ⌜_⌝; _+_; _*_; max;
-         [_]_≤_; step-≤; step-∼≤; _∎≤)
 import Equality.Propositional as E
 open import Logical-equivalence using (_⇔_)
-import Tactic.By as By
+import Tactic.By.Propositional as By
 open import Prelude.Size
 
+open import Conat E.equality-with-J as Conat
+  using (Conat; zero; suc; force; ⌜_⌝; _+_; _*_; max;
+         [_]_≤_; step-≤; step-∼≤; _∎≤)
 open import Function-universe E.equality-with-J hiding (_∘_)
 open import List E.equality-with-J using (_++_)
 open import Monad E.equality-with-J using (return; _>>=_; _⟨$⟩_)

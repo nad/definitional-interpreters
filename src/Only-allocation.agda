@@ -7,9 +7,11 @@
 
 module Only-allocation where
 
-open import Colist
+open import Equality.Propositional
 open import Prelude
 open import Prelude.Size
+
+open import Colist equality-with-J
 
 ------------------------------------------------------------------------
 -- Programs

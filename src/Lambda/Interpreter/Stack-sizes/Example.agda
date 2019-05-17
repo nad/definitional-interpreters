@@ -7,12 +7,12 @@
 
 module Lambda.Interpreter.Stack-sizes.Example where
 
-open import Colist as C
-open import Conat hiding (pred)
 open import Equality.Propositional as E using (refl)
 open import Prelude
 open import Prelude.Size
 
+open import Colist E.equality-with-J as C
+open import Conat E.equality-with-J as Conat hiding (pred)
 open import Function-universe E.equality-with-J hiding (id; _∘_)
 open import Monad E.equality-with-J
 open import Nat E.equality-with-J

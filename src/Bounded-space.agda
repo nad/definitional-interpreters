@@ -31,12 +31,12 @@
 
 module Bounded-space where
 
-open import Colist
 open import Equality.Propositional
 open import Prelude
-open import Tactic.By
+open import Tactic.By.Propositional
 open import Prelude.Size
 
+open import Colist equality-with-J
 open import Nat equality-with-J
 
 open import Delay-monad

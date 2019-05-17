@@ -15,13 +15,13 @@ module Lambda.Compiler-correctness.Sizes-match
   (def : Name → Tm 1)
   where
 
-open import Colist hiding (_++_; length)
-import Conat
 open import Equality.Propositional as E using (refl)
 open import Logical-equivalence using (_⇔_)
-open import Tactic.By using (by)
+open import Tactic.By.Propositional using (by)
 open import Prelude.Size
 
+open import Colist E.equality-with-J hiding (_++_; length)
+import Conat E.equality-with-J as Conat
 open import Function-universe E.equality-with-J hiding (id; _∘_)
 open import List E.equality-with-J using (_++_; length)
 open import Monad E.equality-with-J

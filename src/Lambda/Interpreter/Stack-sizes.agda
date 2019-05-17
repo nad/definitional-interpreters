@@ -15,12 +15,12 @@ module Lambda.Interpreter.Stack-sizes
   (def : Name → Tm 1)
   where
 
-open import Colist as C
-open import Conat using (infinity)
 import Equality.Propositional as E
 open import Logical-equivalence using (_⇔_)
 open import Prelude.Size
 
+open import Colist E.equality-with-J as C
+open import Conat E.equality-with-J as Conat using (infinity)
 open import Function-universe E.equality-with-J hiding (id; _∘_)
 open import Monad E.equality-with-J
 open import Nat E.equality-with-J
