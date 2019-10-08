@@ -6,6 +6,8 @@
 
 module README.Pointers-to-results-from-the-paper where
 
+open import Prelude.Size using (∞)
+
 import Colist
 import Conat
 import Omniscience
@@ -275,7 +277,9 @@ Value = Lambda.Syntax.Closure.Value
 -- DelayC (called Delay-crash in the code) and crash.
 
 DelayC = Lambda.Delay-crash.Delay-crash
-crash  = Lambda.Delay-crash.crash
+
+crash : {A : Set} → DelayC A ∞
+crash = Lambda.Delay-crash.crash
 
 -- The computation crash (in fact, any computation of the form now x)
 -- is not weakly bisimilar to never.

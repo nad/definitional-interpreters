@@ -32,8 +32,7 @@ Delay-crash A i = Delay (Maybe A) i
 
 -- A crashing computation.
 
-crash : ∀ {A i} → Delay-crash A i
-crash = now nothing
+pattern crash = now nothing
 
 -- Sequential composition of computations.
 --
