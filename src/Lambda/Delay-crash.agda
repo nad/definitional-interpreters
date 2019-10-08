@@ -19,6 +19,8 @@ open import Monad E.equality-with-J as M
 open import Delay-monad
 open import Delay-monad.Bisimilarity
 import Delay-monad.Monad as DM
+import Delay-monad.Parallel as DP
+import Delay-monad.Sequential as DS
 
 ------------------------------------------------------------------------
 -- Types and operations
@@ -32,6 +34,32 @@ Delay-crash A i = Delay (Maybe A) i
 
 crash : ∀ {A i} → Delay-crash A i
 crash = now nothing
+
+-- Sequential composition of computations.
+--
+-- Note that non-termination trumps crashes, in the sense that if one
+-- computation crashes and the other fails to terminate, then the
+-- combination fails to terminate.
+
+infixl 6 _⊛ˢ_
+
+_⊛ˢ_ :
+  ∀ {A B i} →
+  Delay-crash (A → B) i → Delay-crash A i → Delay-crash B i
+f ⊛ˢ x = M._⊛_ M.⟨$⟩ f DS.⊛ x
+
+-- Parallel composition of computations.
+--
+-- Note that non-termination trumps crashes, in the sense that if one
+-- computation crashes and the other fails to terminate, then the
+-- combination fails to terminate.
+
+infixl 6 _⊛ᵖ_
+
+_⊛ᵖ_ :
+  ∀ {A B i} →
+  Delay-crash (A → B) i → Delay-crash A i → Delay-crash B i
+f ⊛ᵖ x = M._⊛_ M.⟨$⟩ f DP.⊛ x
 
 -- A raw-monad instance. (This definition is turned into an actual
 -- instance at the end of this module, to avoid problems with instance
@@ -62,6 +90,32 @@ _>>=-cong_ :
   (∀ z → [ i ] f z ⟨ k ⟩ g z) →
   [ i ] x DC.>>= f ⟨ k ⟩ y DC.>>= g
 p >>=-cong q = p DM.>>=-cong [ (λ _ → run fail ∎) , q ]
+
+-- Sequential composition preserves strong and weak bisimilarity and
+-- the expansion relation.
+
+infixl 6 _⊛ˢ-cong_
+
+_⊛ˢ-cong_ :
+  ∀ {i k} {A B : Set}
+    {f g : Delay-crash (A → B) ∞} {x y : Delay-crash A ∞} →
+  [ i ] f ⟨ k ⟩ g →
+  [ i ] x ⟨ k ⟩ y →
+  [ i ] f ⊛ˢ x ⟨ k ⟩ g ⊛ˢ y
+p ⊛ˢ-cong q = (p DM.>>=-cong λ _ → now) DS.⊛-cong q
+
+-- Parallel composition preserves strong and weak bisimilarity and the
+-- expansion relation.
+
+infixl 6 _⊛ᵖ-cong_
+
+_⊛ᵖ-cong_ :
+  ∀ {i k} {A B : Set}
+    {f g : Delay-crash (A → B) ∞} {x y : Delay-crash A ∞} →
+  [ i ] f ⟨ k ⟩ g →
+  [ i ] x ⟨ k ⟩ y →
+  [ i ] f ⊛ᵖ x ⟨ k ⟩ g ⊛ᵖ y
+p ⊛ᵖ-cong q = (p DM.>>=-cong λ _ → now) DP.⊛-cong q
 
 -- The monad laws.
 
@@ -112,6 +166,17 @@ steps-⟨$⟩ {f = f} {x} =
                                                                                                    ]) ⟩
   steps (x >>= return ∘ maybe (just ∘ f) nothing)           Conat.∼⟨ DM.steps-⟨$⟩ _ ⟩
   steps x                                                   Conat.∎∼
+
+-- Sequential composition is an expansion of parallel composition.
+
+⊛ˢ≳⊛ᵖ :
+  ∀ {i} {A B : Set} {x} (f : Delay-crash (A → B) ∞) →
+  [ i ] f ⊛ˢ x ≳ f ⊛ᵖ x
+⊛ˢ≳⊛ᵖ {x = x} f =
+  f ⊛ˢ x                ∼⟨⟩
+  M._⊛_ M.⟨$⟩ f DS.⊛ x  ≳⟨ DP.⊛≳⊛ ⟩
+  M._⊛_ M.⟨$⟩ f DP.⊛ x  ∼⟨⟩
+  f ⊛ᵖ x                ∎
 
 ------------------------------------------------------------------------
 -- The instance declaration
