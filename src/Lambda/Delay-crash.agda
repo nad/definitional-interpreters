@@ -210,7 +210,7 @@ associativity x f g =
 -- computation.
 
 steps-⟨$⟩ : Conat.[ i ] steps (f DC.⟨$⟩ x) ∼ steps x
-steps-⟨$⟩ {x = x} {f = f} =
+steps-⟨$⟩ {f = f} {x = x} =
   steps (f DC.⟨$⟩ x)                                 Conat.≡⟨⟩∼
   steps (x DC.>>= DC.return ∘ f)                     Conat.≡⟨⟩∼
   steps (x >>= maybe (return ∘ f) crash)             Conat.∼⟨ steps-cong ((x ∎) DM.>>=-cong [ (λ _ → run fail ∎)
@@ -222,12 +222,12 @@ steps-⟨$⟩ {x = x} {f = f} =
 -- Sequential composition is an expansion of parallel composition.
 
 ⊛ˢ≳⊛ᵖ : [ i ] f ⊛ˢ x ≳ f ⊛ᵖ x
-⊛ˢ≳⊛ᵖ {x = return x} {f = return f} = now
-⊛ˢ≳⊛ᵖ {x = crash}    {f = return f} = now
-⊛ˢ≳⊛ᵖ {x = later x}  {f = return f} = later λ { .force → ⊛ˢ≳⊛ᵖ }
-⊛ˢ≳⊛ᵖ                {f = crash}    = now
-⊛ˢ≳⊛ᵖ {x = now x}    {f = later f}  = later λ { .force → ⊛ˢ≳⊛ᵖ }
-⊛ˢ≳⊛ᵖ {x = later x}  {f = later f}  = later λ { .force →
+⊛ˢ≳⊛ᵖ {f = return f} {x = return x} = now
+⊛ˢ≳⊛ᵖ {f = return f} {x = crash}    = now
+⊛ˢ≳⊛ᵖ {f = return f} {x = later x}  = later λ { .force → ⊛ˢ≳⊛ᵖ }
+⊛ˢ≳⊛ᵖ {f = crash}                   = now
+⊛ˢ≳⊛ᵖ {f = later f}  {x = now x}    = later λ { .force → ⊛ˢ≳⊛ᵖ }
+⊛ˢ≳⊛ᵖ {f = later f}  {x = later x}  = later λ { .force →
   (f .force DC.>>= λ f → later x DC.>>= λ x → DC.return (f x))  ≳⟨ ((f .force ∎) >>=-cong λ _ → laterˡ (_ ∎)) ⟩
   f .force ⊛ˢ x .force                                          ≳⟨ ⊛ˢ≳⊛ᵖ ⟩∼
   f .force ⊛ᵖ x .force                                          ∎ }
