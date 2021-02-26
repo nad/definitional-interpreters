@@ -18,12 +18,12 @@ open import Colist equality-with-J
 
 -- Statements.
 
-data Stmt : Set where
+data Stmt : Type where
   alloc dealloc : Stmt
 
 -- Programs are potentially infinite sequences of statements.
 
-Program : Size → Set
+Program : Size → Type
 Program i = Colist Stmt i
 
 ------------------------------------------------------------------------

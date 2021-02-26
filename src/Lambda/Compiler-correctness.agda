@@ -9,7 +9,7 @@ open import Prelude
 import Lambda.Syntax
 
 module Lambda.Compiler-correctness
-  {Name : Set}
+  {Name : Type}
   (open Lambda.Syntax Name)
   (def : Name → Tm 1)
   where
@@ -64,7 +64,7 @@ private
 -- A continuation is OK with respect to a certain state if the
 -- following property is satisfied.
 
-Cont-OK : Size → State → (T.Value → Delay-crash C.Value ∞) → Set
+Cont-OK : Size → State → (T.Value → Delay-crash C.Value ∞) → Type
 Cont-OK i ⟨ c , s , ρ ⟩ k =
   ∀ v → [ i ] exec ⟨ c , val (comp-val v) ∷ s , ρ ⟩ ≈ k v
 
@@ -73,7 +73,7 @@ Cont-OK i ⟨ c , s , ρ ⟩ k =
 -- related to the continuation in a certain way.
 
 data Stack-OK (i : Size) (k : T.Value → Delay-crash C.Value ∞) :
-              In-tail-context → Stack → Set where
+              In-tail-context → Stack → Type where
   unrestricted : ∀ {s} → Stack-OK i k false s
   restricted   : ∀ {s n} {c : Code n} {ρ : C.Env n} →
                  Cont-OK i ⟨ c , s , ρ ⟩ k →

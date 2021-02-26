@@ -29,7 +29,7 @@ mutual
   -- A kind of delay monad with the possibility of crashing that also
   -- yields a trace (colist) of values.
 
-  data Delay-crash-trace (A B : Set) (i : Size) : Set where
+  data Delay-crash-trace (A B : Type) (i : Size) : Type where
 
     -- A result is returned now.
 
@@ -49,7 +49,7 @@ mutual
 
     tell : A → Delay-crash-trace A B i → Delay-crash-trace A B i
 
-  record Delay-crash-trace′ (A B : Set) (i : Size) : Set where
+  record Delay-crash-trace′ (A B : Type) (i : Size) : Type where
     coinductive
     field
       force : {j : Size< i} → Delay-crash-trace A B j
@@ -101,7 +101,7 @@ instance
 ------------------------------------------------------------------------
 -- Strong bisimilarity for Delay-crash-trace
 
-module _ {A B : Set} where
+module _ {A B : Type} where
 
   mutual
 
@@ -111,7 +111,7 @@ module _ {A B : Set} where
 
     data [_]_∼_ (i : Size) :
            Delay-crash-trace A B ∞ →
-           Delay-crash-trace A B ∞ → Set where
+           Delay-crash-trace A B ∞ → Type where
       now   : ∀ {x} → [ i ] now x ∼ now x
       crash : [ i ] crash ∼ crash
       later : ∀ {v x y} →
@@ -123,7 +123,7 @@ module _ {A B : Set} where
 
     record [_]_∼′_ (i : Size)
              (x : Delay-crash-trace A B ∞)
-             (y : Delay-crash-trace A B ∞) : Set where
+             (y : Delay-crash-trace A B ∞) : Type where
       coinductive
       field
         force : {j : Size< i} → [ j ] x ∼ y
@@ -180,12 +180,12 @@ module _ {A B : Set} where
 -- Monad laws
 
 left-identity :
-  ∀ {A B C : Set} x (f : B → Delay-crash-trace A C ∞) →
+  ∀ {A B C : Type} x (f : B → Delay-crash-trace A C ∞) →
   [ ∞ ] return x >>= f ∼ f x
 left-identity x f = reflexive (f x)
 
 right-identity :
-  ∀ {i} {A B : Set} (x : Delay-crash-trace A B ∞) →
+  ∀ {i} {A B : Type} (x : Delay-crash-trace A B ∞) →
   [ i ] x >>= return ∼ x
 right-identity (now x)     = now
 right-identity crash       = crash
@@ -194,7 +194,7 @@ right-identity (later v x) = later λ { .force →
 right-identity (tell v x)  = tell (right-identity x)
 
 associativity :
-  ∀ {i} {A B C D : Set} →
+  ∀ {i} {A B C D : Type} →
   (x : Delay-crash-trace A B ∞)
   (f : B → Delay-crash-trace A C ∞)
   (g : C → Delay-crash-trace A D ∞) →
@@ -211,7 +211,7 @@ associativity (tell v x)  f g = tell (associativity x f g)
 infixl 5 _>>=-cong_
 
 _>>=-cong_ :
-  ∀ {i} {A B C : Set}
+  ∀ {i} {A B C : Type}
     {x y : Delay-crash-trace A B ∞}
     {f g : B → Delay-crash-trace A C ∞} →
   [ i ] x ∼ y → (∀ z → [ i ] f z ∼ g z) →
@@ -222,7 +222,7 @@ later p >>=-cong q = later λ { .force → force p >>=-cong q }
 tell p  >>=-cong q = tell (p >>=-cong q)
 
 trace-cong :
-  ∀ {i} {A B : Set} {x y : Delay-crash-trace A B ∞} →
+  ∀ {i} {A B : Type} {x y : Delay-crash-trace A B ∞} →
   [ i ] x ∼ y → C.[ i ] trace x ∼ trace y
 trace-cong now       = []
 trace-cong crash     = []
@@ -230,7 +230,7 @@ trace-cong (later p) = refl ∷ λ { .force → trace-cong (force p) }
 trace-cong (tell p)  = refl ∷ λ { .force → trace-cong p }
 
 delay-crash-cong :
-  ∀ {i} {A B : Set} {x y : Delay-crash-trace A B ∞} →
+  ∀ {i} {A B : Type} {x y : Delay-crash-trace A B ∞} →
   [ i ] x ∼ y → D.[ i ] delay-crash x ∼ delay-crash y
 delay-crash-cong now       = now
 delay-crash-cong crash     = now
@@ -257,7 +257,7 @@ delay-crash->>= (tell x m)  = delay-crash->>= m
 -- Use of _⟨$⟩_ does not affect the trace.
 
 trace-⟨$⟩ :
-  ∀ {i} {A B C : Set} {f : B → C}
+  ∀ {i} {A B C : Type} {f : B → C}
   (x : Delay-crash-trace A B ∞) →
   C.[ i ] trace (f ⟨$⟩ x) ∼ trace x
 trace-⟨$⟩ (now x)     = []

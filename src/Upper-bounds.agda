@@ -26,10 +26,10 @@ open import Omniscience equality-with-J
 
 infix 4 [_]_⊑_ [_]_⊑′_
 
-[_]_⊑_ : Size → Colist ℕ ∞ → Conat ∞ → Set
+[_]_⊑_ : Size → Colist ℕ ∞ → Conat ∞ → Type
 [ i ] ms ⊑ n = □ i (λ m → [ ∞ ] ⌜ m ⌝ ≤ n) ms
 
-[_]_⊑′_ : Size → Colist ℕ ∞ → Conat ∞ → Set
+[_]_⊑′_ : Size → Colist ℕ ∞ → Conat ∞ → Type
 [ i ] ms ⊑′ n = □′ i (λ m → [ ∞ ] ⌜ m ⌝ ≤ n) ms
 
 -- The conatural number infinity is always an upper bound.
@@ -103,7 +103,7 @@ replicate⊑ {i} (suc m) {n} =                                      $⟨ (λ { _
 
 -- The least upper bound of a colist of natural numbers.
 
-LUB : Colist ℕ ∞ → Conat ∞ → Set
+LUB : Colist ℕ ∞ → Conat ∞ → Type
 LUB ns n =
   [ ∞ ] ns ⊑ n
     ×
@@ -315,16 +315,16 @@ wlpo→lub wlpo = λ ms → lub ms , □ˢ∞→□∞ (upper-bound ms) , least 
 
 infix 4 [_]_≲_ [_]_≲′_
 
-[_]_≲_ : Size → Colist ℕ ∞ → Colist ℕ ∞ → Set
+[_]_≲_ : Size → Colist ℕ ∞ → Colist ℕ ∞ → Type
 [ i ] ms ≲ ns = ∀ {n} → [ ∞ ] ns ⊑ n → [ i ] ms ⊑ n
 
-[_]_≲′_ : Size → Colist ℕ ∞ → Colist ℕ ∞ → Set
+[_]_≲′_ : Size → Colist ℕ ∞ → Colist ℕ ∞ → Type
 [ i ] ms ≲′ ns = ∀ {n} → [ ∞ ] ns ⊑ n → [ i ] ms ⊑′ n
 
 -- Bounded m ns means that m is smaller than or equal to some element
 -- in ns, or equal to zero.
 
-Bounded : ℕ → Colist ℕ ∞ → Set
+Bounded : ℕ → Colist ℕ ∞ → Type
 Bounded m ns = ◇ ∞ (m ≤_) ns ⊎ m ≡ zero
 
 -- If Bounded m ns holds, then m is less than or equal to every upper
@@ -507,10 +507,10 @@ _□≲ {i} ns {n} =
 
 infix 4 [_]_≂_ [_]_≂′_
 
-[_]_≂_ : Size → Colist ℕ ∞ → Colist ℕ ∞ → Set
+[_]_≂_ : Size → Colist ℕ ∞ → Colist ℕ ∞ → Type
 [ i ] ms ≂ ns = [ i ] ms ≲ ns × [ i ] ns ≲ ms
 
-[_]_≂′_ : Size → Colist ℕ ∞ → Colist ℕ ∞ → Set
+[_]_≂′_ : Size → Colist ℕ ∞ → Colist ℕ ∞ → Type
 [ i ] ms ≂′ ns = [ i ] ms ≲′ ns × [ i ] ns ≲′ ms
 
 -- The relation is symmetric.
@@ -664,7 +664,7 @@ cast-≂ p = proj₁ p , proj₂ p
 
 infix 4 [_]_≲″_
 
-record [_]_≲″_ (i : Size) (ms ns : Colist ℕ ∞) : Set where
+record [_]_≲″_ (i : Size) (ms ns : Colist ℕ ∞) : Type where
   coinductive
   field
     force : {j : Size< i} → [ j ] ms ≲ ns
@@ -689,7 +689,7 @@ open [_]_≲″_ public
 
 infix 4 [_]_≂″_
 
-record [_]_≂″_ (i : Size) (ms ns : Colist ℕ ∞) : Set where
+record [_]_≂″_ (i : Size) (ms ns : Colist ℕ ∞) : Type where
   coinductive
   field
     force : {j : Size< i} → [ j ] ms ≂ ns

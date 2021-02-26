@@ -64,13 +64,13 @@ mutual
 -- The smallest heap size that is required to run the given program
 -- when the initial heap is empty.
 
-Heap-usage : Program ∞ → Conat ∞ → Set
+Heap-usage : Program ∞ → Conat ∞ → Type
 Heap-usage p n = LUB (⟦ p ⟧ 0) n
 
 -- The smallest extra heap size that is required to run the given
 -- program, for arbitrary initial heaps.
 
-Heap-usage′ : Program ∞ → Conat ∞ → Set
+Heap-usage′ : Program ∞ → Conat ∞ → Type
 Heap-usage′ p n =
   (∀ h → [ ∞ ] ⟦ p ⟧ h ⊑ n ⊕ ⌜ h ⌝)
     ×

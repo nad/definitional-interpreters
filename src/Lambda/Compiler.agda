@@ -9,7 +9,7 @@ open import Prelude
 import Lambda.Syntax
 
 module Lambda.Compiler
-  {Name : Set}
+  {Name : Type}
   (open Lambda.Syntax Name)
   (def : Name → Tm 1)
   where
@@ -35,7 +35,7 @@ private
 -- The compiler compiles calls claimed to be in a tail context in a
 -- special way.
 
-In-tail-context : Set
+In-tail-context : Type
 In-tail-context = Bool
 
 -- The compiler (which takes a code continuation).

@@ -4,10 +4,11 @@
 
 {-# OPTIONS --without-K --safe --sized-types #-}
 
-module Lambda.Virtual-machine.Instructions (Name : Set) where
+open import Prelude
+
+module Lambda.Virtual-machine.Instructions (Name : Type) where
 
 open import Equality.Propositional
-open import Prelude
 
 open import Lambda.Syntax Name
 
@@ -18,7 +19,7 @@ mutual
 
   -- Instructions.
 
-  data Instr (n : ℕ) : Set where
+  data Instr (n : ℕ) : Type where
     var     : Fin n → Instr n
     clo     : Code (suc n) → Instr n
     app ret : Instr n
@@ -28,7 +29,7 @@ mutual
 
   -- Code.
 
-  Code : ℕ → Set
+  Code : ℕ → Type
   Code n = List (Instr n)
 
 -- Environments and values.
@@ -40,16 +41,16 @@ open Closure Code
 
 -- Stacks.
 
-data Stack-element : Set where
+data Stack-element : Type where
   val : Value → Stack-element
   ret : ∀ {n} → Code n → Env n → Stack-element
 
-Stack : Set
+Stack : Type
 Stack = List Stack-element
 
 -- States.
 
-data State : Set where
+data State : Type where
   ⟨_,_,_⟩ : ∀ {n} → Code n → Stack → Env n → State
 
 ------------------------------------------------------------------------
@@ -57,7 +58,7 @@ data State : Set where
 
 -- The result of running the VM one step.
 
-data Result : Set where
+data Result : Type where
   continue : State → Result
   done     : Value → Result
   crash    : Result

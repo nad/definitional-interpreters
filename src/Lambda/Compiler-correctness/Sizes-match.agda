@@ -10,7 +10,7 @@ open import Prelude
 import Lambda.Syntax
 
 module Lambda.Compiler-correctness.Sizes-match
-  {Name : Set}
+  {Name : Type}
   (open Lambda.Syntax Name)
   (def : Name → Tm 1)
   where
@@ -77,7 +77,7 @@ open Delay-crash-trace using (tell)
 -- following property is satisfied.
 
 Cont-OK :
-  Size → State → (T.Value → Delay-crash-trace (ℕ → ℕ) C.Value ∞) → Set
+  Size → State → (T.Value → Delay-crash-trace (ℕ → ℕ) C.Value ∞) → Type
 Cont-OK i ⟨ c , s , ρ ⟩ k =
   ∀ v → [ i ] VM.stack-sizes ⟨ c , val (comp-val v) ∷ s , ρ ⟩ ≂
               numbers (k v) (1 + length s)
@@ -95,7 +95,7 @@ castC {s = ⟨ _ , _ , _ ⟩} c-ok = cast-≂ ∘ c-ok
 
 data Stack-OK (i : Size)
               (k : T.Value → Delay-crash-trace (ℕ → ℕ) C.Value ∞) :
-              In-tail-context → Stack → Set where
+              In-tail-context → Stack → Type where
   unrestricted : ∀ {s} → Stack-OK i k false s
   restricted   :
     ∀ {s n} {c : Code n} {ρ : C.Env n} →

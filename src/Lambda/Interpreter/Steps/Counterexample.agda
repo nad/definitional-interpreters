@@ -11,7 +11,7 @@ open import Prelude
 import Lambda.Syntax
 
 module Lambda.Interpreter.Steps.Counterexample
-  {Name : Set}
+  {Name : Type}
   (open Lambda.Syntax Name)
   (def : Name → Tm 1)
   where

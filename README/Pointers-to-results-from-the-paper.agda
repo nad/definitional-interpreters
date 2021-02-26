@@ -6,6 +6,7 @@
 
 module README.Pointers-to-results-from-the-paper where
 
+open import Prelude using (Type)
 open import Prelude.Size using (∞)
 
 import Colist
@@ -278,7 +279,7 @@ Value = Lambda.Syntax.Closure.Value
 
 DelayC = Lambda.Delay-crash.Delay-crash
 
-crash : {A : Set} → DelayC A ∞
+crash : {A : Type} → DelayC A ∞
 crash = Lambda.Delay-crash.crash
 
 -- The computation crash (in fact, any computation of the form now x)

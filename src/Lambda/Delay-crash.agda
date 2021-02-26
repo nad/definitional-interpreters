@@ -28,7 +28,7 @@ open import Delay-monad.Termination
 private
 
   variable
-    A B C     : Set
+    A B C     : Type
     i         : Size
     f g k x y : A
 
@@ -37,7 +37,7 @@ private
 
 -- The monad.
 
-Delay-crash : Set → Size → Set
+Delay-crash : Type → Size → Type
 Delay-crash A i = Delay (Maybe A) i
 
 -- A raw-monad instance. (This definition is turned into an actual

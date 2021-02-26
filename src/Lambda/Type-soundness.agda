@@ -10,7 +10,7 @@ open import Prelude.Size
 import Lambda.Syntax
 
 module Lambda.Type-soundness
-  {Name : Set}
+  {Name : Type}
   (open Lambda.Syntax Name)
   (open Closure Tm)
   (def : Name → Tm 1)
@@ -36,17 +36,17 @@ open import Lambda.Interpreter def
 
 mutual
 
-  data WF-Value : Ty ∞ → Value → Set where
+  data WF-Value : Ty ∞ → Value → Type where
     lam   : ∀ {n Γ σ τ} {t : Tm (1 + n)} {ρ} →
             Σ , force σ ∷ Γ ⊢ t ∈ force τ →
             WF-Env Γ ρ →
             WF-Value (σ ⇾′ τ) (lam t ρ)
     con   : ∀ b → WF-Value bool (con b)
 
-  WF-Env : ∀ {n} → Ctxt n → Env n → Set
+  WF-Env : ∀ {n} → Ctxt n → Env n → Type
   WF-Env Γ ρ = ∀ x → WF-Value (index Γ x) (index ρ x)
 
-WF-MV : Ty ∞ → Maybe Value → Set
+WF-MV : Ty ∞ → Maybe Value → Type
 WF-MV σ v = maybe (WF-Value σ) Prelude.⊥ v
 
 -- Some "constructors" for WF-Env.

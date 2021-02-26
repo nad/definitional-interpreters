@@ -4,16 +4,17 @@
 
 {-# OPTIONS --without-K --safe --sized-types #-}
 
+open import Prelude
+
 import Lambda.Virtual-machine.Instructions
 
 module Lambda.Virtual-machine
-  {Name : Set}
+  {Name : Type}
   (open Lambda.Virtual-machine.Instructions Name)
   (def : Name → Code 1)
   where
 
 open import Equality.Propositional
-open import Prelude
 
 open import Colist equality-with-J as Colist using (Colist)
 open import List equality-with-J using (_++_; length)

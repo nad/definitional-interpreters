@@ -51,7 +51,7 @@ open import Only-allocation
 -- Bounded heaps. (Only a size, plus a proof showing that the size is
 -- bounded.)
 
-record Heap (limit : ℕ) : Set where
+record Heap (limit : ℕ) : Type where
   field
     size  : ℕ
     bound : size ≤ limit
@@ -143,14 +143,14 @@ crash = now nothing
 
 infix 4 [_]_≃_ [_]_≃′_
 
-[_]_≃_ : Size → Program ∞ → Program ∞ → Set
+[_]_≃_ : Size → Program ∞ → Program ∞ → Type
 [ i ] p ≃ q =
   ∃ λ c →
   ∀ l (h : Heap l) →
   c + h .size ≤ l →
   [ i ] ⟦ p ⟧ h ≈ ⟦ q ⟧ h
 
-[_]_≃′_ : Size → Program ∞ → Program ∞ → Set
+[_]_≃′_ : Size → Program ∞ → Program ∞ → Type
 [ i ] p ≃′ q =
   ∃ λ c →
   ∀ l (h : Heap l) →

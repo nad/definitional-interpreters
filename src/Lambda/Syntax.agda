@@ -5,10 +5,11 @@
 
 {-# OPTIONS --without-K --safe --sized-types #-}
 
-module Lambda.Syntax (Name : Set) where
+open import Prelude
+
+module Lambda.Syntax (Name : Type) where
 
 open import Equality.Propositional
-open import Prelude
 open import Prelude.Size
 
 open import Vec.Data equality-with-J
@@ -20,7 +21,7 @@ open import Vec.Data equality-with-J
 
 infixl 9 _·_
 
-data Tm (n : ℕ) : Set where
+data Tm (n : ℕ) : Type where
   var  : Fin n → Tm n
   lam  : Tm (suc n) → Tm n
   _·_  : Tm n → Tm n → Tm n
@@ -34,19 +35,19 @@ data Tm (n : ℕ) : Set where
 -- Environments and values. Defined in a module parametrised by the
 -- type of terms.
 
-module Closure (Tm : ℕ → Set) where
+module Closure (Tm : ℕ → Type) where
 
   mutual
 
     -- Environments.
 
-    Env : ℕ → Set
+    Env : ℕ → Type
     Env n = Vec Value n
 
     -- Values. Lambdas are represented using closures, so values do
     -- not contain any free variables.
 
-    data Value : Set where
+    data Value : Type where
       lam : ∀ {n} → Tm (suc n) → Env n → Value
       con : Bool → Value
 
@@ -59,11 +60,11 @@ infixr 8 _⇾_ _⇾′_
 
 mutual
 
-  data Ty (i : Size) : Set where
+  data Ty (i : Size) : Type where
     bool : Ty i
     _⇾′_ : (σ τ : Ty′ i) → Ty i
 
-  record Ty′ (i : Size) : Set where
+  record Ty′ (i : Size) : Type where
     coinductive
     field
       force : {j : Size< i} → Ty j
@@ -77,7 +78,7 @@ _⇾_ : ∀ {i} → Ty i → Ty i → Ty i
 
 -- Contexts.
 
-Ctxt : ℕ → Set
+Ctxt : ℕ → Type
 Ctxt n = Vec (Ty ∞) n
 
 -- Type system.
@@ -85,7 +86,7 @@ Ctxt n = Vec (Ty ∞) n
 infix 4 _,_⊢_∈_
 
 data _,_⊢_∈_ (Σ : Name → Ty ∞ × Ty ∞) {n} (Γ : Ctxt n) :
-             Tm n → Ty ∞ → Set where
+             Tm n → Ty ∞ → Type where
   var  : ∀ {x} → Σ , Γ ⊢ var x ∈ index Γ x
   lam  : ∀ {t σ τ} →
          Σ , force σ ∷ Γ ⊢ t ∈ force τ →

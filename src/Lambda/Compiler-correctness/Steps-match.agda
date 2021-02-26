@@ -10,7 +10,7 @@ open import Prelude hiding (_+_; _*_)
 import Lambda.Syntax
 
 module Lambda.Compiler-correctness.Steps-match
-  {Name : Set}
+  {Name : Type}
   (open Lambda.Syntax Name)
   (def : Name → Tm 1)
   where
@@ -127,7 +127,7 @@ private
 -- number if the following property is satisfied.
 
 Cont-OK :
-  Size → State → (T.Value → Delay-crash C.Value ∞) → Conat ∞ → Set
+  Size → State → (T.Value → Delay-crash C.Value ∞) → Conat ∞ → Type
 Cont-OK i ⟨ c , s , ρ ⟩ k δ =
   ∀ v → [ i ∣ ⌜ 1 ⌝ ∣ δ ] exec ⟨ c , val (comp-val v) ∷ s , ρ ⟩ ≳ k v
 
@@ -138,7 +138,7 @@ Cont-OK i ⟨ c , s , ρ ⟩ k δ =
 
 data Stack-OK
        (i : Size) (k : T.Value → Delay-crash C.Value ∞) (δ : Conat ∞) :
-       In-tail-context → Stack → Set where
+       In-tail-context → Stack → Type where
   unrestricted : ∀ {s} → Stack-OK i k δ false s
   restricted   : ∀ {s n} {c : Code n} {ρ : C.Env n} →
                  Cont-OK i ⟨ c , s , ρ ⟩ k δ →
