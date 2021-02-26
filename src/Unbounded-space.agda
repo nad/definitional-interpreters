@@ -182,6 +182,7 @@ max→wlpo find-max = λ f → case find-max (p f) of λ where
   p : ∀ {i} → (ℕ → Bool) → Program i
   p f = helper (f 0)
     module P where
+    helper : ∀ {i} → Bool → Program i
     helper =
       if_then alloc   ∷′ []
          else dealloc ∷  λ { .force → p (λ n → f (1 + n)) }
