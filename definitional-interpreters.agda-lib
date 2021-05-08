@@ -3,6 +3,5 @@ depend: equality delay-monad
 include: src
 flags:
   --without-K
-  --safe
   --sized-types
   --no-import-sorts
