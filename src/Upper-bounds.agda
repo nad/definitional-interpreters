@@ -2,8 +2,6 @@
 -- Upper bounds of colists containing natural numbers
 ------------------------------------------------------------------------
 
-{-# OPTIONS --without-K --safe --sized-types #-}
-
 module Upper-bounds where
 
 open import Equality.Propositional

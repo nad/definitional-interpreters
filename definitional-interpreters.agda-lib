@@ -1,4 +1,8 @@
 name: definitional-interpreters
 depend: equality delay-monad
 include: src
-flags: --no-import-sorts
+flags:
+  --without-K
+  --safe
+  --sized-types
+  --no-import-sorts

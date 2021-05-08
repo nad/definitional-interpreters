@@ -2,8 +2,6 @@
 -- Compiler correctness
 ------------------------------------------------------------------------
 
-{-# OPTIONS --without-K --safe --sized-types #-}
-
 open import Prelude
 
 import Lambda.Syntax

@@ -2,8 +2,6 @@
 -- Virtual machine instructions, state etc.
 ------------------------------------------------------------------------
 
-{-# OPTIONS --without-K --safe --sized-types #-}
-
 open import Prelude
 
 module Lambda.Virtual-machine.Instructions (Name : Type) where

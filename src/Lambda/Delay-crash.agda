@@ -2,8 +2,6 @@
 -- A delay monad with the possibility of crashing
 ------------------------------------------------------------------------
 
-{-# OPTIONS --without-K --safe --sized-types #-}
-
 module Lambda.Delay-crash where
 
 import Equality.Propositional as E

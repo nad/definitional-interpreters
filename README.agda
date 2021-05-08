@@ -9,8 +9,6 @@
 -- code that is closer to the paper, see the version of the code that
 -- is distributed with the paper.
 
-{-# OPTIONS --without-K --safe --sized-types #-}
-
 module README where
 
 ------------------------------------------------------------------------

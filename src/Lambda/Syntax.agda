@@ -3,8 +3,6 @@
 -- booleans and recursive unary function calls
 ------------------------------------------------------------------------
 
-{-# OPTIONS --without-K --safe --sized-types #-}
-
 open import Prelude
 
 module Lambda.Syntax (Name : Type) where

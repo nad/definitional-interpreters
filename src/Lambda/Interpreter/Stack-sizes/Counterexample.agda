@@ -4,8 +4,6 @@
 -- instrumented interpreter
 ------------------------------------------------------------------------
 
-{-# OPTIONS --without-K --safe --sized-types #-}
-
 module Lambda.Interpreter.Stack-sizes.Counterexample where
 
 open import Equality.Propositional as E using (_≡_)

@@ -27,8 +27,6 @@
 -- This is an attempt to show that definitional interpreters can
 -- handle this situation.
 
-{-# OPTIONS --without-K --safe --sized-types #-}
-
 module Bounded-space where
 
 open import Equality.Propositional

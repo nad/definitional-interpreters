@@ -2,8 +2,6 @@
 -- A virtual machine
 ------------------------------------------------------------------------
 
-{-# OPTIONS --without-K --safe --sized-types #-}
-
 open import Prelude
 
 import Lambda.Virtual-machine.Instructions

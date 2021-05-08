@@ -3,8 +3,6 @@
 -- obtained from the instrumented interpreter
 ------------------------------------------------------------------------
 
-{-# OPTIONS --without-K --safe --sized-types #-}
-
 open import Prelude hiding (_+_; _*_)
 
 import Lambda.Syntax

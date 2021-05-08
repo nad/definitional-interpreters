@@ -4,8 +4,6 @@
 -- by the virtual machine for the corresponding compiled program
 ------------------------------------------------------------------------
 
-{-# OPTIONS --without-K --safe --sized-types #-}
-
 open import Prelude
 
 import Lambda.Syntax

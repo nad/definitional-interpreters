@@ -2,8 +2,6 @@
 -- A type soundness result
 ------------------------------------------------------------------------
 
-{-# OPTIONS --without-K --safe --sized-types #-}
-
 open import Prelude
 open import Prelude.Size
 

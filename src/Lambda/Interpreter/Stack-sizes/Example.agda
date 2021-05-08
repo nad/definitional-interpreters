@@ -3,8 +3,6 @@
 -- space
 ------------------------------------------------------------------------
 
-{-# OPTIONS --without-K --safe --sized-types #-}
-
 module Lambda.Interpreter.Stack-sizes.Example where
 
 open import Equality.Propositional as E using (refl)
