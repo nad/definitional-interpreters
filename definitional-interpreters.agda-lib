@@ -2,6 +2,6 @@ name: definitional-interpreters
 depend: equality delay-monad
 include: src
 flags:
-  --without-K
+  --cubical-compatible
   --sized-types
   --no-import-sorts
