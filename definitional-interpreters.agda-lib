@@ -5,3 +5,4 @@ flags:
   --cubical-compatible
   --sized-types
   --no-import-sorts
+  --warning=noUnsupportedIndexedMatch
