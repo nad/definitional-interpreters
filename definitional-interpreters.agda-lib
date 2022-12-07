@@ -4,5 +4,6 @@ include: src
 flags:
   --cubical-compatible
   --sized-types
+  --erasure
   --no-import-sorts
   --warning=noUnsupportedIndexedMatch
